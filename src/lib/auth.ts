@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type Employee = {
@@ -13,7 +14,8 @@ export type Employee = {
 
 // Mengembalikan data karyawan yang sedang login, atau null kalau
 // emailnya tidak terdaftar di tabel employees / tidak aktif.
-export async function getCurrentEmployee(): Promise<Employee | null> {
+// Dibungkus cache() supaya hanya diambil sekali per permintaan halaman.
+export const getCurrentEmployee = cache(async (): Promise<Employee | null> => {
   const supabase = await createClient();
 
   // Fungsi me() di database mencocokkan email login dengan karyawan aktif.
@@ -29,4 +31,4 @@ export async function getCurrentEmployee(): Promise<Employee | null> {
     .single();
 
   return (data as Employee | null) ?? null;
-}
+});

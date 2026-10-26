@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCurrentEmployee } from "@/lib/auth";
 
 const ROLE_LABEL = {
@@ -27,8 +28,14 @@ export default async function Home() {
         <dt className="text-slate-500">Status kerja</dt>
         <dd className="text-slate-900">{employee.emp_status}</dd>
       </dl>
+      <Link
+        href="/tugas?pic=saya"
+        className="rounded-lg bg-teal-700 px-4 py-3 text-center font-semibold text-white hover:bg-teal-800"
+      >
+        Lihat tugas saya
+      </Link>
       <p className="text-sm text-slate-500">
-        Halaman Tugas, Log Kerja, dan Dashboard akan menyusul.
+        Halaman Log Kerja dan Dashboard akan menyusul.
       </p>
     </main>
   );
