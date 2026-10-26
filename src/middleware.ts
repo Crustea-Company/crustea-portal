@@ -39,6 +39,16 @@ export async function middleware(request: NextRequest) {
     (p) => path === p || path.startsWith(`${p}/`),
   );
 
+  // Kalau Supabase memakai alamat cadangan (Site URL), kode login mendarat di halaman
+  // awal (/?code=...). Teruskan ke penerima link supaya login tetap berhasil.
+  const code = request.nextUrl.searchParams.get("code");
+  if (!user && code && path === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    url.search = `?code=${encodeURIComponent(code)}`;
+    return NextResponse.redirect(url);
+  }
+
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     // Supabase mengembalikan pengguna ke sini dengan ?error=... kalau link login
