@@ -149,6 +149,7 @@ export default async function LogKerjaPage({ searchParams }: { searchParams: Sea
         <LogList
           logs={(listRes.data ?? []) as WorkLog[]}
           locked={lockedPeriods.has(selectedPeriod)}
+          today={today}
         />
       </section>
 

@@ -7,42 +7,44 @@ import { todayJakarta } from "@/lib/format";
 
 export type FormState = { ok: boolean; message: string } | null;
 
-export async function addWorkLog(_prev: FormState, formData: FormData): Promise<FormState> {
-  const me = await getCurrentEmployee();
-  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+type LogValues = { log_date: string; activity: string; minutes: number; proof: string | null };
 
+// Membaca dan memeriksa isian form (dipakai untuk catat baru dan ubah).
+function parseLogForm(formData: FormData): { error: string } | { values: LogValues } {
   const logDate = String(formData.get("log_date") ?? "");
   const activity = String(formData.get("activity") ?? "").trim();
   const proof = String(formData.get("proof") ?? "").trim();
   const hours = Number(formData.get("hours") || 0);
   const mins = Number(formData.get("minutes") || 0);
-  const minutes = Math.round(hours * 60 + mins);
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(logDate)) {
-    return { ok: false, message: "Tanggal belum diisi." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(logDate)) return { error: "Tanggal belum diisi." };
+  if (logDate > todayJakarta()) return { error: "Tanggal tidak boleh di masa depan." };
+  if (!activity) return { error: "Aktivitas belum diisi." };
+  if (!Number.isInteger(hours) || hours < 0 || hours > 24) {
+    return { error: "Jam harus bilangan bulat 0-24." };
   }
-  if (logDate > todayJakarta()) {
-    return { ok: false, message: "Tanggal tidak boleh di masa depan." };
+  if (!Number.isInteger(mins) || mins < 0 || mins > 59) {
+    return { error: "Menit harus bilangan bulat 0-59." };
   }
-  if (!activity) return { ok: false, message: "Aktivitas belum diisi." };
-  if (!Number.isFinite(minutes) || minutes <= 0) {
-    return { ok: false, message: "Durasi harus lebih dari 0." };
-  }
-  if (minutes > 24 * 60) {
-    return { ok: false, message: "Durasi satu catatan tidak boleh lebih dari 24 jam." };
-  }
+  const minutes = hours * 60 + mins;
+  if (minutes <= 0) return { error: "Durasi harus lebih dari 0." };
+  if (minutes > 24 * 60) return { error: "Durasi satu catatan tidak boleh lebih dari 24 jam." };
+
+  return { values: { log_date: logDate, activity, minutes, proof: proof || null } };
+}
+
+export async function addWorkLog(_prev: FormState, formData: FormData): Promise<FormState> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+
+  const parsed = parseLogForm(formData);
+  if ("error" in parsed) return { ok: false, message: parsed.error };
 
   const supabase = await createClient();
   // period_month dan is_correction diisi otomatis oleh trigger di database.
   const { data, error } = await supabase
     .from("work_logs")
-    .insert({
-      employee_id: me.id,
-      log_date: logDate,
-      activity,
-      minutes,
-      proof: proof || null,
-    })
+    .insert({ employee_id: me.id, ...parsed.values })
     .select("is_correction")
     .single();
 
@@ -55,6 +57,41 @@ export async function addWorkLog(_prev: FormState, formData: FormData): Promise<
       ? "Tersimpan sebagai koreksi, karena periodenya sudah ditutup. Nilai ketercapaian yang sudah dikunci tidak berubah."
       : "Log kerja tersimpan.",
   };
+}
+
+export async function updateWorkLog(_prev: FormState, formData: FormData): Promise<FormState> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+
+  const id = String(formData.get("id") ?? "");
+  const parsed = parseLogForm(formData);
+  if ("error" in parsed) return { ok: false, message: parsed.error };
+
+  const supabase = await createClient();
+  // Database hanya mengizinkan mengubah log milik sendiri di periode yang belum ditutup,
+  // dan menolak kalau tanggal baru dipindah ke periode yang sudah ditutup.
+  const { data, error } = await supabase
+    .from("work_logs")
+    .update(parsed.values)
+    .eq("id", id)
+    .eq("employee_id", me.id)
+    .select("id");
+
+  if (error) {
+    return {
+      ok: false,
+      message:
+        error.code === "42501"
+          ? "Tanggal baru masuk ke periode yang sudah ditutup. Catat sebagai log baru (koreksi) bila perlu."
+          : `Gagal menyimpan: ${error.message}`,
+    };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, message: "Log ini tidak bisa diubah (periodenya sudah ditutup)." };
+  }
+
+  revalidatePath("/log-kerja");
+  return { ok: true, message: "Perubahan tersimpan." };
 }
 
 export async function deleteWorkLog(id: string): Promise<{ ok: boolean; message?: string }> {

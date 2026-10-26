@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { formatDate } from "@/lib/format";
 import { formatDuration, formatHours } from "@/lib/ats";
 import { deleteWorkLog } from "./actions";
+import { EditLogForm } from "./LogForm";
 
 export type WorkLog = {
   id: string;
@@ -16,8 +17,18 @@ export type WorkLog = {
 
 const isUrl = (s: string) => /^https?:\/\//i.test(s);
 
-export default function LogList({ logs, locked }: { logs: WorkLog[]; locked: boolean }) {
+export default function LogList({
+  logs,
+  locked,
+  today,
+}: {
+  logs: WorkLog[];
+  locked: boolean;
+  today: string;
+}) {
   const [message, setMessage] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const closeEdit = useCallback(() => setEditingId(null), []);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
@@ -58,6 +69,9 @@ export default function LogList({ logs, locked }: { logs: WorkLog[]; locked: boo
             pendingId === log.id ? "opacity-50" : ""
           }`}
         >
+          {editingId === log.id ? (
+            <EditLogForm id={log.id} today={today} defaults={log} onDone={closeEdit} />
+          ) : (
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs text-slate-500">
@@ -83,16 +97,30 @@ export default function LogList({ logs, locked }: { logs: WorkLog[]; locked: boo
               )}
             </div>
             {!locked && (
-              <button
-                type="button"
-                onClick={() => remove(log)}
-                disabled={pendingId === log.id}
-                className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
-              >
-                Hapus
-              </button>
+              <div className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMessage(null);
+                    setEditingId(log.id);
+                  }}
+                  disabled={pendingId === log.id}
+                  className="rounded-lg px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-50"
+                >
+                  Ubah
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove(log)}
+                  disabled={pendingId === log.id}
+                  className="rounded-lg px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+                >
+                  Hapus
+                </button>
+              </div>
             )}
           </div>
+          )}
         </article>
       ))}
     </div>
