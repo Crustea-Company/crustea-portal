@@ -58,7 +58,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Lewati file statis (gambar, ikon, file build Next.js).
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // Lewati file statis (gambar, ikon, file build Next.js) dan file PWA
+    // (manifest, service worker, halaman offline) yang harus bisa dibuka tanpa login.
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|offline.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
