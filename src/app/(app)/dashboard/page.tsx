@@ -14,8 +14,8 @@ import {
   weekRange,
   weeklyHours,
 } from "@/lib/ats";
-import type { TaskPerson, TaskStatus } from "@/lib/tasks";
-import TodoSlider, { type TodoTask } from "./TodoSlider";
+import { TASK_SELECT, type EmployeeLite, type Sprint, type Task, type TaskNote } from "@/lib/tasks";
+import TodoSlider from "./TodoSlider";
 
 export const metadata: Metadata = { title: "Dashboard - Crustea Portal" };
 
@@ -39,11 +39,19 @@ export default async function DashboardPage() {
   if (me.app_role === "head") employeesQuery = employeesQuery.eq("dept_code", me.dept_code ?? "");
   else if (me.app_role === "staff") employeesQuery = employeesQuery.eq("id", me.id);
 
-  const [tasksRes, departmentsRes, employeesRes, periodLogsRes, weekLogsRes, lockedRes, namesRes] = await Promise.all([
-    supabase
-      .from("tasks")
-      .select("id, code, title, dept_code, status, deadline, is_priority, task_people(employee_id, role)")
-      .neq("status", "done"),
+  const [
+    tasksRes,
+    departmentsRes,
+    employeesRes,
+    periodLogsRes,
+    weekLogsRes,
+    lockedRes,
+    allEmployeesRes,
+    sprintsRes,
+    notesRes,
+    remindersRes,
+  ] = await Promise.all([
+    fetchAll<Task>(() => supabase.from("tasks").select(TASK_SELECT).neq("status", "done").order("id")),
     supabase.from("departments").select("code, name").order("code"),
     employeesQuery,
     fetchAll<{ employee_id: string; minutes: number }>(() =>
@@ -62,7 +70,12 @@ export default async function DashboardPage() {
       .not("locked_at", "is", null)
       .order("period_month", { ascending: false })
       .limit(1),
-    supabase.from("employees").select("id, full_name"),
+    supabase.from("employees").select("id, full_name, dept_code, is_active").order("full_name"),
+    supabase.from("sprints").select("id, name, start_date, end_date").order("id"),
+    fetchAll<TaskNote>(() =>
+      supabase.from("task_notes").select("id, task_id, author_id, body, created_at, updated_at").order("created_at").order("id"),
+    ),
+    supabase.from("task_reminders").select("task_id, remind_at"),
   ]);
 
   const lastLocked = (lockedRes.data?.[0]?.period_month as string | undefined) ?? null;
@@ -80,7 +93,10 @@ export default async function DashboardPage() {
     periodLogsRes.error ??
     weekLogsRes.error ??
     lockedRes.error ??
-    namesRes.error ??
+    allEmployeesRes.error ??
+    sprintsRes.error ??
+    notesRes.error ??
+    remindersRes.error ??
     snapshotsRes.error;
   if (error) {
     return (
@@ -95,7 +111,7 @@ export default async function DashboardPage() {
   // ---------- Tugas per departemen ----------
   // Terlambat = deadline sebelum hari ini; jatuh tempo minggu ini = deadline hari ini s.d. Minggu.
   const taskRows = (departmentsRes.data ?? []).map((d) => {
-    const open = (tasksRes.data ?? []).filter((t) => t.dept_code === d.code);
+    const open = tasksRes.data.filter((t) => t.dept_code === d.code);
     return {
       code: d.code as string,
       name: d.name as string,
@@ -107,23 +123,13 @@ export default async function DashboardPage() {
   const totalDue = taskRows.reduce((t, r) => t + r.dueThisWeek, 0);
 
   // ---------- Perlu diselesaikan ----------
-  // Tugas Belum Mulai dan Berjalan, deadline terdekat dulu (tanpa deadline paling akhir).
-  const nameOf = new Map((namesRes.data ?? []).map((e) => [e.id as string, e.full_name as string]));
-  type OpenTask = Omit<TodoTask, "pics"> & { task_people: TaskPerson[] };
-  const todo = ((tasksRes.data ?? []) as OpenTask[])
-    .filter((t) => t.status === ("not_started" as TaskStatus) || t.status === ("on_going" as TaskStatus))
-    .sort(
-      (a, b) =>
-        (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999") ||
-        (a.code ?? "").localeCompare(b.code ?? "", "id", { numeric: true }),
-    )
-    .map(({ task_people, ...t }) => ({
-      ...t,
-      isMine: task_people.some((p) => p.role === "pic" && p.employee_id === me.id),
-      pics: task_people.filter((p) => p.role === "pic").map((p) => nameOf.get(p.employee_id) ?? "?"),
-    }));
-  const myTodo: TodoTask[] = todo.filter((t) => t.isMine);
-  const deptTodo: TodoTask[] = todo.filter((t) => t.dept_code === me.dept_code);
+  // Tugas yang belum selesai di mana saya PIC, atau milik departemen saya.
+  const todoTasks = tasksRes.data.filter(
+    (t) =>
+      t.dept_code === me.dept_code ||
+      t.task_people.some((p) => p.role === "pic" && p.employee_id === me.id),
+  );
+  const todoIds = new Set(todoTasks.map((t) => t.id));
 
   // ---------- ATS per karyawan ----------
   const sumBy = (rows: { employee_id: string; minutes: number }[]) => {
@@ -230,7 +236,16 @@ export default async function DashboardPage() {
 
       <section>
         <h2 className="mb-3 font-semibold text-slate-900">Perlu diselesaikan</h2>
-        <TodoSlider mine={myTodo} dept={deptTodo} deptCode={me.dept_code} today={today} />
+        <TodoSlider
+          tasks={todoTasks}
+          notes={notesRes.data.filter((n) => todoIds.has(n.task_id))}
+          reminders={remindersRes.data ?? []}
+          employees={(allEmployeesRes.data ?? []) as EmployeeLite[]}
+          departments={departmentsRes.data ?? []}
+          sprints={(sprintsRes.data ?? []) as Sprint[]}
+          me={{ id: me.id, app_role: me.app_role, dept_code: me.dept_code }}
+          today={today}
+        />
       </section>
 
       <section>

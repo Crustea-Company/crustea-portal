@@ -1,23 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import type { Employee } from "@/lib/auth";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDate, formatNumber } from "@/lib/format";
 import {
+  SORT_DIR_LABEL,
   STATUS_LABEL,
   STATUS_ORDER,
+  compareTasks,
   defaultSprint,
   isOverdue,
-  type EmployeeLite,
-  type Sprint,
+  type SortDir,
   type Task,
-  type TaskNote,
+  type TaskSort,
   type TaskStatus,
 } from "@/lib/tasks";
-import { deleteTask, updateTaskStatus } from "./actions";
-import TaskCard, { type CardCtx } from "./TaskCard";
-import TaskForm from "./TaskForm";
+import { useTaskState, type TaskStateInit } from "./useTaskState";
 
 export type Filters = {
   dept: string; // "" = semua departemen
@@ -28,8 +26,8 @@ export type Filters = {
   priorityOnly: boolean;
   from: string; // deadline dari (YYYY-MM-DD), "" = tanpa batas
   to: string; // deadline sampai
-  sort: "deadline" | "priority" | "title";
-  dir: "asc" | "desc";
+  sort: TaskSort;
+  dir: SortDir;
   view: "list" | "grid" | "kanban" | "pic";
 };
 
@@ -40,79 +38,21 @@ const VIEWS: { key: Filters["view"]; label: string }[] = [
   { key: "pic", label: "Per PIC" },
 ];
 
-const SORT_DIR_LABEL: Record<Filters["sort"], [string, string]> = {
-  deadline: ["Terdekat dulu", "Terjauh dulu"],
-  priority: ["Prioritas di atas", "Prioritas di bawah"],
-  title: ["A-Z", "Z-A"],
-};
+type Props = TaskStateInit & { initial: Partial<Filters> };
 
-const byDeadline = (a: Task, b: Task, dir: 1 | -1) => {
-  // Tugas tanpa deadline selalu di paling bawah.
-  if (!a.deadline || !b.deadline) return (a.deadline ? 0 : 1) - (b.deadline ? 0 : 1);
-  return dir * a.deadline.localeCompare(b.deadline);
-};
-
-function compareTasks(a: Task, b: Task, sort: Filters["sort"], dir: Filters["dir"]): number {
-  const d = dir === "asc" ? 1 : -1;
-  const byCode = (a.code ?? "").localeCompare(b.code ?? "", "id", { numeric: true });
-  if (sort === "title") return d * a.title.localeCompare(b.title, "id", { sensitivity: "base" }) || byCode;
-  if (sort === "priority") {
-    return d * (Number(b.is_priority) - Number(a.is_priority)) || byDeadline(a, b, 1) || byCode;
-  }
-  return byDeadline(a, b, d) || byCode;
-}
-
-type Props = {
-  tasks: Task[];
-  employees: EmployeeLite[];
-  departments: { code: string; name: string }[];
-  sprints: Sprint[];
-  notes: TaskNote[];
-  reminders: { task_id: string; remind_at: string }[];
-  me: Pick<Employee, "id" | "app_role" | "dept_code">;
-  today: string;
-  initial: Partial<Filters>;
-};
-
-const selectClass =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20";
+// Di HP: deretan kontrol yang bisa digeser ke samping. Di layar lebar: grid 5 kolom.
+const sliderRow =
+  "-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-5 md:overflow-visible md:px-0 md:pb-0";
+const sliderItem = "w-44 shrink-0 snap-start md:w-auto";
+const control =
+  "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20";
 
 export default function TaskBoard(props: Props) {
-  const { employees, departments, sprints, me, today } = props;
-
-  const [tasks, setTasks] = useState(props.tasks);
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
-  const [, startTransition] = useTransition();
-
-  // Catatan per tugas dan pengingat pribadi, disimpan di halaman supaya langsung berubah.
-  const [notesByTask, setNotesByTask] = useState(() => {
-    const map = new Map<string, TaskNote[]>();
-    for (const n of props.notes) map.set(n.task_id, [...(map.get(n.task_id) ?? []), n]);
-    return map;
-  });
-  const [reminders, setReminders] = useState(
-    () => new Map(props.reminders.map((r) => [r.task_id, r.remind_at])),
-  );
-  const [editing, setEditing] = useState<Task | "new" | null>(null);
-  const [highlightId, setHighlightId] = useState<string | null>(null);
-
-  // Link dari notifikasi / riwayat (#task-<id>): gulir ke tugas itu dan sorot sebentar.
-  useEffect(() => {
-    const match = window.location.hash.match(/^#task-(.+)$/);
-    if (!match) return;
-    const el = document.getElementById(`task-${match[1]}`);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    setHighlightId(match[1]);
-    const timer = setTimeout(() => setHighlightId(null), 4000);
-    return () => clearTimeout(timer);
-  }, []);
+  const { departments, sprints, me, today, employees } = props;
 
   const [filters, setFilters] = useState<Filters>(() => ({
     dept: props.initial.dept ?? "",
-    sprint:
-      props.initial.sprint ??
-      String(defaultSprint(sprints, today)?.id ?? "semua"),
+    sprint: props.initial.sprint ?? String(defaultSprint(sprints, today)?.id ?? "semua"),
     pic: props.initial.pic ?? "",
     status: props.initial.status ?? "",
     overdue: props.initial.overdue ?? false,
@@ -123,8 +63,13 @@ export default function TaskBoard(props: Props) {
     dir: props.initial.dir ?? "asc",
     view: props.initial.view ?? "list",
   }));
-  const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
-    setFilters((f) => ({ ...f, [key]: value }));
+  const set = <K extends keyof Filters>(key: K, value: Filters[K]) => setFilters((f) => ({ ...f, [key]: value }));
+
+  const { tasks, card, nameOf, openNew, messageBox, form } = useTaskState(props, {
+    highlightFromHash: true,
+    defaultSprintId:
+      filters.sprint !== "semua" && filters.sprint !== "tanpa" ? Number(filters.sprint) : null,
+  });
 
   // Simpan pilihan filter di alamat halaman, supaya bisa dibagikan atau di-bookmark.
   useEffect(() => {
@@ -140,25 +85,13 @@ export default function TaskBoard(props: Props) {
     if (filters.sort !== "deadline") qs.set("urut", filters.sort === "priority" ? "prioritas" : "judul");
     if (filters.dir === "desc") qs.set("arah", "turun");
     if (filters.view !== "list") qs.set("tampilan", filters.view);
-    window.history.replaceState(null, "", `/tugas?${qs}`);
+    window.history.replaceState(null, "", `/tugas?${qs}${window.location.hash}`);
   }, [filters]);
-
-  const nameOf = useMemo(() => {
-    const map = new Map(employees.map((e) => [e.id, e.full_name]));
-    return (id: string) => map.get(id) ?? "?";
-  }, [employees]);
-
-  const sprintName = useMemo(() => {
-    const map = new Map(sprints.map((s) => [s.id, s.name]));
-    return (id: number | null) => (id == null ? null : map.get(id) ?? null);
-  }, [sprints]);
 
   // Pilihan PIC: hanya orang yang memang pernah jadi PIC.
   const picOptions = useMemo(() => {
     const ids = new Set(
-      props.tasks.flatMap((t) =>
-        t.task_people.filter((p) => p.role === "pic").map((p) => p.employee_id),
-      ),
+      props.tasks.flatMap((t) => t.task_people.filter((p) => p.role === "pic").map((p) => p.employee_id)),
     );
     return employees.filter((e) => ids.has(e.id));
   }, [props.tasks, employees]);
@@ -174,11 +107,7 @@ export default function TaskBoard(props: Props) {
             ? t.sprint_id == null
             : String(t.sprint_id) === filters.sprint,
       )
-      .filter(
-        (t) =>
-          !picId ||
-          t.task_people.some((p) => p.role === "pic" && p.employee_id === picId),
-      )
+      .filter((t) => !picId || t.task_people.some((p) => p.role === "pic" && p.employee_id === picId))
       .filter((t) => !filters.status || t.status === filters.status)
       .filter((t) => !filters.overdue || isOverdue(t, today))
       .filter((t) => !filters.priorityOnly || t.is_priority)
@@ -188,248 +117,140 @@ export default function TaskBoard(props: Props) {
   }, [tasks, filters, me.id, today]);
 
   const overdueCount = visible.filter((t) => isOverdue(t, today)).length;
-
   const byDept = departments
     .map((d) => ({ dept: d, tasks: visible.filter((t) => t.dept_code === d.code) }))
     .filter((g) => g.tasks.length > 0);
 
-  function changeStatus(task: Task, status: TaskStatus) {
-    const previous = task.status;
-    setMessage(null);
-    setTasks((ts) => ts.map((t) => (t.id === task.id ? { ...t, status } : t)));
-    startTransition(async () => {
-      const result = await updateTaskStatus(task.id, status);
-      if (!result.ok) {
-        setTasks((ts) =>
-          ts.map((t) => (t.id === task.id ? { ...t, status: previous } : t)),
-        );
-        setMessage({ ok: false, text: result.message });
-      }
-    });
-  }
-
-  const replaceTask = useCallback(
-    (task: Task) => setTasks((ts) => ts.map((t) => (t.id === task.id ? task : t))),
-    [],
-  );
-
-  function removeTask(task: Task) {
-    if (!window.confirm(`Hapus tugas ${task.code ?? ""} "${task.title}"? Tindakan ini tercatat di riwayat.`)) return;
-    setMessage(null);
-    startTransition(async () => {
-      const res = await deleteTask(task.id);
-      if (!res.ok) return setMessage({ ok: false, text: res.message });
-      setTasks((ts) => ts.filter((t) => t.id !== task.id));
-      setMessage({ ok: true, text: `Tugas ${task.code ?? ""} dihapus.` });
-    });
-  }
-
-  const ctx: CardCtx = {
-    today,
-    me,
-    employees,
-    departments,
-    nameOf,
-    sprintName,
-    highlightId,
-    onChangeStatus: changeStatus,
-    onTaskChange: replaceTask,
-    onNotesChange: (taskId, list) => setNotesByTask((m) => new Map(m).set(taskId, list)),
-    onReminderChange: (taskId, at) =>
-      setReminders((m) => {
-        const next = new Map(m);
-        if (at) next.set(taskId, at);
-        else next.delete(taskId);
-        return next;
-      }),
-    onEdit: (task) => setEditing(task),
-    onDelete: removeTask,
-  };
-
-  const card = (t: Task, compact = false) => (
-    <TaskCard
-      key={t.id}
-      task={t}
-      notes={notesByTask.get(t.id) ?? []}
-      reminder={reminders.get(t.id) ?? null}
-      ctx={ctx}
-      compact={compact}
-    />
-  );
-
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Tugas</h1>
-          <p className="text-sm text-slate-600">
-            {formatNumber(visible.length)} tugas
-            {overdueCount > 0 && (
-              <>
-                {" · "}
-                <span className="font-semibold text-red-700">
-                  {formatNumber(overdueCount)} terlambat
-                </span>
-              </>
-            )}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setEditing("new")}
-            className="rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-800"
-          >
-            + Tambah tugas
-          </button>
-          <Link
-            href="/tugas/riwayat"
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-          >
-            Riwayat
-          </Link>
-        </div>
-        <div className="flex w-full rounded-lg border border-slate-300 bg-white p-0.5 text-sm sm:w-auto">
-          {VIEWS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              onClick={() => set("view", v.key)}
-              className={`flex-1 rounded-md px-2.5 py-1.5 font-medium sm:flex-none sm:px-3 ${
-                filters.view === v.key ? "bg-teal-700 text-white" : "text-slate-700"
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+    <main className="mx-auto max-w-6xl px-4 pb-32 pt-6">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-slate-900">Tugas</h1>
+        <Link
+          href="/tugas/riwayat"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+        >
+          Riwayat
+        </Link>
       </div>
 
-      <div className="mb-5 grid grid-cols-2 gap-2 md:grid-cols-5">
-        <select
-          aria-label="Departemen"
-          className={selectClass}
-          value={filters.dept}
-          onChange={(e) => set("dept", e.target.value)}
-        >
-          <option value="">Semua departemen</option>
-          {departments.map((d) => (
-            <option key={d.code} value={d.code}>
-              {d.code} · {d.name}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Sprint"
-          className={selectClass}
-          value={filters.sprint}
-          onChange={(e) => set("sprint", e.target.value)}
-        >
-          <option value="semua">Semua sprint</option>
-          {sprints.map((s) => (
-            <option key={s.id} value={String(s.id)}>
-              {s.name} ({formatDate(s.start_date)} - {formatDate(s.end_date)})
-            </option>
-          ))}
-          <option value="tanpa">Tanpa sprint</option>
-        </select>
-        <select
-          aria-label="PIC"
-          className={selectClass}
-          value={filters.pic}
-          onChange={(e) => set("pic", e.target.value)}
-        >
-          <option value="">Semua PIC</option>
-          <option value="saya">Saya sebagai PIC</option>
-          {picOptions.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.full_name}
-              {e.is_active ? "" : " (nonaktif)"}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Status"
-          className={selectClass}
-          value={filters.status}
-          onChange={(e) => set("status", e.target.value as Filters["status"])}
-        >
-          <option value="">Semua status</option>
-          {STATUS_ORDER.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </option>
-          ))}
-        </select>
-        <label className="col-span-2 flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm md:col-span-1">
-          <input
-            type="checkbox"
-            checked={filters.overdue}
-            onChange={(e) => set("overdue", e.target.checked)}
-            className="h-4 w-4 accent-red-600"
-          />
-          Hanya yang terlambat
-        </label>
-      </div>
-
-      <div className="-mt-3 mb-5 grid grid-cols-2 gap-2 md:grid-cols-5">
-        <select
-          aria-label="Urutkan berdasarkan"
-          className={selectClass}
-          value={filters.sort}
-          onChange={(e) => set("sort", e.target.value as Filters["sort"])}
-        >
-          <option value="deadline">Urutkan: Deadline</option>
-          <option value="priority">Urutkan: Prioritas</option>
-          <option value="title">Urutkan: Judul A-Z</option>
-        </select>
-        <select
-          aria-label="Arah urutan"
-          className={selectClass}
-          value={filters.dir}
-          onChange={(e) => set("dir", e.target.value as Filters["dir"])}
-        >
-          <option value="asc">{SORT_DIR_LABEL[filters.sort][0]}</option>
-          <option value="desc">{SORT_DIR_LABEL[filters.sort][1]}</option>
-        </select>
-        <label className="flex flex-col text-xs text-slate-500">
-          Deadline dari
-          <input
-            type="date"
-            value={filters.from}
-            onChange={(e) => set("from", e.target.value)}
-            className={selectClass}
-          />
-        </label>
-        <label className="flex flex-col text-xs text-slate-500">
-          Deadline sampai
-          <input
-            type="date"
-            value={filters.to}
-            onChange={(e) => set("to", e.target.value)}
-            className={selectClass}
-          />
-        </label>
-        <label className="col-span-2 flex items-center gap-2 self-end rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm md:col-span-1">
-          <input
-            type="checkbox"
-            checked={filters.priorityOnly}
-            onChange={(e) => set("priorityOnly", e.target.checked)}
-            className="h-4 w-4 accent-amber-600"
-          />
-          Hanya prioritas
-        </label>
-      </div>
-
-      {message && (
-        <p
-          className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
-            message.ok ? "border-teal-200 bg-teal-50 text-teal-800" : "border-red-200 bg-red-50 text-red-800"
-          }`}
-        >
-          {message.text}
+      {/* Filter dan sortir menempel di atas saat halaman digulir. */}
+      <div className="sticky top-0 z-30 -mx-4 mb-4 flex flex-col gap-2 border-b border-slate-200 bg-slate-50/95 px-4 py-2 backdrop-blur">
+        <p className="text-xs text-slate-600">
+          {formatNumber(visible.length)} tugas
+          {overdueCount > 0 && (
+            <>
+              {" · "}
+              <span className="font-semibold text-red-700">{formatNumber(overdueCount)} terlambat</span>
+            </>
+          )}
+          <span className="md:hidden"> · geser baris untuk pilihan lain</span>
         </p>
-      )}
+
+        <div className={sliderRow} aria-label="Filter">
+          <select aria-label="Departemen" className={`${control} ${sliderItem}`} value={filters.dept} onChange={(e) => set("dept", e.target.value)}>
+            <option value="">Semua departemen</option>
+            {departments.map((d) => (
+              <option key={d.code} value={d.code}>
+                {d.code} · {d.name}
+              </option>
+            ))}
+          </select>
+          <select aria-label="Sprint" className={`${control} ${sliderItem}`} value={filters.sprint} onChange={(e) => set("sprint", e.target.value)}>
+            <option value="semua">Semua sprint</option>
+            {sprints.map((s) => (
+              <option key={s.id} value={String(s.id)}>
+                {s.name} ({formatDate(s.start_date)} - {formatDate(s.end_date)})
+              </option>
+            ))}
+            <option value="tanpa">Tanpa sprint</option>
+          </select>
+          <select aria-label="PIC" className={`${control} ${sliderItem}`} value={filters.pic} onChange={(e) => set("pic", e.target.value)}>
+            <option value="">Semua PIC</option>
+            <option value="saya">Saya sebagai PIC</option>
+            {picOptions.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.full_name}
+                {e.is_active ? "" : " (nonaktif)"}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Status"
+            className={`${control} ${sliderItem}`}
+            value={filters.status}
+            onChange={(e) => set("status", e.target.value as Filters["status"])}
+          >
+            <option value="">Semua status</option>
+            {STATUS_ORDER.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABEL[s]}
+              </option>
+            ))}
+          </select>
+          <label className={`${control} ${sliderItem} flex items-center gap-2`}>
+            <input
+              type="checkbox"
+              checked={filters.overdue}
+              onChange={(e) => set("overdue", e.target.checked)}
+              className="h-4 w-4 accent-red-600"
+            />
+            Hanya yang terlambat
+          </label>
+        </div>
+
+        <div className={sliderRow} aria-label="Sortir">
+          <select
+            aria-label="Urutkan berdasarkan"
+            className={`${control} ${sliderItem}`}
+            value={filters.sort}
+            onChange={(e) => set("sort", e.target.value as TaskSort)}
+          >
+            <option value="deadline">Urutkan: Deadline</option>
+            <option value="priority">Urutkan: Prioritas</option>
+            <option value="title">Urutkan: Judul A-Z</option>
+          </select>
+          <select
+            aria-label="Arah urutan"
+            className={`${control} ${sliderItem}`}
+            value={filters.dir}
+            onChange={(e) => set("dir", e.target.value as SortDir)}
+          >
+            <option value="asc">{SORT_DIR_LABEL[filters.sort][0]}</option>
+            <option value="desc">{SORT_DIR_LABEL[filters.sort][1]}</option>
+          </select>
+          <label className={`${control} ${sliderItem} flex items-center gap-2`}>
+            <input
+              type="checkbox"
+              checked={filters.priorityOnly}
+              onChange={(e) => set("priorityOnly", e.target.checked)}
+              className="h-4 w-4 accent-amber-600"
+            />
+            Hanya prioritas
+          </label>
+          <label className={`${control} ${sliderItem} flex items-center gap-1.5 text-slate-500`}>
+            <span className="shrink-0 text-xs">Deadline dari</span>
+            <input
+              type="date"
+              aria-label="Deadline dari"
+              value={filters.from}
+              onChange={(e) => set("from", e.target.value)}
+              className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none"
+            />
+          </label>
+          <label className={`${control} ${sliderItem} flex items-center gap-1.5 text-slate-500`}>
+            <span className="shrink-0 text-xs">sampai</span>
+            <input
+              type="date"
+              aria-label="Deadline sampai"
+              value={filters.to}
+              onChange={(e) => set("to", e.target.value)}
+              className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none"
+            />
+          </label>
+        </div>
+      </div>
+
+      {messageBox}
 
       {byDept.length === 0 && (
         <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
@@ -446,35 +267,26 @@ export default function TaskBoard(props: Props) {
             </h2>
 
             {filters.view === "list" ? (
-              <div className="flex flex-col gap-2">
-                {deptTasks.map((t) => card(t))}
-              </div>
+              <div className="flex flex-col gap-2">{deptTasks.map((t) => card(t))}</div>
             ) : filters.view === "grid" ? (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {deptTasks.map((t) => card(t))}
-              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{deptTasks.map((t) => card(t))}</div>
             ) : filters.view === "pic" ? (
               <PicColumns
                 tasks={deptTasks}
                 onlyPic={filters.pic === "saya" ? me.id : filters.pic}
                 nameOf={nameOf}
-                card={card}
+                card={(t) => card(t, { compact: true })}
               />
             ) : (
               <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
                 {STATUS_ORDER.map((status) => {
                   const column = deptTasks.filter((t) => t.status === status);
                   return (
-                    <div
-                      key={status}
-                      className="w-[85%] shrink-0 snap-start rounded-xl bg-slate-100 p-2 sm:w-[45%] lg:w-auto"
-                    >
+                    <div key={status} className="w-[85%] shrink-0 snap-start rounded-xl bg-slate-100 p-2 sm:w-[45%] lg:w-auto">
                       <p className="mb-2 px-1 text-sm font-semibold text-slate-700">
                         {STATUS_LABEL[status]} ({formatNumber(column.length)})
                       </p>
-                      <div className="flex flex-col gap-2">
-                        {column.map((t) => card(t))}
-                      </div>
+                      <div className="flex flex-col gap-2">{column.map((t) => card(t))}</div>
                     </div>
                   );
                 })}
@@ -484,26 +296,8 @@ export default function TaskBoard(props: Props) {
         ))}
       </div>
 
-      {editing && (
-        <TaskForm
-          task={editing === "new" ? null : editing}
-          me={me}
-          employees={employees}
-          departments={departments}
-          sprints={sprints}
-          defaultSprintId={filters.sprint !== "semua" && filters.sprint !== "tanpa" ? Number(filters.sprint) : null}
-          onClose={() => setEditing(null)}
-          onSaved={(task, isNew, warning) => {
-            setTasks((ts) => (isNew ? [task, ...ts] : ts.map((t) => (t.id === task.id ? task : t))));
-            setEditing(null);
-            setMessage(
-              warning
-                ? { ok: false, text: warning }
-                : { ok: true, text: isNew ? `Tugas ${task.code ?? ""} ditambahkan.` : `Tugas ${task.code ?? ""} disimpan.` },
-            );
-          }}
-        />
-      )}
+      {form}
+      <FloatingActions view={filters.view} onView={(v) => set("view", v)} onAdd={openNew} />
     </main>
   );
 }
@@ -519,7 +313,7 @@ function PicColumns({
   tasks: Task[];
   onlyPic: string;
   nameOf: (id: string) => string;
-  card: (t: Task, compact?: boolean) => React.ReactNode;
+  card: (t: Task) => React.ReactNode;
 }) {
   const columns = new Map<string, Task[]>();
   for (const t of tasks) {
@@ -553,10 +347,118 @@ function PicColumns({
                 </span>
               </span>
             </p>
-            <div className="flex flex-col gap-2">{picTasks.map((t) => card(t, true))}</div>
+            <div className="flex flex-col gap-2">{picTasks.map((t) => card(t))}</div>
           </div>
         ))}
       </div>
     </>
+  );
+}
+
+// ---------- Tombol bulat di pojok kanan bawah ----------
+
+function ViewIcon({ view }: { view: Filters["view"] }) {
+  const common = { viewBox: "0 0 24 24", className: "h-5 w-5", fill: "none", stroke: "currentColor", strokeWidth: 2, "aria-hidden": true };
+  if (view === "list")
+    return (
+      <svg {...common}>
+        <circle cx="4" cy="6" r="1" fill="currentColor" />
+        <circle cx="4" cy="12" r="1" fill="currentColor" />
+        <circle cx="4" cy="18" r="1" fill="currentColor" />
+        <path d="M9 6h12M9 12h12M9 18h12" />
+      </svg>
+    );
+  if (view === "grid")
+    return (
+      <svg {...common}>
+        <rect x="3" y="3" width="7" height="7" rx="1.5" />
+        <rect x="14" y="3" width="7" height="7" rx="1.5" />
+        <rect x="3" y="14" width="7" height="7" rx="1.5" />
+        <rect x="14" y="14" width="7" height="7" rx="1.5" />
+      </svg>
+    );
+  if (view === "kanban")
+    return (
+      <svg {...common}>
+        <rect x="3" y="3" width="5" height="18" rx="1.5" />
+        <rect x="10" y="3" width="5" height="12" rx="1.5" />
+        <rect x="17" y="3" width="4" height="8" rx="1.5" />
+      </svg>
+    );
+  return (
+    <svg {...common}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+    </svg>
+  );
+}
+
+function FloatingActions({
+  view,
+  onView,
+  onAdd,
+}: {
+  view: Filters["view"];
+  onView: (v: Filters["view"]) => void;
+  onAdd: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  return (
+    <div ref={boxRef} className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3">
+      {open && (
+        <div className="flex flex-col gap-1.5 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-lg">
+          {VIEWS.map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              title={v.label}
+              aria-label={`Tampilan ${v.label}`}
+              aria-pressed={view === v.key}
+              onClick={() => {
+                onView(v.key);
+                setOpen(false);
+              }}
+              className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                view === v.key ? "bg-teal-700 text-white" : "text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              <ViewIcon view={v.key} />
+            </button>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Ganti tampilan"
+        aria-expanded={open}
+        className="mr-1.5 flex h-11 w-11 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-md hover:bg-slate-100"
+      >
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        onClick={onAdd}
+        aria-label="Tambah tugas"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-700 text-white shadow-lg hover:bg-teal-800"
+      >
+        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
+    </div>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Employee } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -46,14 +48,17 @@ export default function TaskCard({
   reminder,
   ctx,
   compact = false,
+  href,
 }: {
   task: Task;
   notes: TaskNote[];
   reminder: string | null;
   ctx: CardCtx;
   compact?: boolean; // kartu kecil untuk tampilan Per PIC
+  href?: string; // kalau diisi, kartu bisa diklik untuk membuka tugas (quick link di Dashboard)
 }) {
   const { today, me, nameOf } = ctx;
+  const router = useRouter();
   const [panel, setPanel] = useState<Panel>(null);
   const toggle = (p: Panel) => setPanel((cur) => (cur === p ? null : p));
 
@@ -68,7 +73,13 @@ export default function TaskCard({
   return (
     <article
       id={`task-${task.id}`}
-      className={`scroll-mt-20 rounded-xl border shadow-sm transition-colors duration-700 ${
+      onClick={(e) => {
+        // Klik di tombol, pilihan, atau panel tidak ikut membuka halaman tugas.
+        if (!href || (e.target as HTMLElement).closest("button,select,a,input,textarea,label,summary,details")) return;
+        if ((e.target as HTMLElement).closest("[data-panel]")) return;
+        router.push(href);
+      }}
+      className={`scroll-mt-40 rounded-xl border shadow-sm transition-colors duration-700 ${href ? "cursor-pointer hover:border-teal-400" : ""} ${
         compact ? "p-2.5 text-xs" : "p-3 text-sm"
       } ${
         highlighted
@@ -89,7 +100,13 @@ export default function TaskCard({
         {sprint && !compact && <span className="text-slate-500">{sprint}</span>}
       </div>
 
-      <p className="font-medium text-slate-900">{task.title}</p>
+      {href ? (
+        <Link href={href} className="font-medium text-slate-900 hover:text-teal-800 hover:underline">
+          {task.title}
+        </Link>
+      ) : (
+        <p className="font-medium text-slate-900">{task.title}</p>
+      )}
 
       <div className="mt-2 space-y-0.5 text-xs text-slate-600">
         <p>
@@ -156,11 +173,13 @@ export default function TaskCard({
         )}
       </div>
 
-      {panel === "reminder" && (
-        <ReminderPanel task={task} reminder={reminder} ctx={ctx} onClose={() => setPanel(null)} />
-      )}
-      {panel === "notes" && <NotesPanel task={task} notes={notes} ctx={ctx} />}
-      {panel === "delegate" && <DelegatePanel task={task} ctx={ctx} onClose={() => setPanel(null)} />}
+      <div data-panel>
+        {panel === "reminder" && (
+          <ReminderPanel task={task} reminder={reminder} ctx={ctx} onClose={() => setPanel(null)} />
+        )}
+        {panel === "notes" && <NotesPanel task={task} notes={notes} ctx={ctx} />}
+        {panel === "delegate" && <DelegatePanel task={task} ctx={ctx} onClose={() => setPanel(null)} />}
+      </div>
 
       {!compact && <TaskDetails task={task} />}
     </article>

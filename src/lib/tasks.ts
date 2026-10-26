@@ -64,6 +64,31 @@ export type Sprint = {
   end_date: string | null;
 };
 
+export type TaskSort = "deadline" | "priority" | "title";
+export type SortDir = "asc" | "desc";
+
+export const SORT_DIR_LABEL: Record<TaskSort, [string, string]> = {
+  deadline: ["Terdekat dulu", "Terjauh dulu"],
+  priority: ["Prioritas di atas", "Prioritas di bawah"],
+  title: ["A-Z", "Z-A"],
+};
+
+const byDeadline = (a: Task, b: Task, dir: 1 | -1) => {
+  // Tugas tanpa deadline selalu di paling bawah.
+  if (!a.deadline || !b.deadline) return (a.deadline ? 0 : 1) - (b.deadline ? 0 : 1);
+  return dir * a.deadline.localeCompare(b.deadline);
+};
+
+export function compareTasks(a: Task, b: Task, sort: TaskSort, dir: SortDir): number {
+  const d = dir === "asc" ? 1 : -1;
+  const byCode = (a.code ?? "").localeCompare(b.code ?? "", "id", { numeric: true });
+  if (sort === "title") return d * a.title.localeCompare(b.title, "id", { sensitivity: "base" }) || byCode;
+  if (sort === "priority") {
+    return d * (Number(b.is_priority) - Number(a.is_priority)) || byDeadline(a, b, 1) || byCode;
+  }
+  return byDeadline(a, b, d) || byCode;
+}
+
 // Terlambat = deadline sudah lewat dan belum selesai.
 export function isOverdue(
   task: Pick<Task, "deadline" | "status">,
