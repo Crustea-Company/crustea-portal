@@ -40,7 +40,12 @@ export default async function Home() {
       >
         Catat log kerja
       </Link>
-      <p className="text-sm text-slate-500">Halaman Dashboard akan menyusul.</p>
+      <Link
+        href="/dashboard"
+        className="rounded-lg border border-slate-300 px-4 py-3 text-center font-semibold text-slate-700 hover:bg-slate-100"
+      >
+        Buka dashboard
+      </Link>
     </main>
   );
 }
