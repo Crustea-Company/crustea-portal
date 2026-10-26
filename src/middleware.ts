@@ -41,8 +41,12 @@ export async function middleware(request: NextRequest) {
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
+    // Supabase mengembalikan pengguna ke sini dengan ?error=... kalau link login
+    // tidak valid / kedaluwarsa / alamatnya belum diizinkan: tampilkan pesannya di login.
+    const linkFailed =
+      request.nextUrl.searchParams.has("error") || request.nextUrl.searchParams.has("error_code");
     url.pathname = "/login";
-    url.search = "";
+    url.search = linkFailed ? "?error=link" : "";
     return NextResponse.redirect(url);
   }
 
