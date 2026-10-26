@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime, todayJakarta } from "@/lib/format";
@@ -20,12 +21,21 @@ type AuditRow = {
   table_name: string;
   row_id: string;
   action: string;
-  old_data: { employee_id?: string; log_date?: string; minutes?: number } | null;
+  old_data: { employee_id?: string; log_date?: string; minutes?: number; period_month?: string } | null;
   new_data: { log_date?: string; minutes?: number } | null;
   actor: string | null;
   reason: string | null;
   at: string;
 };
+
+// Link ke log karyawan di periode log tersebut (sebelum diubah). Untuk log yang
+// masih ada, sertakan penanda supaya halaman langsung menggulir dan menyorot log itu.
+function logLink(a: AuditRow): string {
+  const old = a.old_data ?? {};
+  const periode = old.period_month ?? (old.log_date ? periodOf(old.log_date) : "");
+  const qs = new URLSearchParams({ karyawan: old.employee_id ?? "", periode });
+  return `/log-kerja?${qs}${a.action === "update" ? `#log-${a.row_id}` : ""}`;
+}
 
 export default async function AdminPage() {
   const me = (await getCurrentEmployee())!;
@@ -133,8 +143,14 @@ export default async function AdminPage() {
                 </div>
                 {a.table_name === "work_logs" && a.old_data && (
                   <p className="text-xs text-slate-600">
-                    Log {nameOf.get(a.old_data.employee_id ?? "") ?? "?"}, {formatDate(a.old_data.log_date)},{" "}
-                    {a.old_data.minutes} menit
+                    Log{" "}
+                    <Link
+                      href={logLink(a)}
+                      className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-900"
+                    >
+                      {nameOf.get(a.old_data.employee_id ?? "") ?? "?"}, {formatDate(a.old_data.log_date)}
+                    </Link>
+                    , {a.old_data.minutes} menit
                     {a.new_data &&
                       ` → ${formatDate(a.new_data.log_date)}, ${a.new_data.minutes} menit`}
                   </p>

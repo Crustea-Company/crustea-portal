@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { formatDate } from "@/lib/format";
 import { formatDuration, formatHours } from "@/lib/ats";
 import { adminDeleteWorkLog, deleteWorkLog } from "./actions";
@@ -33,6 +33,19 @@ export default function LogList({
   const closeEdit = useCallback(() => setEditingId(null), []);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  // Link dari riwayat perubahan (#log-<id>): gulir ke log itu dan sorot sebentar.
+  useEffect(() => {
+    const match = window.location.hash.match(/^#log-(.+)$/);
+    if (!match) return;
+    const el = document.getElementById(`log-${match[1]}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightId(match[1]);
+    const timer = setTimeout(() => setHighlightId(null), 4000);
+    return () => clearTimeout(timer);
+  }, [logs]);
 
   const total = logs.reduce((t, l) => t + l.minutes, 0);
 
@@ -76,9 +89,10 @@ export default function LogList({
       {logs.map((log) => (
         <article
           key={log.id}
-          className={`rounded-xl border border-slate-200 bg-white p-3 text-sm ${
-            pendingId === log.id ? "opacity-50" : ""
-          }`}
+          id={`log-${log.id}`}
+          className={`scroll-mt-20 rounded-xl border p-3 text-sm transition-colors duration-700 ${
+            highlightId === log.id ? "border-amber-400 bg-amber-50 ring-2 ring-amber-300" : "border-slate-200 bg-white"
+          } ${pendingId === log.id ? "opacity-50" : ""}`}
         >
           {editingId === log.id ? (
             <EditLogForm id={log.id} today={today} defaults={log} adminMode={adminMode} onDone={closeEdit} />
