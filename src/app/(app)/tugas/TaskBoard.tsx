@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import type { Employee } from "@/lib/auth";
 import { formatDate, formatNumber } from "@/lib/format";
 import {
   STATUS_LABEL,
   STATUS_ORDER,
-  canEditTask,
   defaultSprint,
   isOverdue,
+  type EmployeeLite,
   type Sprint,
   type Task,
+  type TaskNote,
   type TaskStatus,
 } from "@/lib/tasks";
-import { updateTaskStatus } from "./actions";
+import { deleteTask, updateTaskStatus } from "./actions";
+import TaskCard, { type CardCtx } from "./TaskCard";
+import TaskForm from "./TaskForm";
 
 export type Filters = {
   dept: string; // "" = semua departemen
@@ -60,18 +64,14 @@ function compareTasks(a: Task, b: Task, sort: Filters["sort"], dir: Filters["dir
 
 type Props = {
   tasks: Task[];
-  employees: { id: string; full_name: string; is_active: boolean }[];
+  employees: EmployeeLite[];
   departments: { code: string; name: string }[];
   sprints: Sprint[];
+  notes: TaskNote[];
+  reminders: { task_id: string; remind_at: string }[];
   me: Pick<Employee, "id" | "app_role" | "dept_code">;
   today: string;
   initial: Partial<Filters>;
-};
-
-const STATUS_STYLE: Record<TaskStatus, string> = {
-  not_started: "bg-slate-100 text-slate-700 border-slate-300",
-  on_going: "bg-sky-50 text-sky-800 border-sky-300",
-  done: "bg-teal-50 text-teal-800 border-teal-300",
 };
 
 const selectClass =
@@ -81,8 +81,32 @@ export default function TaskBoard(props: Props) {
   const { employees, departments, sprints, me, today } = props;
 
   const [tasks, setTasks] = useState(props.tasks);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [, startTransition] = useTransition();
+
+  // Catatan per tugas dan pengingat pribadi, disimpan di halaman supaya langsung berubah.
+  const [notesByTask, setNotesByTask] = useState(() => {
+    const map = new Map<string, TaskNote[]>();
+    for (const n of props.notes) map.set(n.task_id, [...(map.get(n.task_id) ?? []), n]);
+    return map;
+  });
+  const [reminders, setReminders] = useState(
+    () => new Map(props.reminders.map((r) => [r.task_id, r.remind_at])),
+  );
+  const [editing, setEditing] = useState<Task | "new" | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  // Link dari notifikasi / riwayat (#task-<id>): gulir ke tugas itu dan sorot sebentar.
+  useEffect(() => {
+    const match = window.location.hash.match(/^#task-(.+)$/);
+    if (!match) return;
+    const el = document.getElementById(`task-${match[1]}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightId(match[1]);
+    const timer = setTimeout(() => setHighlightId(null), 4000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const [filters, setFilters] = useState<Filters>(() => ({
     dept: props.initial.dept ?? "",
@@ -179,12 +203,59 @@ export default function TaskBoard(props: Props) {
         setTasks((ts) =>
           ts.map((t) => (t.id === task.id ? { ...t, status: previous } : t)),
         );
-        setMessage(result.message);
+        setMessage({ ok: false, text: result.message });
       }
     });
   }
 
-  const cardProps = { today, me, nameOf, sprintName, onChangeStatus: changeStatus };
+  const replaceTask = useCallback(
+    (task: Task) => setTasks((ts) => ts.map((t) => (t.id === task.id ? task : t))),
+    [],
+  );
+
+  function removeTask(task: Task) {
+    if (!window.confirm(`Hapus tugas ${task.code ?? ""} "${task.title}"? Tindakan ini tercatat di riwayat.`)) return;
+    setMessage(null);
+    startTransition(async () => {
+      const res = await deleteTask(task.id);
+      if (!res.ok) return setMessage({ ok: false, text: res.message });
+      setTasks((ts) => ts.filter((t) => t.id !== task.id));
+      setMessage({ ok: true, text: `Tugas ${task.code ?? ""} dihapus.` });
+    });
+  }
+
+  const ctx: CardCtx = {
+    today,
+    me,
+    employees,
+    departments,
+    nameOf,
+    sprintName,
+    highlightId,
+    onChangeStatus: changeStatus,
+    onTaskChange: replaceTask,
+    onNotesChange: (taskId, list) => setNotesByTask((m) => new Map(m).set(taskId, list)),
+    onReminderChange: (taskId, at) =>
+      setReminders((m) => {
+        const next = new Map(m);
+        if (at) next.set(taskId, at);
+        else next.delete(taskId);
+        return next;
+      }),
+    onEdit: (task) => setEditing(task),
+    onDelete: removeTask,
+  };
+
+  const card = (t: Task, compact = false) => (
+    <TaskCard
+      key={t.id}
+      task={t}
+      notes={notesByTask.get(t.id) ?? []}
+      reminder={reminders.get(t.id) ?? null}
+      ctx={ctx}
+      compact={compact}
+    />
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
@@ -203,13 +274,28 @@ export default function TaskBoard(props: Props) {
             )}
           </p>
         </div>
-        <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing("new")}
+            className="rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-800"
+          >
+            + Tambah tugas
+          </button>
+          <Link
+            href="/tugas/riwayat"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
+            Riwayat
+          </Link>
+        </div>
+        <div className="flex w-full rounded-lg border border-slate-300 bg-white p-0.5 text-sm sm:w-auto">
           {VIEWS.map((v) => (
             <button
               key={v.key}
               type="button"
               onClick={() => set("view", v.key)}
-              className={`rounded-md px-2.5 py-1.5 font-medium sm:px-3 ${
+              className={`flex-1 rounded-md px-2.5 py-1.5 font-medium sm:flex-none sm:px-3 ${
                 filters.view === v.key ? "bg-teal-700 text-white" : "text-slate-700"
               }`}
             >
@@ -336,8 +422,12 @@ export default function TaskBoard(props: Props) {
       </div>
 
       {message && (
-        <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {message}
+        <p
+          className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
+            message.ok ? "border-teal-200 bg-teal-50 text-teal-800" : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          {message.text}
         </p>
       )}
 
@@ -357,38 +447,33 @@ export default function TaskBoard(props: Props) {
 
             {filters.view === "list" ? (
               <div className="flex flex-col gap-2">
-                {deptTasks.map((t) => (
-                  <TaskCard key={t.id} task={t} {...cardProps} />
-                ))}
+                {deptTasks.map((t) => card(t))}
               </div>
             ) : filters.view === "grid" ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {deptTasks.map((t) => (
-                  <TaskCard key={t.id} task={t} {...cardProps} />
-                ))}
+                {deptTasks.map((t) => card(t))}
               </div>
             ) : filters.view === "pic" ? (
               <PicColumns
                 tasks={deptTasks}
                 onlyPic={filters.pic === "saya" ? me.id : filters.pic}
-                cardProps={cardProps}
+                nameOf={nameOf}
+                card={card}
               />
             ) : (
-              <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
+              <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
                 {STATUS_ORDER.map((status) => {
                   const column = deptTasks.filter((t) => t.status === status);
                   return (
                     <div
                       key={status}
-                      className="w-[85%] shrink-0 snap-start rounded-xl bg-slate-100 p-2 md:w-auto"
+                      className="w-[85%] shrink-0 snap-start rounded-xl bg-slate-100 p-2 sm:w-[45%] lg:w-auto"
                     >
                       <p className="mb-2 px-1 text-sm font-semibold text-slate-700">
                         {STATUS_LABEL[status]} ({formatNumber(column.length)})
                       </p>
                       <div className="flex flex-col gap-2">
-                        {column.map((t) => (
-                          <TaskCard key={t.id} task={t} {...cardProps} />
-                        ))}
+                        {column.map((t) => card(t))}
                       </div>
                     </div>
                   );
@@ -398,110 +483,43 @@ export default function TaskBoard(props: Props) {
           </section>
         ))}
       </div>
+
+      {editing && (
+        <TaskForm
+          task={editing === "new" ? null : editing}
+          me={me}
+          employees={employees}
+          departments={departments}
+          sprints={sprints}
+          defaultSprintId={filters.sprint !== "semua" && filters.sprint !== "tanpa" ? Number(filters.sprint) : null}
+          onClose={() => setEditing(null)}
+          onSaved={(task, isNew, warning) => {
+            setTasks((ts) => (isNew ? [task, ...ts] : ts.map((t) => (t.id === task.id ? task : t))));
+            setEditing(null);
+            setMessage(
+              warning
+                ? { ok: false, text: warning }
+                : { ok: true, text: isNew ? `Tugas ${task.code ?? ""} ditambahkan.` : `Tugas ${task.code ?? ""} disimpan.` },
+            );
+          }}
+        />
+      )}
     </main>
   );
 }
-
-function TaskCard({
-  task,
-  today,
-  me,
-  nameOf,
-  sprintName,
-  onChangeStatus,
-  compact = false,
-}: CardProps & {
-  task: Task;
-  compact?: boolean; // kartu kecil untuk tampilan Per PIC
-}) {
-  const overdue = isOverdue(task, today);
-  const editable = canEditTask(task, me);
-  const pics = task.task_people.filter((p) => p.role === "pic").map((p) => nameOf(p.employee_id));
-  const supports = task.task_people
-    .filter((p) => p.role === "support")
-    .map((p) => nameOf(p.employee_id));
-  const sprint = sprintName(task.sprint_id);
-
-  return (
-    <article
-      className={`rounded-xl border bg-white shadow-sm ${compact ? "p-2.5 text-xs" : "p-3 text-sm"} ${
-        overdue ? "border-red-300" : "border-slate-200"
-      }`}
-    >
-      <div className="mb-1 flex flex-wrap items-center gap-1.5 text-xs">
-        {task.code && <span className="font-mono text-slate-500">{task.code}</span>}
-        {task.is_priority && (
-          <span className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800">
-            Prioritas
-          </span>
-        )}
-        {overdue && (
-          <span className="rounded bg-red-100 px-1.5 py-0.5 font-semibold text-red-700">
-            Terlambat
-          </span>
-        )}
-        {sprint && !compact && <span className="text-slate-500">{sprint}</span>}
-      </div>
-
-      <p className="font-medium text-slate-900">{task.title}</p>
-
-      <div className="mt-2 space-y-0.5 text-xs text-slate-600">
-        <p>
-          Deadline:{" "}
-          <span className={overdue ? "font-semibold text-red-700" : ""}>
-            {formatDate(task.deadline)}
-          </span>
-        </p>
-        {!compact && <p>PIC: {pics.length ? pics.join(", ") : "-"}</p>}
-        {supports.length > 0 && !compact && <p>Support: {supports.join(", ")}</p>}
-      </div>
-
-      <div className={compact ? "mt-2" : "mt-3"}>
-        {editable ? (
-          <select
-            aria-label="Ubah status"
-            value={task.status}
-            onChange={(e) => onChangeStatus(task, e.target.value as TaskStatus)}
-            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[task.status]}`}
-          >
-            {STATUS_ORDER.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span
-            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[task.status]}`}
-          >
-            {STATUS_LABEL[task.status]}
-          </span>
-        )}
-      </div>
-
-      {!compact && <TaskDetails task={task} />}
-    </article>
-  );
-}
-
-type CardProps = {
-  today: string;
-  me: Props["me"];
-  nameOf: (id: string) => string;
-  sprintName: (id: number | null) => string | null;
-  onChangeStatus: (task: Task, status: TaskStatus) => void;
-};
 
 // Tampilan Per PIC: satu kolom per PIC, berdampingan. Tugas dengan beberapa PIC
 // muncul di kolom setiap PIC-nya. Di HP satu PIC per layar, digeser ke samping.
 function PicColumns({
   tasks,
   onlyPic,
-  cardProps,
+  nameOf,
+  card,
 }: {
   tasks: Task[];
   onlyPic: string;
-  cardProps: CardProps;
+  nameOf: (id: string) => string;
+  card: (t: Task, compact?: boolean) => React.ReactNode;
 }) {
   const columns = new Map<string, Task[]>();
   for (const t of tasks) {
@@ -512,7 +530,7 @@ function PicColumns({
     }
   }
   const ordered = [...columns.entries()].sort(([a], [b]) =>
-    !a ? 1 : !b ? -1 : cardProps.nameOf(a).localeCompare(cardProps.nameOf(b), "id"),
+    !a ? 1 : !b ? -1 : nameOf(a).localeCompare(nameOf(b), "id"),
   );
 
   return (
@@ -524,12 +542,9 @@ function PicColumns({
       )}
       <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:scroll-px-0 md:px-0">
         {ordered.map(([id, picTasks], i) => (
-          <div
-            key={id || "tanpa-pic"}
-            className="w-full shrink-0 snap-start rounded-xl bg-slate-100 p-2 md:w-64"
-          >
+          <div key={id || "tanpa-pic"} className="w-full shrink-0 snap-start rounded-xl bg-slate-100 p-2 md:w-72">
             <p className="mb-2 flex items-baseline justify-between gap-2 px-1 text-sm font-semibold text-slate-700">
-              <span className="truncate">{id ? cardProps.nameOf(id) : "Tanpa PIC"}</span>
+              <span className="truncate">{id ? nameOf(id) : "Tanpa PIC"}</span>
               <span className="shrink-0 text-xs font-normal text-slate-500">
                 {picTasks.length} tugas
                 <span className="md:hidden">
@@ -538,49 +553,10 @@ function PicColumns({
                 </span>
               </span>
             </p>
-            <div className="flex flex-col gap-2">
-              {picTasks.map((t) => (
-                <TaskCard key={t.id} task={t} compact {...cardProps} />
-              ))}
-            </div>
+            <div className="flex flex-col gap-2">{picTasks.map((t) => card(t, true))}</div>
           </div>
         ))}
       </div>
     </>
-  );
-}
-
-function TaskDetails({ task }: { task: Task }) {
-  if (!(task.output || task.notes || task.workstream || task.start_date)) return null;
-  return (
-    <details className="mt-2 text-xs text-slate-600">
-      <summary className="cursor-pointer select-none text-slate-500">Rincian</summary>
-      <dl className="mt-2 space-y-1">
-        {task.workstream && (
-          <div>
-            <dt className="inline font-semibold">Workstream: </dt>
-            <dd className="inline">{task.workstream}</dd>
-          </div>
-        )}
-        {task.start_date && (
-          <div>
-            <dt className="inline font-semibold">Mulai: </dt>
-            <dd className="inline">{formatDate(task.start_date)}</dd>
-          </div>
-        )}
-        {task.output && (
-          <div>
-            <dt className="inline font-semibold">Output: </dt>
-            <dd className="inline">{task.output}</dd>
-          </div>
-        )}
-        {task.notes && (
-          <div>
-            <dt className="inline font-semibold">Catatan: </dt>
-            <dd className="inline whitespace-pre-line">{task.notes}</dd>
-          </div>
-        )}
-      </dl>
-    </details>
   );
 }

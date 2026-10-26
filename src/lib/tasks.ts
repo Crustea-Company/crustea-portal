@@ -1,14 +1,43 @@
 import type { Employee } from "@/lib/auth";
 
-export type TaskStatus = "not_started" | "on_going" | "done";
+export type TaskStatus = "not_started" | "on_going" | "pending" | "done";
 
-export const STATUS_ORDER: TaskStatus[] = ["not_started", "on_going", "done"];
+export const STATUS_ORDER: TaskStatus[] = ["not_started", "on_going", "pending", "done"];
 
 export const STATUS_LABEL: Record<TaskStatus, string> = {
   not_started: "Belum Mulai",
   on_going: "Berjalan",
+  pending: "Pending",
   done: "Selesai",
 };
+
+// Warna label status (dipakai di semua halaman).
+export const STATUS_STYLE: Record<TaskStatus, string> = {
+  not_started: "bg-slate-100 text-slate-700 border-slate-300",
+  on_going: "bg-sky-50 text-sky-800 border-sky-300",
+  pending: "bg-violet-50 text-violet-800 border-violet-300",
+  done: "bg-teal-50 text-teal-800 border-teal-300",
+};
+
+export type EmployeeLite = {
+  id: string;
+  full_name: string;
+  dept_code: string | null;
+  is_active: boolean;
+};
+
+export type TaskNote = {
+  id: string;
+  task_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+  updated_at: string | null;
+};
+
+// Kolom yang diambil untuk setiap tugas (dipakai halaman dan server action).
+export const TASK_SELECT =
+  "id, code, dept_code, title, workstream, output, status, start_date, deadline, is_priority, sprint_id, notes, task_people(employee_id, role)";
 
 export type TaskPerson = { employee_id: string; role: "pic" | "support" };
 
@@ -55,6 +84,19 @@ export function canEditTask(
   return task.task_people.some(
     (p) => p.role === "pic" && p.employee_id === me.id,
   );
+}
+
+// Hapus tugas: admin, atau head untuk departemennya (sama dengan aturan database).
+export function canDeleteTask(
+  task: Pick<Task, "dept_code">,
+  me: Pick<Employee, "app_role" | "dept_code">,
+): boolean {
+  return me.app_role === "admin" || (me.app_role === "head" && task.dept_code === me.dept_code);
+}
+
+// Tambah tugas: admin dan CEO untuk semua departemen, lainnya untuk departemennya sendiri.
+export function canCreateInDept(dept: string, me: Pick<Employee, "app_role" | "dept_code">): boolean {
+  return me.app_role === "admin" || me.app_role === "ceo" || dept === me.dept_code;
 }
 
 // Sprint yang sedang berjalan; kalau sedang jeda antar-sprint, sprint berikutnya.

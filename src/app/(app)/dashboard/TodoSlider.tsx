@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { formatDate, formatNumber } from "@/lib/format";
-import { STATUS_LABEL, isOverdue, type TaskStatus } from "@/lib/tasks";
+import { STATUS_LABEL, STATUS_STYLE, isOverdue, type TaskStatus } from "@/lib/tasks";
 
 export type TodoTask = {
   id: string;
@@ -17,12 +17,6 @@ export type TodoTask = {
 };
 
 const MAX_CARDS = 20;
-
-const STATUS_STYLE: Record<TaskStatus, string> = {
-  not_started: "bg-slate-100 text-slate-700",
-  on_going: "bg-sky-50 text-sky-800",
-  done: "bg-teal-50 text-teal-800",
-};
 
 // "Perlu diselesaikan": tugas Belum Mulai dan Berjalan, deadline terdekat lebih dulu,
 // dalam slider kartu (HP: 1 kartu + sebagian kartu berikutnya, desktop: 3 kartu).
