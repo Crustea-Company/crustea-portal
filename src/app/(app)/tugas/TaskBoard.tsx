@@ -133,18 +133,19 @@ export default function TaskBoard(props: Props) {
         </Link>
       </div>
 
-      {/* Filter dan sortir menempel di atas saat halaman digulir. */}
-      <div className="sticky top-0 z-30 -mx-4 mb-4 flex flex-col gap-2 border-b border-slate-200 bg-slate-50/95 px-4 py-2 backdrop-blur">
-        <p className="text-xs text-slate-600">
-          {formatNumber(visible.length)} tugas
-          {overdueCount > 0 && (
-            <>
-              {" · "}
-              <span className="font-semibold text-red-700">{formatNumber(overdueCount)} terlambat</span>
-            </>
-          )}
-          <span className="md:hidden"> · geser baris untuk pilihan lain</span>
-        </p>
+      <p className="mb-2 text-sm text-slate-600">
+        {formatNumber(visible.length)} tugas
+        {overdueCount > 0 && (
+          <>
+            {" · "}
+            <span className="font-semibold text-red-700">{formatNumber(overdueCount)} terlambat</span>
+          </>
+        )}
+        <span className="text-xs text-slate-500 md:hidden"> · geser baris filter untuk pilihan lain</span>
+      </p>
+
+      {/* Filter dan sortir menempel tepat di bawah header aplikasi saat halaman digulir. */}
+      <div className="sticky top-[var(--app-header-h,0px)] z-30 -mx-4 mb-4 flex flex-col gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2">
 
         <div className={sliderRow} aria-label="Filter">
           <select aria-label="Departemen" className={`${control} ${sliderItem}`} value={filters.dept} onChange={(e) => set("dept", e.target.value)}>

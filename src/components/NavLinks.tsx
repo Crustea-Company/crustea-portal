@@ -14,7 +14,7 @@ export default function NavLinks({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
   const links = isAdmin ? [...LINKS, { href: "/admin", label: "Admin" }] : LINKS;
   return (
-    <nav className="flex flex-wrap gap-1 text-sm">
+    <nav className="-mx-4 flex gap-1 overflow-x-auto whitespace-nowrap px-4 text-sm sm:mx-0 sm:px-0">
       {links.map((l) => {
         const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
         return (
