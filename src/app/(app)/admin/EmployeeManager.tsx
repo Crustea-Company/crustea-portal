@@ -24,7 +24,7 @@ const STATUS_LABEL: Record<EmployeeInput["emp_status"], string> = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20";
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20";
 
 export default function EmployeeManager({
   employees,
@@ -79,7 +79,7 @@ export default function EmployeeManager({
         <button
           type="button"
           onClick={() => setEditing("new")}
-          className="rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-800"
+          className="rounded-lg bg-brand-700 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-800"
         >
           + Tambah karyawan
         </button>
@@ -116,7 +116,7 @@ export default function EmployeeManager({
       {message && (
         <p
           className={`rounded-lg border px-3 py-2 text-sm ${
-            message.ok ? "border-teal-200 bg-teal-50 text-teal-800" : "border-red-200 bg-red-50 text-red-800"
+            message.ok ? "border-brand-200 bg-brand-50 text-brand-800" : "border-red-200 bg-red-50 text-red-800"
           }`}
         >
           {message.text}
@@ -146,7 +146,7 @@ export default function EmployeeManager({
                     {e.job_title ? ` · ${e.job_title}` : ""}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1 text-xs">
-                    <span className="rounded bg-teal-50 px-1.5 py-0.5 font-semibold text-teal-800">
+                    <span className="rounded bg-brand-50 px-1.5 py-0.5 font-semibold text-brand-800">
                       {ROLE_LABEL[e.app_role]}
                     </span>
                     <span className="rounded bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-700">{e.emp_status}</span>
@@ -186,7 +186,7 @@ export default function EmployeeManager({
                       type="button"
                       onClick={() => setActive(e, true)}
                       disabled={pending}
-                      className="rounded-lg border border-teal-300 px-2.5 py-1 font-medium text-teal-800 hover:bg-teal-50 disabled:opacity-50"
+                      className="rounded-lg border border-brand-300 px-2.5 py-1 font-medium text-brand-800 hover:bg-brand-50 disabled:opacity-50"
                     >
                       Aktifkan kembali
                     </button>
@@ -379,7 +379,7 @@ function EmployeeForm({
               type="checkbox"
               checked={input.ats_required}
               onChange={(e) => set("ats_required", e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-teal-700"
+              className="mt-0.5 h-4 w-4 accent-brand-700"
             />
             <span>
               Wajib ATS
@@ -396,7 +396,7 @@ function EmployeeForm({
             <button
               type="submit"
               disabled={pending}
-              className="flex-1 rounded-lg bg-teal-700 px-4 py-2.5 font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
+              className="flex-1 rounded-lg bg-brand-700 px-4 py-2.5 font-semibold text-white hover:bg-brand-800 disabled:opacity-60"
             >
               {pending ? "Menyimpan..." : employee ? "Simpan perubahan" : "Tambah karyawan"}
             </button>

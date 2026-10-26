@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { EmployeeOption } from "@/lib/access";
 
 const inputClass =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 disabled:bg-slate-100 disabled:text-slate-400";
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 disabled:bg-slate-100 disabled:text-slate-400";
 
 export default function ExportPanel({
   employees,
@@ -25,7 +25,7 @@ export default function ExportPanel({
     <details className="group rounded-xl border border-slate-200 bg-white">
       <summary className="flex cursor-pointer select-none items-center justify-between px-4 py-3 font-semibold text-slate-900">
         Unduh Excel
-        <span className="text-sm font-normal text-teal-700 group-open:hidden">Buka</span>
+        <span className="text-sm font-normal text-brand-700 group-open:hidden">Buka</span>
         <span className="hidden text-sm font-normal text-slate-500 group-open:inline">Tutup</span>
       </summary>
 
@@ -54,7 +54,7 @@ export default function ExportPanel({
               type="radio"
               checked={mode === "periode"}
               onChange={() => setMode("periode")}
-              className="accent-teal-700"
+              className="accent-brand-700"
             />
             Per periode
           </label>
@@ -63,7 +63,7 @@ export default function ExportPanel({
               type="radio"
               checked={mode === "rentang"}
               onChange={() => setMode("rentang")}
-              className="accent-teal-700"
+              className="accent-brand-700"
             />
             Rentang tanggal
           </label>
@@ -92,7 +92,7 @@ export default function ExportPanel({
 
         <button
           type="submit"
-          className="rounded-lg bg-teal-700 px-4 py-2.5 font-semibold text-white hover:bg-teal-800"
+          className="rounded-lg bg-brand-700 px-4 py-2.5 font-semibold text-white hover:bg-brand-800"
         >
           Unduh file Excel
         </button>

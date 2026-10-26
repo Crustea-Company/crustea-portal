@@ -15,7 +15,7 @@ import { createTask, updateTask, type TaskInput } from "./actions";
 import PeoplePicker from "./PeoplePicker";
 
 const inputClass =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 disabled:bg-slate-100";
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 disabled:bg-slate-100";
 
 // Jendela tambah / ubah tugas. Di HP tampil penuh layar.
 export default function TaskForm({
@@ -92,14 +92,14 @@ export default function TaskForm({
         {ids.map((id) => (
           <span
             key={id}
-            className="flex items-center gap-1 rounded-full border border-teal-300 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-900"
+            className="flex items-center gap-1 rounded-full border border-brand-300 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-900"
           >
             {nameOf(id)}
             <button
               type="button"
               aria-label={`Lepas ${nameOf(id)}`}
               onClick={() => togglePerson(role, id)}
-              className="text-teal-700 hover:text-red-700"
+              className="text-brand-700 hover:text-red-700"
             >
               ×
             </button>
@@ -260,7 +260,7 @@ export default function TaskForm({
             <button
               type="submit"
               disabled={pending}
-              className="flex-1 rounded-lg bg-teal-700 px-4 py-2.5 font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
+              className="flex-1 rounded-lg bg-brand-700 px-4 py-2.5 font-semibold text-white hover:bg-brand-800 disabled:opacity-60"
             >
               {pending ? "Menyimpan..." : task ? "Simpan perubahan" : "Tambah tugas"}
             </button>

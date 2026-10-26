@@ -16,7 +16,7 @@ export const STATUS_STYLE: Record<TaskStatus, string> = {
   not_started: "bg-slate-100 text-slate-700 border-slate-300",
   on_going: "bg-sky-50 text-sky-800 border-sky-300",
   pending: "bg-violet-50 text-violet-800 border-violet-300",
-  done: "bg-teal-50 text-teal-800 border-teal-300",
+  done: "bg-brand-50 text-brand-800 border-brand-300",
 };
 
 export type EmployeeLite = {

@@ -36,7 +36,7 @@ function describe(n: NotificationItem): { label: string; text: string } {
 
 const LABEL_STYLE: Record<NotificationItem["kind"], string> = {
   reminder: "bg-violet-100 text-violet-800",
-  delegation: "bg-teal-100 text-teal-800",
+  delegation: "bg-brand-100 text-brand-800",
   deadline: "bg-red-100 text-red-700",
 };
 
@@ -118,7 +118,7 @@ export default function NotificationBell() {
           <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white px-3 py-2">
             <p className="font-semibold text-slate-900">Notifikasi</p>
             {unread > 0 && (
-              <button type="button" onClick={readAll} className="text-xs font-medium text-teal-700 hover:underline">
+              <button type="button" onClick={readAll} className="text-xs font-medium text-brand-700 hover:underline">
                 Tandai semua dibaca
               </button>
             )}
@@ -135,13 +135,13 @@ export default function NotificationBell() {
                       type="button"
                       onClick={() => openItem(n)}
                       className={`flex w-full flex-col gap-0.5 border-b border-slate-100 px-3 py-2.5 text-left text-sm hover:bg-slate-50 ${
-                        n.read_at ? "" : "bg-teal-50/60"
+                        n.read_at ? "" : "bg-brand-50/60"
                       }`}
                     >
                       <span className="flex items-center gap-2 text-xs">
                         <span className={`rounded px-1.5 py-0.5 font-semibold ${LABEL_STYLE[n.kind]}`}>{d.label}</span>
                         <span className="text-slate-500">{formatDateTime(n.created_at)}</span>
-                        {!n.read_at && <span className="ml-auto h-2 w-2 rounded-full bg-teal-600" aria-label="Belum dibaca" />}
+                        {!n.read_at && <span className="ml-auto h-2 w-2 rounded-full bg-brand-600" aria-label="Belum dibaca" />}
                       </span>
                       <span className="text-slate-800">{d.text}</span>
                     </button>

@@ -22,7 +22,7 @@ export default function NavLinks({ isAdmin }: { isAdmin: boolean }) {
             key={l.href}
             href={l.href}
             className={`rounded-lg px-3 py-1.5 font-medium ${
-              active ? "bg-teal-50 text-teal-800" : "text-slate-600 hover:bg-slate-100"
+              active ? "bg-brand-50 text-brand-800" : "text-slate-600 hover:bg-slate-100"
             }`}
           >
             {l.label}

@@ -112,7 +112,7 @@ export default function LogList({
                 <p className="mt-1 truncate text-xs text-slate-500">
                   Bukti:{" "}
                   {isUrl(log.proof) ? (
-                    <a href={log.proof} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline">
+                    <a href={log.proof} target="_blank" rel="noopener noreferrer" className="text-brand-700 underline">
                       {log.proof}
                     </a>
                   ) : (
@@ -130,7 +130,7 @@ export default function LogList({
                     setEditingId(log.id);
                   }}
                   disabled={pendingId === log.id}
-                  className="rounded-lg px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-50"
+                  className="rounded-lg px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50"
                 >
                   Ubah
                 </button>

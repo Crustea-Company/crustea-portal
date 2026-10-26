@@ -146,7 +146,7 @@ export default async function LogKerjaPage({ searchParams }: { searchParams: Sea
               {formatHours(weekLeft)} <span className="text-base font-medium">jam</span>
             </p>
           ) : (
-            <p className="mt-1 text-2xl font-bold text-teal-700">Target tercapai</p>
+            <p className="mt-1 text-2xl font-bold text-brand-700">Target tercapai</p>
           )}
           <p className="mt-1 text-sm text-slate-600">
             Sudah dicatat {formatHours(weekDone)} dari {weeklyHours(viewed.emp_status)} jam
@@ -159,13 +159,13 @@ export default async function LogKerjaPage({ searchParams }: { searchParams: Sea
         <section className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-sm font-medium text-slate-500">Ketercapaian periode berjalan</p>
           <p
-            className={`mt-1 text-3xl font-bold ${achievement >= 1 ? "text-teal-700" : "text-slate-900"}`}
+            className={`mt-1 text-3xl font-bold ${achievement >= 1 ? "text-brand-700" : "text-slate-900"}`}
           >
             {formatPercent(achievement)}
           </p>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
             <div
-              className="h-full rounded-full bg-teal-600"
+              className="h-full rounded-full bg-brand-600"
               style={{ width: `${Math.min(achievement, 1) * 100}%` }}
             />
           </div>

@@ -125,7 +125,7 @@ export function useTaskState(
   const messageBox = message && (
     <p
       className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
-        message.ok ? "border-teal-200 bg-teal-50 text-teal-800" : "border-red-200 bg-red-50 text-red-800"
+        message.ok ? "border-brand-200 bg-brand-50 text-brand-800" : "border-red-200 bg-red-50 text-red-800"
       }`}
     >
       {message.text}

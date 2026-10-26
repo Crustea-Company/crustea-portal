@@ -97,14 +97,14 @@ export default function PeriodRow({ period }: { period: PeriodInfo }) {
             onChange={(e) => setReason(e.target.value)}
             rows={2}
             placeholder={reasonRequired ? "Alasan (wajib)" : "Catatan (boleh kosong)"}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-600"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-600"
           />
           <div className="flex gap-2">
             <button
               type="button"
               onClick={submit}
               disabled={pending || (reasonRequired && !reason.trim())}
-              className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50"
+              className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
             >
               {pending ? "Memproses..." : actionLabel}
             </button>
@@ -121,7 +121,7 @@ export default function PeriodRow({ period }: { period: PeriodInfo }) {
       )}
 
       {result && (
-        <p className={`mt-2 text-xs ${result.ok ? "text-teal-700" : "text-red-700"}`}>{result.message}</p>
+        <p className={`mt-2 text-xs ${result.ok ? "text-brand-700" : "text-red-700"}`}>{result.message}</p>
       )}
     </li>
   );

@@ -21,7 +21,7 @@ export default function EmployeePicker({
         onChange={(e) =>
           router.push(`/log-kerja?${new URLSearchParams({ karyawan: e.target.value, periode: period })}`)
         }
-        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-600"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

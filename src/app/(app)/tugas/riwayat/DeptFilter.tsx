@@ -15,7 +15,7 @@ export default function DeptFilter({
       aria-label="Departemen"
       value={value}
       onChange={(e) => router.push(e.target.value ? `/tugas/riwayat?dept=${e.target.value}` : "/tugas/riwayat")}
-      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
+      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-600"
     >
       <option value="">Semua departemen</option>
       {departments.map((d) => (

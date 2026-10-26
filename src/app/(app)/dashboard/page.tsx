@@ -202,7 +202,7 @@ export default async function DashboardPage() {
                   <td className="px-3 py-2">
                     <Link
                       href={`/tugas?${new URLSearchParams({ dept: r.code, sprint: "semua" })}`}
-                      className="font-medium text-slate-900 hover:text-teal-700"
+                      className="font-medium text-slate-900 hover:text-brand-700"
                     >
                       {r.code}
                     </Link>{" "}
@@ -272,7 +272,7 @@ export default async function DashboardPage() {
                         {canOpenLogs ? (
                           <Link
                             href={`/log-kerja?karyawan=${r.id}`}
-                            className="font-medium text-slate-900 hover:text-teal-700 hover:underline"
+                            className="font-medium text-slate-900 hover:text-brand-700 hover:underline"
                           >
                             {r.full_name}
                           </Link>
@@ -280,14 +280,14 @@ export default async function DashboardPage() {
                           <span className="font-medium text-slate-900">{r.full_name}</span>
                         )}
                         <span
-                          className={`text-lg font-bold ${r.achievement >= 1 ? "text-teal-700" : "text-slate-900"}`}
+                          className={`text-lg font-bold ${r.achievement >= 1 ? "text-brand-700" : "text-slate-900"}`}
                         >
                           {formatPercent(r.achievement)}
                         </span>
                       </div>
                       <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
                         <div
-                          className={`h-full rounded-full ${r.achievement >= 1 ? "bg-teal-600" : "bg-sky-500"}`}
+                          className={`h-full rounded-full ${r.achievement >= 1 ? "bg-brand-600" : "bg-sky-500"}`}
                           style={{ width: `${Math.min(r.achievement, 1) * 100}%` }}
                         />
                       </div>

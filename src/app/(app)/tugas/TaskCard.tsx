@@ -79,7 +79,7 @@ export default function TaskCard({
         if ((e.target as HTMLElement).closest("[data-panel]")) return;
         router.push(href);
       }}
-      className={`scroll-mt-40 rounded-xl border shadow-sm transition-colors duration-700 ${href ? "cursor-pointer hover:border-teal-400" : ""} ${
+      className={`scroll-mt-40 rounded-xl border shadow-sm transition-colors duration-700 ${href ? "cursor-pointer hover:border-brand-400" : ""} ${
         compact ? "p-2.5 text-xs" : "p-3 text-sm"
       } ${
         highlighted
@@ -101,7 +101,7 @@ export default function TaskCard({
       </div>
 
       {href ? (
-        <Link href={href} className="font-medium text-slate-900 hover:text-teal-800 hover:underline">
+        <Link href={href} className="font-medium text-slate-900 hover:text-brand-800 hover:underline">
           {task.title}
         </Link>
       ) : (
@@ -331,7 +331,7 @@ function NotesPanel({ task, notes, ctx }: { task: Task; notes: TaskNote[]; ctx: 
                     type="button"
                     onClick={() => save(n.id)}
                     disabled={pending}
-                    className="rounded-lg bg-teal-700 px-3 py-1 font-semibold text-white disabled:opacity-60"
+                    className="rounded-lg bg-brand-700 px-3 py-1 font-semibold text-white disabled:opacity-60"
                   >
                     Simpan
                   </button>
@@ -352,7 +352,7 @@ function NotesPanel({ task, notes, ctx }: { task: Task; notes: TaskNote[]; ctx: 
                           setEditingId(n.id);
                           setEditText(n.body);
                         }}
-                        className="font-medium text-teal-700"
+                        className="font-medium text-brand-700"
                       >
                         Ubah
                       </button>
@@ -380,7 +380,7 @@ function NotesPanel({ task, notes, ctx }: { task: Task; notes: TaskNote[]; ctx: 
         type="button"
         onClick={add}
         disabled={pending || !draft.trim()}
-        className="self-start rounded-lg bg-teal-700 px-3 py-1.5 font-semibold text-white hover:bg-teal-800 disabled:opacity-50"
+        className="self-start rounded-lg bg-brand-700 px-3 py-1.5 font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
       >
         {pending ? "Menyimpan..." : "Tambahkan catatan"}
       </button>
@@ -412,7 +412,7 @@ function DelegatePanel({ task, ctx, onClose }: { task: Task; ctx: CardCtx; onClo
     });
 
   return (
-    <div className="mt-3 flex flex-col gap-2 rounded-lg border border-teal-200 bg-teal-50/50 p-2.5 text-xs">
+    <div className="mt-3 flex flex-col gap-2 rounded-lg border border-brand-200 bg-brand-50/50 p-2.5 text-xs">
       <p className="font-semibold text-slate-800">Delegasikan kepada</p>
       <p className="text-slate-600">
         Orang yang dipilih ditambahkan sebagai PIC dan mendapat notifikasi. PIC yang sekarang tetap ada.
@@ -434,7 +434,7 @@ function DelegatePanel({ task, ctx, onClose }: { task: Task; ctx: CardCtx; onClo
           type="button"
           onClick={submit}
           disabled={!picked || pending}
-          className="rounded-lg bg-teal-700 px-3 py-1.5 font-semibold text-white hover:bg-teal-800 disabled:opacity-50"
+          className="rounded-lg bg-brand-700 px-3 py-1.5 font-semibold text-white hover:bg-brand-800 disabled:opacity-50"
         >
           {pending ? "Memproses..." : picked ? `Delegasikan ke ${ctx.nameOf(picked)}` : "Pilih karyawan"}
         </button>

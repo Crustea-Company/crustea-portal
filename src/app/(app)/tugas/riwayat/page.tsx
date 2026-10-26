@@ -100,7 +100,7 @@ export default async function RiwayatTugasPage({ searchParams }: { searchParams:
     <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Link href="/tugas" className="text-sm text-teal-700 hover:underline">
+          <Link href="/tugas" className="text-sm text-brand-700 hover:underline">
             ← Kembali ke Tugas
           </Link>
           <h1 className="text-2xl font-bold text-slate-900">Riwayat perubahan tugas</h1>
@@ -129,7 +129,7 @@ export default async function RiwayatTugasPage({ searchParams }: { searchParams:
                   {canLink ? (
                     <Link
                       href={`/tugas?${new URLSearchParams({ dept: h.dept_code ?? "", sprint: "semua" })}#task-${h.task_id}`}
-                      className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-900"
+                      className="font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900"
                     >
                       {taskLabel}
                     </Link>

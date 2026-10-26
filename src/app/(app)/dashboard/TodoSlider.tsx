@@ -69,7 +69,7 @@ export default function TodoSlider(props: TaskStateInit) {
                 setTab(key);
                 scroller.current?.scrollTo({ left: 0 });
               }}
-              className={`rounded-md px-3 py-1.5 font-medium ${tab === key ? "bg-teal-700 text-white" : "text-slate-700"}`}
+              className={`rounded-md px-3 py-1.5 font-medium ${tab === key ? "bg-brand-700 text-white" : "text-slate-700"}`}
             >
               {label}
             </button>
@@ -83,7 +83,7 @@ export default function TodoSlider(props: TaskStateInit) {
               setSortKey(e.target.value);
               scroller.current?.scrollTo({ left: 0 });
             }}
-            className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm outline-none focus:border-teal-600"
+            className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm outline-none focus:border-brand-600"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -128,7 +128,7 @@ export default function TodoSlider(props: TaskStateInit) {
           ))}
           <Link
             href={allLink}
-            className={`${slideWidth} flex min-h-40 items-center justify-center self-stretch rounded-xl border border-dashed border-teal-300 bg-teal-50 p-3 text-center text-sm font-semibold text-teal-800 hover:bg-teal-100`}
+            className={`${slideWidth} flex min-h-40 items-center justify-center self-stretch rounded-xl border border-dashed border-brand-300 bg-brand-50 p-3 text-center text-sm font-semibold text-brand-800 hover:bg-brand-100`}
           >
             {list.length > MAX_CARDS
               ? `Lihat semua ${formatNumber(list.length)} tugas di halaman Tugas`

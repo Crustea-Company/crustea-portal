@@ -15,7 +15,7 @@ export default async function Home() {
   return (
     <main className="mx-auto flex max-w-md flex-col gap-4 px-4 py-8">
       <div>
-        <p className="text-sm font-medium text-teal-700">Selamat datang,</p>
+        <p className="text-sm font-medium text-brand-700">Selamat datang,</p>
         <h1 className="text-2xl font-bold text-slate-900">{employee.full_name}</h1>
       </div>
       <dl className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm">
@@ -30,13 +30,13 @@ export default async function Home() {
       </dl>
       <Link
         href="/tugas?pic=saya"
-        className="rounded-lg bg-teal-700 px-4 py-3 text-center font-semibold text-white hover:bg-teal-800"
+        className="rounded-lg bg-brand-700 px-4 py-3 text-center font-semibold text-white hover:bg-brand-800"
       >
         Lihat tugas saya
       </Link>
       <Link
         href="/log-kerja"
-        className="rounded-lg border border-teal-700 px-4 py-3 text-center font-semibold text-teal-800 hover:bg-teal-50"
+        className="rounded-lg border border-brand-700 px-4 py-3 text-center font-semibold text-brand-800 hover:bg-brand-50"
       >
         Catat log kerja
       </Link>

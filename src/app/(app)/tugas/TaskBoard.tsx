@@ -45,7 +45,7 @@ const sliderRow =
   "-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-5 md:overflow-visible md:px-0 md:pb-0";
 const sliderItem = "w-44 shrink-0 snap-start md:w-auto";
 const control =
-  "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20";
+  "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20";
 
 export default function TaskBoard(props: Props) {
   const { departments, sprints, me, today, employees } = props;
@@ -431,7 +431,7 @@ function FloatingActions({
                 setOpen(false);
               }}
               className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                view === v.key ? "bg-teal-700 text-white" : "text-slate-700 hover:bg-slate-100"
+                view === v.key ? "bg-brand-700 text-white" : "text-slate-700 hover:bg-slate-100"
               }`}
             >
               <ViewIcon view={v.key} />
@@ -454,7 +454,7 @@ function FloatingActions({
         type="button"
         onClick={onAdd}
         aria-label="Tambah tugas"
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-700 text-white shadow-lg hover:bg-teal-800"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-700 text-white shadow-lg hover:bg-brand-800"
       >
         <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
           <path d="M12 5v14M5 12h14" />

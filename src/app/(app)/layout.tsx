@@ -20,7 +20,7 @@ export default async function AppLayout({
           Layar lebar: semuanya satu baris. */}
       <StickyHeader>
         <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 px-4 py-2 sm:flex sm:py-3">
-          <span className="order-1 font-bold text-teal-800">Crustea Portal</span>
+          <span className="order-1 font-bold text-brand-800">Crustea Portal</span>
           <div className="order-3 col-span-2 min-w-0 sm:order-2">
             <NavLinks isAdmin={employee.app_role === "admin"} />
           </div>

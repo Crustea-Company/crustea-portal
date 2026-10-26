@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { addWorkLog, adminUpdateWorkLog, updateWorkLog, type FormState } from "./actions";
 
 const inputClass =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20";
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20";
 
 type Defaults = { log_date: string; activity: string; minutes: number; proof: string | null };
 
@@ -102,13 +102,13 @@ export default function LogForm({ today }: { today: string }) {
       <LogFields today={today} />
 
       {state && (
-        <p className={`text-sm ${state.ok ? "text-teal-700" : "text-red-700"}`}>{state.message}</p>
+        <p className={`text-sm ${state.ok ? "text-brand-700" : "text-red-700"}`}>{state.message}</p>
       )}
 
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
+        className="rounded-lg bg-brand-700 px-4 py-3 font-semibold text-white hover:bg-brand-800 disabled:opacity-60"
       >
         {pending ? "Menyimpan..." : "Simpan log"}
       </button>
@@ -156,7 +156,7 @@ export function EditLogForm({
         <button
           type="submit"
           disabled={pending}
-          className="flex-1 rounded-lg bg-teal-700 px-4 py-2.5 font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
+          className="flex-1 rounded-lg bg-brand-700 px-4 py-2.5 font-semibold text-white hover:bg-brand-800 disabled:opacity-60"
         >
           {pending ? "Menyimpan..." : "Simpan perubahan"}
         </button>

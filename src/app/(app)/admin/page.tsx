@@ -161,7 +161,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
             key={t.key}
             href={`/admin?bagian=${t.key}`}
             className={`flex-1 rounded-md px-2 py-1.5 text-center font-medium ${
-              tab === t.key ? "bg-teal-700 text-white" : "text-slate-700 hover:bg-slate-100"
+              tab === t.key ? "bg-brand-700 text-white" : "text-slate-700 hover:bg-slate-100"
             }`}
           >
             {t.label}
@@ -218,7 +218,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
                     Log{" "}
                     <Link
                       href={logLink(a)}
-                      className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-900"
+                      className="font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900"
                     >
                       {nameOf.get(a.old_data.employee_id ?? "") ?? "?"}, {formatDate(a.old_data.log_date)}
                     </Link>

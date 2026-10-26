@@ -46,7 +46,7 @@ function LoginForm() {
 
   if (sentTo) {
     return (
-      <div className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900">
+      <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 text-sm text-brand-900">
         <p className="font-semibold">Cek email Anda</p>
         <p className="mt-1">
           Link login sudah dikirim ke <strong>{sentTo}</strong>. Buka email itu
@@ -55,7 +55,7 @@ function LoginForm() {
         <button
           type="button"
           onClick={() => setSentTo(null)}
-          className="mt-3 font-medium text-teal-700 underline"
+          className="mt-3 font-medium text-brand-700 underline"
         >
           Pakai email lain
         </button>
@@ -77,13 +77,13 @@ function LoginForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="nama@email.com"
-        className="rounded-lg border border-slate-300 bg-white px-3 py-3 text-base outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-3 text-base outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20"
       />
       {error && <p className="text-sm text-red-700">{error}</p>}
       <button
         type="submit"
         disabled={sending}
-        className="rounded-lg bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
+        className="rounded-lg bg-brand-700 px-4 py-3 font-semibold text-white hover:bg-brand-800 disabled:opacity-60"
       >
         {sending ? "Mengirim..." : "Kirim link login"}
       </button>
@@ -95,7 +95,7 @@ export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-4 py-10">
       <div>
-        <p className="text-sm font-medium text-teal-700">PT Eco Karya Teknologi</p>
+        <p className="text-sm font-medium text-brand-700">PT Eco Karya Teknologi</p>
         <h1 className="text-3xl font-bold text-slate-900">Crustea Portal</h1>
         <p className="mt-2 text-slate-600">
           Masukkan email Anda. Kami akan mengirim link untuk masuk, tanpa kata sandi.

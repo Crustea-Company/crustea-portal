@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { BRAND_HEX } from "@/lib/brand";
 
 // Data agar aplikasi bisa di-install di HP (PWA): nama, ikon, warna.
 export default function manifest(): MetadataRoute.Manifest {
@@ -12,7 +13,7 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     orientation: "portrait",
     background_color: "#f8fafc",
-    theme_color: "#0f766e",
+    theme_color: BRAND_HEX,
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
