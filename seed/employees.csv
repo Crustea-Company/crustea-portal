@@ -1,0 +1,27 @@
+id,email,full_name,dept_code,job_title,emp_status,app_role,ats_required,is_active
+fe7dffdc-5f01-4022-bd60-6868ed278693,roikhanatun@gmail.com,Roikhanatun Nafi'ah,MGT,Founder & CEO,PKWTT,ceo,False,True
+8cdb190e-9c9e-4972-bae4-1d0d1e11e0c2,prismarias35@gmail.com,Prisma Riashuda Prakosa,TO,Co-founder & CTO,PKWTT,head,False,True
+27356688-a245-43c5-9c5a-aff1304c4909,rafi.niffarii@gmail.com,Rafi Niffari Athar,CA,Head of Corporate Affairs,PKWTT,admin,False,True
+b454e769-e424-4c0b-b5a2-33e9151e2abc,fanipinuji320@gmail.com,Taat Fani Pinuji,CA,Legal Staff,PKWT,staff,True,True
+9d18ecc5-d3b1-4850-9eb7-7000988f46d1,adityawinarman35@gmail.com,Aditya Winarman,CA,Human Resources Intern,INTERN,staff,True,True
+b0af59d9-9113-4fd9-83b1-a9bef1e6acdf,timotiussancho20@gmail.com,Timotius Sancho Sumaatmadja,CA,Human Resources Intern,INTERN,staff,True,True
+9a373ef6-e936-47f2-b56b-7a4e026a79f9,rezasiskanalia98@gmail.com,Reza Siskana Lia,FA,Head of Finance & Accounting,PKWTT,head,True,True
+1ca56bb6-1264-4ceb-9c69-c15718d0cc85,julio.jonathan.cio@gmail.com,Julio Jonathan,FA,Finance Staff,INTERN,staff,True,True
+0a25e253-b734-4f2f-84ea-484ce847260f,deviagus600@gmail.com,Devi,FA,Finance Staff,PKWTT,staff,True,True
+2fe0182f-6bde-4008-9869-71dc45fbc269,dianmarthaa@gmail.com,Dian Martha Nurrul Amanah,BDS,Chief Marketing Officer,PKWT,head,True,True
+09c0cc60-6a86-44a7-a43a-0c0f83a4e814,frhahdiva@gmail.com,Farhah Diva,BDS,Sales Staff,PKWTT,staff,True,True
+628a7f45-2a4e-4d69-8e75-c01636270933,bunyamin.basyair12@gmail.com,Bunyamin Basyair,BDS,Business Development Staff,PKWTT,staff,True,True
+532afdb7-c868-42f0-b4f9-4a07ecf0188f,ghrasammara@gmail.com,Ghailan Rasendriya Samara,BDS,Business Development Intern,INTERN,staff,True,True
+dd5eb1d6-8e4b-465d-9856-26bd6b2cb71a,muh.azril2017@gmail.com,Muhammad Azril,BDS,Head of Public & Government Relation,PKWT,staff,True,True
+dd870b0a-4012-4f5a-bf11-95a67772d2ac,adenovia121189@gmail.com,Ade Novia Putri,DM,Head of Digital Marketing,PKWT,head,True,True
+c74095cd-d74e-435e-8eda-2158d31c194f,rasyaworkplace@gmail.com,Muhammad Al Rasya,DM,Digital Marketing Staff,PKWT,staff,True,True
+dac73554-6e62-4fc4-9aae-179f48513e87,crusteasilvianaalyaniaazy@gmail.com,Silviana AlyaniAzy,AQ,Head of Aquaculture,PKWTT,head,True,True
+c639784b-58ea-44f3-986b-5eb000d38756,bagasigit0021210@gmail.com,Bagas Putra Satria,AQ,Aquaculture Staff,PKWT,staff,True,True
+62dd0661-5ad2-425b-9318-c2351956337d,sultankrygty@gmail.com,Sultan Jibran Risqulloh,AQ,Aquaculture Intern,INTERN,staff,True,True
+fb01b54a-fdf1-442c-bbb3-38ee75623ec8,vioartdeveloper@gmail.com,Vio Arvendha,TO,Technology Operations Staff,PKWTT,staff,True,True
+a76d7647-1932-44db-8314-f05a0e4a999d,crusteayuliana@gmail.com,Yuliana,TO,Technology Operations Staff,PKWT,staff,True,True
+03db6e36-c824-4058-ae51-925caa9daa6c,feliyana570@gmail.com,Feliyana,TO,Technology Operations Staff,PKWT,staff,True,True
+9c645c66-97bb-48bd-a8c6-9d86ce70807c,nonaktif.fadhel@crustea.invalid,Fadhel Maulana,FA,Finance Staff,PKWT,staff,True,False
+26c5ebb9-af30-49af-ad21-a3b2274b7a52,nonaktif.imam@crustea.invalid,Imam Bangun Prakosa,TO,Technology Operations Staff,PKWTT,staff,True,False
+d6bf7bfa-b7ea-45f9-803c-dc46e3a56d15,nonaktif.bagasmuhtar@crustea.invalid,Bagas Muhtar Effendi,BDS,Sales Staff,PKWTT,staff,True,False
+f70cd351-4bd9-42f3-90ed-5f4fe7f8293c,nonaktif.alfikri@crustea.invalid,Alfikri Husein,DM,Digital Marketing Staff,PKWT,staff,True,False
