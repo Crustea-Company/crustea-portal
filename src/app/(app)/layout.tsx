@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentEmployee } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
 import NavLinks from "@/components/NavLinks";
+import NotificationBell from "@/components/NotificationBell";
 
 // Semua halaman di dalam folder (app) hanya untuk karyawan aktif.
 export default async function AppLayout({
@@ -22,6 +23,7 @@ export default async function AppLayout({
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="hidden text-slate-600 sm:inline">{employee.full_name}</span>
+            <NotificationBell />
             <LogoutButton />
           </div>
         </div>
