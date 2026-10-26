@@ -7,11 +7,9 @@ export const metadata: Metadata = {
   description: "Portal internal PT Eco Karya Teknologi (Crustea)",
   applicationName: "Crustea Portal",
   appleWebApp: { capable: true, title: "Crustea", statusBarStyle: "default" },
+  // Ikon dibuat dari logo oleh scripts/generate-icons.mjs.
   icons: {
-    icon: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
+    icon: [{ url: "/icons/tab-icon.png", type: "image/png" }],
     apple: "/icons/apple-touch-icon.png",
   },
 };
