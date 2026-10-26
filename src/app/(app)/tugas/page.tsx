@@ -47,7 +47,12 @@ export default async function TugasPage({ searchParams }: { searchParams: Search
     pic: param("pic"),
     status: param("status") as Filters["status"] | undefined,
     overdue: param("terlambat") === "1",
-    view: param("tampilan") === "kanban" ? "kanban" : "list",
+    priorityOnly: param("prioritas") === "1",
+    from: param("dari"),
+    to: param("sampai"),
+    sort: param("urut") === "prioritas" ? "priority" : param("urut") === "judul" ? "title" : "deadline",
+    dir: param("arah") === "turun" ? "desc" : "asc",
+    view: (["grid", "kanban", "pic"] as const).find((v) => v === param("tampilan")) ?? "list",
   };
 
   return (

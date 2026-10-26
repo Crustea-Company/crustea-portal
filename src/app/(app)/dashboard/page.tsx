@@ -14,6 +14,8 @@ import {
   weekRange,
   weeklyHours,
 } from "@/lib/ats";
+import type { TaskPerson, TaskStatus } from "@/lib/tasks";
+import TodoSlider, { type TodoTask } from "./TodoSlider";
 
 export const metadata: Metadata = { title: "Dashboard - Crustea Portal" };
 
@@ -37,8 +39,11 @@ export default async function DashboardPage() {
   if (me.app_role === "head") employeesQuery = employeesQuery.eq("dept_code", me.dept_code ?? "");
   else if (me.app_role === "staff") employeesQuery = employeesQuery.eq("id", me.id);
 
-  const [tasksRes, departmentsRes, employeesRes, periodLogsRes, weekLogsRes, lockedRes] = await Promise.all([
-    supabase.from("tasks").select("dept_code, status, deadline").neq("status", "done"),
+  const [tasksRes, departmentsRes, employeesRes, periodLogsRes, weekLogsRes, lockedRes, namesRes] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select("id, code, title, dept_code, status, deadline, is_priority, task_people(employee_id, role)")
+      .neq("status", "done"),
     supabase.from("departments").select("code, name").order("code"),
     employeesQuery,
     fetchAll<{ employee_id: string; minutes: number }>(() =>
@@ -57,6 +62,7 @@ export default async function DashboardPage() {
       .not("locked_at", "is", null)
       .order("period_month", { ascending: false })
       .limit(1),
+    supabase.from("employees").select("id, full_name"),
   ]);
 
   const lastLocked = (lockedRes.data?.[0]?.period_month as string | undefined) ?? null;
@@ -74,6 +80,7 @@ export default async function DashboardPage() {
     periodLogsRes.error ??
     weekLogsRes.error ??
     lockedRes.error ??
+    namesRes.error ??
     snapshotsRes.error;
   if (error) {
     return (
@@ -98,6 +105,25 @@ export default async function DashboardPage() {
   });
   const totalOverdue = taskRows.reduce((t, r) => t + r.overdue, 0);
   const totalDue = taskRows.reduce((t, r) => t + r.dueThisWeek, 0);
+
+  // ---------- Perlu diselesaikan ----------
+  // Tugas Belum Mulai dan Berjalan, deadline terdekat dulu (tanpa deadline paling akhir).
+  const nameOf = new Map((namesRes.data ?? []).map((e) => [e.id as string, e.full_name as string]));
+  type OpenTask = Omit<TodoTask, "pics"> & { task_people: TaskPerson[] };
+  const todo = ((tasksRes.data ?? []) as OpenTask[])
+    .filter((t) => t.status === ("not_started" as TaskStatus) || t.status === ("on_going" as TaskStatus))
+    .sort(
+      (a, b) =>
+        (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999") ||
+        (a.code ?? "").localeCompare(b.code ?? "", "id", { numeric: true }),
+    )
+    .map(({ task_people, ...t }) => ({
+      ...t,
+      isMine: task_people.some((p) => p.role === "pic" && p.employee_id === me.id),
+      pics: task_people.filter((p) => p.role === "pic").map((p) => nameOf.get(p.employee_id) ?? "?"),
+    }));
+  const myTodo: TodoTask[] = todo.filter((t) => t.isMine);
+  const deptTodo: TodoTask[] = todo.filter((t) => t.dept_code === me.dept_code);
 
   // ---------- ATS per karyawan ----------
   const sumBy = (rows: { employee_id: string; minutes: number }[]) => {
@@ -200,6 +226,11 @@ export default async function DashboardPage() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section>
+        <h2 className="mb-3 font-semibold text-slate-900">Perlu diselesaikan</h2>
+        <TodoSlider mine={myTodo} dept={deptTodo} deptCode={me.dept_code} today={today} />
       </section>
 
       <section>
