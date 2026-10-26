@@ -15,15 +15,43 @@ const ACTION_LABEL: Record<string, string> = {
   lock: "Tutup periode",
   relock: "Kunci ulang periode",
   reopen: "Buka ulang periode",
+  employee_create: "Tambah karyawan",
+  employee_update: "Ubah data karyawan",
+  employee_deactivate: "Nonaktifkan karyawan",
+  employee_activate: "Aktifkan kembali karyawan",
+  employee_delete: "Hapus karyawan",
 };
+
+// Kolom data karyawan yang ditampilkan di riwayat (lama -> baru).
+const EMPLOYEE_FIELDS: [string, string][] = [
+  ["full_name", "Nama"],
+  ["email", "Email"],
+  ["dept_code", "Departemen"],
+  ["job_title", "Jabatan"],
+  ["emp_status", "Status kerja"],
+  ["app_role", "Peran"],
+  ["ats_required", "Wajib ATS"],
+  ["is_active", "Aktif"],
+  ["left_at", "Tanggal keluar"],
+];
+
+const ROLE_NAME: Record<string, string> = { admin: "Admin", ceo: "CEO", head: "Kepala Departemen", staff: "Staf" };
+
+function showEmployeeValue(field: string, value: unknown): string {
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "boolean") return value ? "Ya" : "Tidak";
+  if (field === "app_role") return ROLE_NAME[String(value)] ?? String(value);
+  if (field === "left_at") return formatDate(String(value));
+  return String(value);
+}
 
 type AuditRow = {
   id: number;
   table_name: string;
   row_id: string;
   action: string;
-  old_data: { employee_id?: string; log_date?: string; minutes?: number; period_month?: string } | null;
-  new_data: { log_date?: string; minutes?: number } | null;
+  old_data: ({ employee_id?: string; log_date?: string; minutes?: number; period_month?: string } & Record<string, unknown>) | null;
+  new_data: ({ log_date?: string; minutes?: number } & Record<string, unknown>) | null;
   actor: string | null;
   reason: string | null;
   at: string;
@@ -198,6 +226,32 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
                     {a.new_data &&
                       ` → ${formatDate(a.new_data.log_date)}, ${a.new_data.minutes} menit`}
                   </p>
+                )}
+                {a.table_name === "employees" && (
+                  <div className="text-xs text-slate-600">
+                    <p className="font-medium text-slate-800">
+                      {String((a.new_data ?? a.old_data)?.full_name ?? "?")}
+                    </p>
+                    {a.action === "employee_create" && a.new_data && (
+                      <p>
+                        {showEmployeeValue("dept_code", a.new_data.dept_code)} ·{" "}
+                        {showEmployeeValue("emp_status", a.new_data.emp_status)} ·{" "}
+                        {showEmployeeValue("app_role", a.new_data.app_role)}
+                      </p>
+                    )}
+                    {a.old_data && a.new_data && (
+                      <ul className="mt-0.5 space-y-0.5">
+                        {EMPLOYEE_FIELDS.filter(
+                          ([f]) => JSON.stringify(a.old_data?.[f] ?? null) !== JSON.stringify(a.new_data?.[f] ?? null),
+                        ).map(([f, label]) => (
+                          <li key={f}>
+                            <span className="font-semibold">{label}:</span> {showEmployeeValue(f, a.old_data?.[f])} →{" "}
+                            {showEmployeeValue(f, a.new_data?.[f])}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 )}
                 <p className="text-xs text-slate-600">
                   Oleh: {a.actor ? (nameOf.get(a.actor) ?? "?") : "sistem"}
