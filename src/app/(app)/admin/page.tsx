@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime, todayJakarta } from "@/lib/format";
 import { periodLabel, periodOf, periodRange } from "@/lib/ats";
 import PeriodRow, { type PeriodInfo } from "./PeriodRow";
+import EmployeeManager, { type AdminEmployee } from "./EmployeeManager";
 
 export const metadata: Metadata = { title: "Admin - Crustea Portal" };
 
@@ -37,7 +38,15 @@ function logLink(a: AuditRow): string {
   return `/log-kerja?${qs}${a.action === "update" ? `#log-${a.row_id}` : ""}`;
 }
 
-export default async function AdminPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+const TABS = [
+  { key: "karyawan", label: "Karyawan" },
+  { key: "periode", label: "Periode ATS" },
+  { key: "riwayat", label: "Riwayat perubahan" },
+] as const;
+
+export default async function AdminPage({ searchParams }: { searchParams: SearchParams }) {
   const me = (await getCurrentEmployee())!;
   if (me.app_role !== "admin") {
     return (
@@ -49,14 +58,21 @@ export default async function AdminPage() {
     );
   }
 
+  const params = await searchParams;
+  const tab = TABS.find((t) => t.key === params.bagian)?.key ?? "karyawan";
+
   const supabase = await createClient();
   const today = todayJakarta();
   const currentPeriod = periodOf(today);
 
-  const [periodsRes, snapshotsRes, employeesRes, auditRes] = await Promise.all([
+  const [periodsRes, snapshotsRes, employeesRes, departmentsRes, auditRes] = await Promise.all([
     supabase.from("periods").select("period_month, locked_at"),
     supabase.from("period_snapshots").select("period_month"),
-    supabase.from("employees").select("id, full_name"),
+    supabase
+      .from("employees")
+      .select("id, email, full_name, dept_code, job_title, emp_status, app_role, ats_required, is_active, left_at")
+      .order("full_name"),
+    supabase.from("departments").select("code, name").order("code"),
     supabase
       .from("audit_log")
       .select("id, table_name, row_id, action, old_data, new_data, actor, reason, at")
@@ -64,7 +80,7 @@ export default async function AdminPage() {
       .limit(30),
   ]);
 
-  const error = periodsRes.error ?? snapshotsRes.error ?? employeesRes.error ?? auditRes.error;
+  const error = periodsRes.error ?? snapshotsRes.error ?? employeesRes.error ?? departmentsRes.error ?? auditRes.error;
   if (error) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-6">
@@ -108,9 +124,35 @@ export default async function AdminPage() {
   const audit = (auditRes.data ?? []) as AuditRow[];
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-6">
+    <main className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6">
       <h1 className="text-2xl font-bold text-slate-900">Admin</h1>
 
+      <nav className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm">
+        {TABS.map((t) => (
+          <Link
+            key={t.key}
+            href={`/admin?bagian=${t.key}`}
+            className={`flex-1 rounded-md px-2 py-1.5 text-center font-medium ${
+              tab === t.key ? "bg-teal-700 text-white" : "text-slate-700 hover:bg-slate-100"
+            }`}
+          >
+            {t.label}
+          </Link>
+        ))}
+      </nav>
+
+      {tab === "karyawan" && (
+        <section>
+          <EmployeeManager
+            employees={(employeesRes.data ?? []) as AdminEmployee[]}
+            departments={departmentsRes.data ?? []}
+            meId={me.id}
+            today={today}
+          />
+        </section>
+      )}
+
+      {tab === "periode" && (
       <section>
         <h2 className="mb-1 font-semibold text-slate-900">Periode ATS</h2>
         <p className="mb-3 text-sm text-slate-600">
@@ -123,7 +165,9 @@ export default async function AdminPage() {
           ))}
         </ul>
       </section>
+      )}
 
+      {tab === "riwayat" && (
       <section>
         <h2 className="mb-3 font-semibold text-slate-900">Riwayat perubahan (30 terakhir)</h2>
         {audit.length === 0 ? (
@@ -164,6 +208,7 @@ export default async function AdminPage() {
           </ul>
         )}
       </section>
+      )}
     </main>
   );
 }

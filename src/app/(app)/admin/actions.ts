@@ -41,3 +41,84 @@ export async function reopenPeriod(periodMonth: string, reason: string): Promise
   revalidatePath("/log-kerja");
   return { ok: true, message: "Periode dibuka kembali. Snapshot lama tetap tersimpan." };
 }
+
+// ---------- Kelola karyawan ----------
+// Tabel employees hanya boleh diubah admin (aturan database admin_employees).
+
+export type EmployeeInput = {
+  email: string;
+  full_name: string;
+  dept_code: string;
+  job_title: string;
+  emp_status: "PKWTT" | "PKWT" | "INTERN";
+  app_role: "admin" | "ceo" | "head" | "staff";
+  ats_required: boolean;
+};
+
+const EMP_STATUSES = ["PKWTT", "PKWT", "INTERN"];
+const APP_ROLES = ["admin", "ceo", "head", "staff"];
+
+export async function saveEmployee(input: EmployeeInput, id: string | null): Promise<Result> {
+  const me = await getCurrentEmployee();
+  if (me?.app_role !== "admin") return { ok: false, message: "Hanya admin yang boleh melakukan ini." };
+
+  const email = input.email.trim().toLowerCase();
+  const fullName = input.full_name.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, message: "Format email tidak valid." };
+  if (!fullName) return { ok: false, message: "Nama lengkap wajib diisi." };
+  if (!input.dept_code) return { ok: false, message: "Departemen wajib dipilih." };
+  if (!EMP_STATUSES.includes(input.emp_status)) return { ok: false, message: "Status kerja tidak dikenal." };
+  if (!APP_ROLES.includes(input.app_role)) return { ok: false, message: "Peran tidak dikenal." };
+  // Mencegah admin mengunci dirinya sendiri dari halaman Admin.
+  if (id === me.id && input.app_role !== "admin") {
+    return { ok: false, message: "Anda tidak bisa mencabut peran admin dari akun Anda sendiri." };
+  }
+
+  const row = {
+    email,
+    full_name: fullName,
+    dept_code: input.dept_code,
+    job_title: input.job_title.trim() || null,
+    emp_status: input.emp_status,
+    app_role: input.app_role,
+    ats_required: input.ats_required,
+  };
+
+  const supabase = await createClient();
+  const { data, error } = id
+    ? await supabase.from("employees").update(row).eq("id", id).select("id")
+    : await supabase.from("employees").insert({ ...row, is_active: true }).select("id");
+  if (error) {
+    return {
+      ok: false,
+      message: error.code === "23505" ? "Email ini sudah terdaftar untuk karyawan lain." : `Gagal menyimpan: ${error.message}`,
+    };
+  }
+  if (!data?.length) return { ok: false, message: "Data karyawan tidak ditemukan." };
+
+  revalidatePath("/admin");
+  return { ok: true, message: id ? `Data ${fullName} disimpan.` : `${fullName} ditambahkan dan sudah bisa login.` };
+}
+
+// Nonaktifkan: tidak bisa login lagi dan tidak tampil di laporan ATS. Data lama tetap tersimpan.
+export async function setEmployeeActive(id: string, active: boolean, leftAt: string | null): Promise<Result> {
+  const me = await getCurrentEmployee();
+  if (me?.app_role !== "admin") return { ok: false, message: "Hanya admin yang boleh melakukan ini." };
+  if (id === me.id && !active) return { ok: false, message: "Anda tidak bisa menonaktifkan akun Anda sendiri." };
+  if (!active && leftAt && !/^\d{4}-\d{2}-\d{2}$/.test(leftAt)) return { ok: false, message: "Tanggal keluar tidak valid." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("employees")
+    .update({ is_active: active, left_at: active ? null : leftAt })
+    .eq("id", id)
+    .select("full_name");
+  if (error) return { ok: false, message: `Gagal menyimpan: ${error.message}` };
+  if (!data?.length) return { ok: false, message: "Data karyawan tidak ditemukan." };
+
+  revalidatePath("/admin");
+  return {
+    ok: true,
+    message: active ? `${data[0].full_name} diaktifkan kembali.` : `${data[0].full_name} dinonaktifkan.`,
+  };
+}
