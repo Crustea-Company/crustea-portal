@@ -15,6 +15,8 @@ import {
 import LogForm from "./LogForm";
 import LogList, { type WorkLog } from "./LogList";
 import PeriodPicker from "./PeriodPicker";
+import ExportPanel from "./ExportPanel";
+import { exportableEmployees } from "@/lib/access";
 
 export const metadata: Metadata = { title: "Log Kerja - Crustea Portal" };
 
@@ -78,6 +80,13 @@ export default async function LogKerjaPage({ searchParams }: { searchParams: Sea
   const periodTarget = monthlyExpectedHours(me.emp_status) * 60;
   const periodDone = sumMinutes(periodRes.data);
   const achievement = periodDone / periodTarget;
+
+  // Pilihan periode untuk unduhan: Jan 2025 s.d. periode berjalan, terbaru di atas.
+  const exportPeriods: string[] = [];
+  for (let d = new Date(`${currentPeriod}T00:00:00Z`); d >= new Date("2025-01-01T00:00:00Z"); d.setUTCMonth(d.getUTCMonth() - 1)) {
+    exportPeriods.push(d.toISOString().slice(0, 10));
+  }
+  const exportEmployees = await exportableEmployees(me);
 
   const lockedPeriods = new Set((lockedRes.data ?? []).map((p) => p.period_month as string));
   const periodOptions = [
@@ -152,6 +161,14 @@ export default async function LogKerjaPage({ searchParams }: { searchParams: Sea
           today={today}
         />
       </section>
+
+      <ExportPanel
+        employees={exportEmployees}
+        meId={me.id}
+        periods={exportPeriods.map((p) => ({ value: p, label: periodLabelWithRange(p) }))}
+        defaultPeriod={selectedPeriod}
+        today={today}
+      />
 
       <section>
         <h2 className="mb-3 font-semibold text-slate-900">Riwayat ketercapaian (periode ditutup)</h2>

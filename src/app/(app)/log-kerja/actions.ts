@@ -20,15 +20,14 @@ function parseLogForm(formData: FormData): { error: string } | { values: LogValu
   if (!/^\d{4}-\d{2}-\d{2}$/.test(logDate)) return { error: "Tanggal belum diisi." };
   if (logDate > todayJakarta()) return { error: "Tanggal tidak boleh di masa depan." };
   if (!activity) return { error: "Aktivitas belum diisi." };
-  if (!Number.isInteger(hours) || hours < 0 || hours > 24) {
-    return { error: "Jam harus bilangan bulat 0-24." };
+  if (!Number.isInteger(hours) || hours < 0) {
+    return { error: "Jam harus bilangan bulat 0 atau lebih." };
   }
   if (!Number.isInteger(mins) || mins < 0 || mins > 59) {
     return { error: "Menit harus bilangan bulat 0-59." };
   }
   const minutes = hours * 60 + mins;
   if (minutes <= 0) return { error: "Durasi harus lebih dari 0." };
-  if (minutes > 24 * 60) return { error: "Durasi satu catatan tidak boleh lebih dari 24 jam." };
 
   return { values: { log_date: logDate, activity, minutes, proof: proof || null } };
 }

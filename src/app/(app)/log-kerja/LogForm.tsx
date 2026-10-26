@@ -31,7 +31,6 @@ function LogFields({ today, defaults }: { today: string; defaults?: Defaults }) 
               type="number"
               name="hours"
               min={0}
-              max={24}
               step={1}
               inputMode="numeric"
               placeholder="0"
