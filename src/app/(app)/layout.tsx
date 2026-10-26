@@ -18,7 +18,7 @@ export default async function AppLayout({
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
           <div className="flex items-center gap-3">
             <span className="font-bold text-teal-800">Crustea Portal</span>
-            <NavLinks />
+            <NavLinks isAdmin={employee.app_role === "admin"} />
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="hidden text-slate-600 sm:inline">{employee.full_name}</span>

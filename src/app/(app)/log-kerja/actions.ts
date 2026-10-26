@@ -93,6 +93,53 @@ export async function updateWorkLog(_prev: FormState, formData: FormData): Promi
   return { ok: true, message: "Perubahan tersimpan." };
 }
 
+// ---------- Koreksi oleh admin (wajib alasan, tercatat di audit_log) ----------
+// Dipakai untuk log milik orang lain dan untuk log di periode yang sudah ditutup.
+// Snapshot periode tidak berubah.
+
+export async function adminUpdateWorkLog(_prev: FormState, formData: FormData): Promise<FormState> {
+  const me = await getCurrentEmployee();
+  if (me?.app_role !== "admin") return { ok: false, message: "Hanya admin yang boleh melakukan ini." };
+
+  const id = String(formData.get("id") ?? "");
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!reason) return { ok: false, message: "Alasan wajib diisi." };
+  const parsed = parseLogForm(formData);
+  if ("error" in parsed) return { ok: false, message: parsed.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_update_work_log", {
+    p_id: id,
+    p_log_date: parsed.values.log_date,
+    p_activity: parsed.values.activity,
+    p_minutes: parsed.values.minutes,
+    p_proof: parsed.values.proof,
+    p_reason: reason,
+  });
+  if (error) return { ok: false, message: `Gagal menyimpan: ${error.message}` };
+
+  revalidatePath("/log-kerja");
+  revalidatePath("/admin");
+  return { ok: true, message: "Koreksi tersimpan dan tercatat di riwayat perubahan." };
+}
+
+export async function adminDeleteWorkLog(
+  id: string,
+  reason: string,
+): Promise<{ ok: boolean; message?: string }> {
+  const me = await getCurrentEmployee();
+  if (me?.app_role !== "admin") return { ok: false, message: "Hanya admin yang boleh melakukan ini." };
+  if (!reason.trim()) return { ok: false, message: "Alasan wajib diisi." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_delete_work_log", { p_id: id, p_reason: reason.trim() });
+  if (error) return { ok: false, message: `Gagal menghapus: ${error.message}` };
+
+  revalidatePath("/log-kerja");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
 export async function deleteWorkLog(id: string): Promise<{ ok: boolean; message?: string }> {
   const supabase = await createClient();
   // Database hanya mengizinkan menghapus log milik sendiri di periode yang belum ditutup.

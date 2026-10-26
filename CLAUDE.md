@@ -17,7 +17,7 @@ Pemilik proyek (Athar, Head of Corporate Affairs) **bukan programmer**. Karena i
 - Supabase: database Postgres, login, dan Row Level Security (RLS). Region Singapore.
 - Login: magic link email (Supabase Auth). Hanya email yang ada di tabel `employees` dengan `is_active = true` yang boleh memakai aplikasi; email lain ditampilkan halaman "Akses ditolak".
 - Saat ini dikembangkan di laptop (localhost). Deployment ke server akan dibantu Vio (TechOps) setelah Fase 1 selesai.
-- Skema database: `schema.sql`. Data awal: folder `seed/` (file CSV, jangan diedit manual).
+- Skema database: `schema.sql`, lalu perubahan berikutnya berurutan di folder `migrations/` (dijalankan Athar lewat SQL Editor Supabase setelah disetujui). Data awal: folder `seed/` (file CSV, jangan diedit manual).
 
 ## Aturan bisnis (wajib diikuti)
 
@@ -36,6 +36,8 @@ Pemilik proyek (Athar, Head of Corporate Affairs) **bukan programmer**. Karena i
 - Ketercapaian = total jam periode / ekspektasi bulanan.
 - **Tutup periode:** admin mengunci periode; sistem menyimpan snapshot ketercapaian per karyawan di `period_snapshots`. Nilai yang sudah dikunci **tidak boleh dihitung ulang**, karena dipakai sebagai dasar remunerasi. Log yang ditambahkan setelah periode dikunci otomatis bertanda `is_correction = true` dan tidak mengubah snapshot.
 - Snapshot Juli-September 2026 adalah data impor (`source = 'import'`) dan harus ditampilkan apa adanya.
+- **Koreksi admin:** hanya admin yang boleh mengubah/menghapus log di periode yang sudah ditutup (atau log milik orang lain), wajib alasan, dan setiap perubahan tercatat di `audit_log` (data lama, data baru, alasan, siapa, kapan). Snapshot tidak ikut berubah.
+- **Buka ulang periode:** admin boleh membuka kunci periode (wajib alasan, tercatat di `audit_log`). Saat dikunci ulang, snapshot yang sudah ada **tetap dipakai, tidak dihitung ulang**; snapshot baru hanya dibuat untuk karyawan yang belum punya.
 
 ### To-do & sprint
 - Semua karyawan bisa melihat semua tugas (transparansi lintas departemen).

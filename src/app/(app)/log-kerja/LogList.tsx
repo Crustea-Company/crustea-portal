@@ -3,7 +3,7 @@
 import { useCallback, useState, useTransition } from "react";
 import { formatDate } from "@/lib/format";
 import { formatDuration, formatHours } from "@/lib/ats";
-import { deleteWorkLog } from "./actions";
+import { adminDeleteWorkLog, deleteWorkLog } from "./actions";
 import { EditLogForm } from "./LogForm";
 
 export type WorkLog = {
@@ -20,10 +20,12 @@ const isUrl = (s: string) => /^https?:\/\//i.test(s);
 export default function LogList({
   logs,
   locked,
+  adminMode,
   today,
 }: {
   logs: WorkLog[];
   locked: boolean;
+  adminMode: boolean; // admin mengoreksi log orang lain / periode tertutup: wajib alasan
   today: string;
 }) {
   const [message, setMessage] = useState<string | null>(null);
@@ -34,12 +36,21 @@ export default function LogList({
 
   const total = logs.reduce((t, l) => t + l.minutes, 0);
 
+  const canModify = !locked || adminMode;
+
   function remove(log: WorkLog) {
-    if (!window.confirm(`Hapus log "${log.activity}" (${formatDate(log.log_date)})?`)) return;
+    const label = `"${log.activity}" (${formatDate(log.log_date)})`;
+    let reason = "";
+    if (adminMode) {
+      reason = window.prompt(`Alasan menghapus log ${label}? (wajib, tercatat di riwayat)`)?.trim() ?? "";
+      if (!reason) return;
+    } else if (!window.confirm(`Hapus log ${label}?`)) {
+      return;
+    }
     setMessage(null);
     setPendingId(log.id);
     startTransition(async () => {
-      const result = await deleteWorkLog(log.id);
+      const result = adminMode ? await adminDeleteWorkLog(log.id, reason) : await deleteWorkLog(log.id);
       setPendingId(null);
       if (!result.ok) setMessage(result.message ?? "Gagal menghapus.");
     });
@@ -70,7 +81,7 @@ export default function LogList({
           }`}
         >
           {editingId === log.id ? (
-            <EditLogForm id={log.id} today={today} defaults={log} onDone={closeEdit} />
+            <EditLogForm id={log.id} today={today} defaults={log} adminMode={adminMode} onDone={closeEdit} />
           ) : (
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -96,7 +107,7 @@ export default function LogList({
                 </p>
               )}
             </div>
-            {!locked && (
+            {canModify && (
               <div className="flex shrink-0 gap-1">
                 <button
                   type="button"

@@ -13,6 +13,21 @@ export function formatDate(date: string | null | undefined): string {
   return dateFormatter.format(new Date(`${date}T00:00:00Z`));
 }
 
+const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Asia/Jakarta",
+});
+
+// Waktu lengkap dalam WIB, mis. "26 Okt 2026 14.05"
+export function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "-";
+  return dateTimeFormatter.format(new Date(value)).replace(",", "");
+}
+
 // Tanggal hari ini di zona waktu WIB, format "YYYY-MM-DD".
 export function todayJakarta(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
-import { addWorkLog, updateWorkLog, type FormState } from "./actions";
+import { addWorkLog, adminUpdateWorkLog, updateWorkLog, type FormState } from "./actions";
 
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20";
@@ -120,14 +120,19 @@ export function EditLogForm({
   id,
   today,
   defaults,
+  adminMode,
   onDone,
 }: {
   id: string;
   today: string;
   defaults: Defaults;
+  adminMode: boolean; // koreksi admin: wajib alasan dan tercatat di audit_log
   onDone: () => void;
 }) {
-  const [state, formAction, pending] = useActionState<FormState, FormData>(updateWorkLog, null);
+  const [state, formAction, pending] = useActionState<FormState, FormData>(
+    adminMode ? adminUpdateWorkLog : updateWorkLog,
+    null,
+  );
 
   useEffect(() => {
     if (state?.ok) onDone();
@@ -137,6 +142,13 @@ export function EditLogForm({
     <form action={formAction} className="flex flex-col gap-3">
       <input type="hidden" name="id" value={id} />
       <LogFields today={today} defaults={defaults} />
+
+      {adminMode && (
+        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+          Alasan koreksi <span className="font-normal text-slate-500">(wajib, tercatat di riwayat)</span>
+          <textarea name="reason" required rows={2} className={inputClass} />
+        </label>
+      )}
 
       {state && !state.ok && <p className="text-sm text-red-700">{state.message}</p>}
 

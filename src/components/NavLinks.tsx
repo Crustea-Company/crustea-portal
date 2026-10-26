@@ -9,11 +9,12 @@ const LINKS = [
   { href: "/log-kerja", label: "Log Kerja" },
 ];
 
-export default function NavLinks() {
+export default function NavLinks({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
+  const links = isAdmin ? [...LINKS, { href: "/admin", label: "Admin" }] : LINKS;
   return (
-    <nav className="flex gap-1 text-sm">
-      {LINKS.map((l) => {
+    <nav className="flex flex-wrap gap-1 text-sm">
+      {links.map((l) => {
         const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
         return (
           <Link
