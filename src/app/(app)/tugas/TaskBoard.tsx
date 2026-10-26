@@ -10,12 +10,15 @@ import {
   compareTasks,
   defaultSprint,
   isOverdue,
+  canDeleteTask,
+  canEditTask,
   type SortDir,
   type Task,
   type TaskSort,
   type TaskStatus,
 } from "@/lib/tasks";
 import { useTaskState, type TaskStateInit } from "./useTaskState";
+import BulkBar from "./BulkBar";
 
 export type Filters = {
   dept: string; // "" = semua departemen
@@ -65,7 +68,7 @@ export default function TaskBoard(props: Props) {
   }));
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) => setFilters((f) => ({ ...f, [key]: value }));
 
-  const { tasks, card, nameOf, openNew, messageBox, form } = useTaskState(props, {
+  const { tasks, card, nameOf, openNew, messageBox, form, replaceTasks, dropTasks, notify } = useTaskState(props, {
     highlightFromHash: true,
     defaultSprintId:
       filters.sprint !== "semua" && filters.sprint !== "tanpa" ? Number(filters.sprint) : null,
@@ -121,16 +124,53 @@ export default function TaskBoard(props: Props) {
     .map((d) => ({ dept: d, tasks: visible.filter((t) => t.dept_code === d.code) }))
     .filter((g) => g.tasks.length > 0);
 
+  // Mode "pilih banyak": hanya tugas yang boleh Anda ubah yang bisa dipilih.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSelect = (id: string) =>
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const selectableVisible = visible.filter((t) => canEditTask(t, me));
+  const selectedTasks = tasks.filter((t) => selected.has(t.id));
+
+  const cardFor = (t: Task, compact = false) =>
+    card(t, {
+      compact,
+      ...(selectMode && canEditTask(t, me)
+        ? { selected: selected.has(t.id), onToggleSelect: () => toggleSelect(t.id) }
+        : {}),
+    });
+
   return (
-    <main className="mx-auto max-w-6xl px-4 pb-32 pt-6">
+    <main className={`mx-auto max-w-6xl px-4 pt-6 ${selectMode ? "pb-48" : "pb-32"}`}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-slate-900">Tugas</h1>
-        <Link
-          href="/tugas/riwayat"
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
-        >
-          Riwayat
-        </Link>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectMode((m) => !m);
+              setSelected(new Set());
+            }}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
+              selectMode
+                ? "border-brand-700 bg-brand-700 text-white"
+                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+            }`}
+          >
+            {selectMode ? "Mode pilih aktif" : "Pilih banyak"}
+          </button>
+          <Link
+            href="/tugas/riwayat"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
+            Riwayat
+          </Link>
+        </div>
       </div>
 
       <p className="mb-2 text-sm text-slate-600">
@@ -268,15 +308,15 @@ export default function TaskBoard(props: Props) {
             </h2>
 
             {filters.view === "list" ? (
-              <div className="flex flex-col gap-2">{deptTasks.map((t) => card(t))}</div>
+              <div className="flex flex-col gap-2">{deptTasks.map((t) => cardFor(t))}</div>
             ) : filters.view === "grid" ? (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{deptTasks.map((t) => card(t))}</div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{deptTasks.map((t) => cardFor(t))}</div>
             ) : filters.view === "pic" ? (
               <PicColumns
                 tasks={deptTasks}
                 onlyPic={filters.pic === "saya" ? me.id : filters.pic}
                 nameOf={nameOf}
-                card={(t) => card(t, { compact: true })}
+                card={(t) => cardFor(t, true)}
               />
             ) : (
               <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
@@ -287,7 +327,7 @@ export default function TaskBoard(props: Props) {
                       <p className="mb-2 px-1 text-sm font-semibold text-slate-700">
                         {STATUS_LABEL[status]} ({formatNumber(column.length)})
                       </p>
-                      <div className="flex flex-col gap-2">{column.map((t) => card(t))}</div>
+                      <div className="flex flex-col gap-2">{column.map((t) => cardFor(t))}</div>
                     </div>
                   );
                 })}
@@ -298,7 +338,28 @@ export default function TaskBoard(props: Props) {
       </div>
 
       {form}
-      <FloatingActions view={filters.view} onView={(v) => set("view", v)} onAdd={openNew} />
+      {selectMode ? (
+        <BulkBar
+          selectedIds={[...selected]}
+          deletableIds={selectedTasks.filter((t) => canDeleteTask(t, me)).map((t) => t.id)}
+          visibleCount={selectableVisible.length}
+          onSelectAll={() => setSelected(new Set(selectableVisible.map((t) => t.id)))}
+          onClear={() => setSelected(new Set())}
+          onExit={() => {
+            setSelectMode(false);
+            setSelected(new Set());
+          }}
+          onUpdated={replaceTasks}
+          onDeleted={dropTasks}
+          onMessage={notify}
+          me={me}
+          employees={employees}
+          departments={departments}
+          sprints={sprints}
+        />
+      ) : (
+        <FloatingActions view={filters.view} onView={(v) => set("view", v)} onAdd={openNew} />
+      )}
     </main>
   );
 }

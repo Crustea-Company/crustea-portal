@@ -49,6 +49,8 @@ export default function TaskCard({
   ctx,
   compact = false,
   href,
+  selected,
+  onToggleSelect,
 }: {
   task: Task;
   notes: TaskNote[];
@@ -56,6 +58,8 @@ export default function TaskCard({
   ctx: CardCtx;
   compact?: boolean; // kartu kecil untuk tampilan Per PIC
   href?: string; // kalau diisi, kartu bisa diklik untuk membuka tugas (quick link di Dashboard)
+  selected?: boolean; // mode "pilih banyak": undefined = tidak bisa dipilih
+  onToggleSelect?: () => void;
 }) {
   const { today, me, nameOf } = ctx;
   const router = useRouter();
@@ -82,7 +86,9 @@ export default function TaskCard({
       className={`scroll-mt-40 rounded-xl border shadow-sm transition-colors duration-700 ${href ? "cursor-pointer hover:border-brand-400" : ""} ${
         compact ? "p-2.5 text-xs" : "p-3 text-sm"
       } ${
-        highlighted
+        selected
+          ? "border-brand-500 bg-brand-50 ring-2 ring-brand-300"
+          : highlighted
           ? "border-amber-400 bg-amber-50 ring-2 ring-amber-300"
           : overdue
             ? "border-red-300 bg-white"
@@ -90,6 +96,15 @@ export default function TaskCard({
       }`}
     >
       <div className="mb-1 flex flex-wrap items-center gap-1.5 text-xs">
+        {onToggleSelect && (
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={onToggleSelect}
+            aria-label={`Pilih tugas ${task.code ?? task.title}`}
+            className="h-4 w-4 accent-brand-700"
+          />
+        )}
         {task.code && <span className="font-mono text-slate-500">{task.code}</span>}
         {task.is_priority && (
           <span className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800">Prioritas</span>

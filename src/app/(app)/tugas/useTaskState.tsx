@@ -110,7 +110,10 @@ export function useTaskState(
     onDelete: removeTask,
   };
 
-  const card = (t: Task, extra: { compact?: boolean; href?: string } = {}) => (
+  const card = (
+    t: Task,
+    extra: { compact?: boolean; href?: string; selected?: boolean; onToggleSelect?: () => void } = {},
+  ) => (
     <TaskCard
       key={t.id}
       task={t}
@@ -119,6 +122,8 @@ export function useTaskState(
       ctx={ctx}
       compact={extra.compact}
       href={extra.href}
+      selected={extra.selected}
+      onToggleSelect={extra.onToggleSelect}
     />
   );
 
@@ -153,5 +158,25 @@ export function useTaskState(
     />
   );
 
-  return { tasks, card, nameOf, openNew: () => setEditing("new"), messageBox, form };
+  // Untuk ubah/hapus banyak tugas sekaligus.
+  const replaceTasks = useCallback((updated: Task[]) => {
+    const byId = new Map(updated.map((t) => [t.id, t]));
+    setTasks((ts) => ts.map((t) => byId.get(t.id) ?? t));
+  }, []);
+  const dropTasks = useCallback((ids: string[]) => {
+    const gone = new Set(ids);
+    setTasks((ts) => ts.filter((t) => !gone.has(t.id)));
+  }, []);
+
+  return {
+    tasks,
+    card,
+    nameOf,
+    openNew: () => setEditing("new"),
+    messageBox,
+    form,
+    replaceTasks,
+    dropTasks,
+    notify: setMessage,
+  };
 }

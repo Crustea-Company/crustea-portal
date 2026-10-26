@@ -269,3 +269,84 @@ export async function deleteTask(taskId: string): Promise<{ ok: true } | Fail> {
   revalidatePath("/tugas");
   return { ok: true };
 }
+
+// ---------- Ubah / hapus banyak tugas sekaligus ----------
+// Hak akses tetap diperiksa database per tugas: tugas yang tidak boleh diubah dilewati.
+
+export type BulkPatch = {
+  status?: TaskStatus;
+  sprint_id?: number | null; // null = tanpa sprint
+  deadline?: string;
+  is_priority?: boolean;
+  addPic?: string; // id karyawan yang ditambahkan sebagai PIC
+};
+
+const CHUNK = 100;
+const chunks = <T,>(list: T[]) =>
+  Array.from({ length: Math.ceil(list.length / CHUNK) }, (_, i) => list.slice(i * CHUNK, (i + 1) * CHUNK));
+
+export async function bulkUpdateTasks(
+  ids: string[],
+  patch: BulkPatch,
+): Promise<{ ok: true; tasks: Task[]; changed: number; skipped: number } | Fail> {
+  const me = await getCurrentEmployee();
+  if (!me) return fail(SESSION_ENDED);
+  if (ids.length === 0) return fail("Belum ada tugas yang dipilih.");
+  if (patch.status && !STATUS_ORDER.includes(patch.status)) return fail("Status tidak dikenal.");
+  if (patch.deadline && !/^\d{4}-\d{2}-\d{2}$/.test(patch.deadline)) return fail("Deadline tidak valid.");
+
+  const fields: Record<string, unknown> = {};
+  if (patch.status) fields.status = patch.status;
+  if (patch.sprint_id !== undefined) fields.sprint_id = patch.sprint_id;
+  if (patch.deadline) fields.deadline = patch.deadline;
+  if (patch.is_priority !== undefined) fields.is_priority = patch.is_priority;
+  if (Object.keys(fields).length === 0 && !patch.addPic) return fail("Pilih minimal satu perubahan.");
+
+  const supabase = await createClient();
+  const changed = new Set<string>();
+
+  if (Object.keys(fields).length > 0) {
+    for (const part of chunks(ids)) {
+      const { data, error } = await supabase.from("tasks").update(fields).in("id", part).select("id");
+      if (error) return fail(`Gagal menyimpan: ${error.message}`);
+      for (const r of data ?? []) changed.add(r.id);
+    }
+  }
+
+  if (patch.addPic) {
+    const rows = ids.map((id) => ({ task_id: id, employee_id: patch.addPic, role: "pic" }));
+    for (const part of chunks(rows)) {
+      const { data, error } = await supabase
+        .from("task_people")
+        .upsert(part, { onConflict: "task_id,employee_id,role", ignoreDuplicates: true })
+        .select("task_id");
+      if (error) return fail(`Gagal menambah PIC: ${error.message}`);
+      for (const r of data ?? []) changed.add(r.task_id);
+    }
+  }
+
+  const tasks: Task[] = [];
+  for (const part of chunks(ids)) {
+    const { data } = await supabase.from("tasks").select(TASK_SELECT).in("id", part);
+    tasks.push(...((data ?? []) as Task[]));
+  }
+
+  revalidatePath("/tugas");
+  return { ok: true, tasks, changed: changed.size, skipped: ids.length - changed.size };
+}
+
+export async function bulkDeleteTasks(ids: string[]): Promise<{ ok: true; deleted: string[] } | Fail> {
+  const me = await getCurrentEmployee();
+  if (!me) return fail(SESSION_ENDED);
+  if (ids.length === 0) return fail("Belum ada tugas yang dipilih.");
+
+  const supabase = await createClient();
+  const deleted: string[] = [];
+  for (const part of chunks(ids)) {
+    const { data, error } = await supabase.from("tasks").delete().in("id", part).select("id");
+    if (error) return fail(`Gagal menghapus: ${error.message}`);
+    deleted.push(...(data ?? []).map((r) => r.id as string));
+  }
+  revalidatePath("/tugas");
+  return { ok: true, deleted };
+}

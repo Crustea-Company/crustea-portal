@@ -41,9 +41,11 @@ Pemilik proyek (Athar, Head of Corporate Affairs) **bukan programmer**. Karena i
 
 ### To-do & sprint
 - Semua karyawan bisa melihat semua tugas (transparansi lintas departemen).
-- Status: not_started, on_going, done. Tampilkan dalam bahasa Indonesia: Belum Mulai, Berjalan, Selesai.
+- Status: not_started, on_going, pending, done. Tampilkan dalam bahasa Indonesia: Belum Mulai, Berjalan, Pending, Selesai.
 - Setiap tugas punya satu atau lebih PIC dan support (`task_people`).
 - PIC boleh mengubah status tugasnya. Head boleh mengubah semua tugas departemennya. Admin dan CEO boleh mengubah semua tugas.
+- Delegasi = menambahkan orang sebagai PIC (PIC lama tetap) + notifikasi. Catatan tugas terlihat semua karyawan. Pengingat bersifat pribadi.
+- Setiap tambah/ubah/hapus tugas dan PIC/support tercatat otomatis di `task_history` (halaman Tugas > Riwayat).
 
 ### Fase berikutnya (belum dikerjakan, jangan dibangun dulu)
 - Fase 2 - KPI: tabel `kpi_items`; realisasi penjualan dari data penjualan berstatus DITERIMA, kuartal kalender.
@@ -63,3 +65,5 @@ Pemilik proyek (Athar, Head of Corporate Affairs) **bukan programmer**. Karena i
 - Mobile-first: harus nyaman dipakai di HP Android.
 - Format tanggal Indonesia (mis. 26 Okt 2026), angka dengan titik ribuan.
 - Sederhana dan bersih; warna utama mengikuti identitas Crustea (biru/teal).
+- Warna utama hanya diatur di satu tempat: `--color-brand-*` di `src/app/globals.css` (+ `BRAND_HEX` di `src/lib/brand.ts`). Pakai kelas `brand-*`, jangan menulis warna teal/biru langsung. Warna logo: `logo-lime`, `logo-leaf`.
+- Logo: `public/brand/crustea-logo.png`; ikon dibuat ulang dengan `node scripts/generate-icons.mjs`.
