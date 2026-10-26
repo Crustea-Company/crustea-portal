@@ -34,9 +34,13 @@ export default async function Home() {
       >
         Lihat tugas saya
       </Link>
-      <p className="text-sm text-slate-500">
-        Halaman Log Kerja dan Dashboard akan menyusul.
-      </p>
+      <Link
+        href="/log-kerja"
+        className="rounded-lg border border-teal-700 px-4 py-3 text-center font-semibold text-teal-800 hover:bg-teal-50"
+      >
+        Catat log kerja
+      </Link>
+      <p className="text-sm text-slate-500">Halaman Dashboard akan menyusul.</p>
     </main>
   );
 }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const LINKS = [
   { href: "/", label: "Beranda" },
   { href: "/tugas", label: "Tugas" },
+  { href: "/log-kerja", label: "Log Kerja" },
 ];
 
 export default function NavLinks() {
