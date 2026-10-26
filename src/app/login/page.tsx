@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
+import AuthCard from "@/components/AuthCard";
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -46,16 +47,21 @@ function LoginForm() {
 
   if (sentTo) {
     return (
-      <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 text-sm text-brand-900">
-        <p className="font-semibold">Cek email Anda</p>
-        <p className="mt-1">
-          Link login sudah dikirim ke <strong>{sentTo}</strong>. Buka email itu
-          di perangkat dan browser yang sama, lalu klik link-nya.
+      <div className="flex flex-col items-center gap-3 text-center text-white">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-logo-lime/20 text-logo-lime">
+          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+            <path d="m5 12 5 5L20 7" />
+          </svg>
+        </div>
+        <p className="text-lg font-semibold">Cek email Anda</p>
+        <p className="text-sm text-white/80">
+          Link login sudah dikirim ke <strong className="text-white">{sentTo}</strong>. Buka email itu di perangkat yang
+          sama, lalu klik link-nya.
         </p>
         <button
           type="button"
           onClick={() => setSentTo(null)}
-          className="mt-3 font-medium text-brand-700 underline"
+          className="mt-2 text-sm font-medium text-logo-lime underline underline-offset-4"
         >
           Pakai email lain
         </button>
@@ -64,28 +70,51 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <label htmlFor="email" className="text-sm font-medium text-slate-700">
-        Email kantor
-      </label>
-      <input
-        id="email"
-        type="email"
-        required
-        autoComplete="email"
-        inputMode="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="nama@email.com"
-        className="rounded-lg border border-slate-300 bg-white px-3 py-3 text-base outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20"
-      />
-      {error && <p className="text-sm text-red-700">{error}</p>}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
+        <label htmlFor="email" className="text-sm font-semibold text-white">
+          Email
+        </label>
+        <div className="relative">
+          <svg
+            viewBox="0 0 24 24"
+            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/60"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            aria-hidden
+          >
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="m3 7 9 6 9-6" />
+          </svg>
+          <input
+            id="email"
+            type="email"
+            required
+            autoComplete="email"
+            inputMode="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Masukkan email"
+            className="w-full rounded-xl border border-white/20 bg-white/10 py-3.5 pl-12 pr-4 text-base text-white outline-none placeholder:text-white/50 focus:border-logo-lime focus:ring-2 focus:ring-logo-lime/30"
+          />
+        </div>
+        <p className="text-xs text-white/60">Tanpa kata sandi: kami kirim link masuk ke email Anda.</p>
+      </div>
+      {error && (
+        <p className="rounded-lg border border-red-300/40 bg-red-500/15 px-3 py-2 text-sm text-red-100">{error}</p>
+      )}
       <button
         type="submit"
         disabled={sending}
-        className="rounded-lg bg-brand-700 px-4 py-3 font-semibold text-white hover:bg-brand-800 disabled:opacity-60"
+        className="flex items-center justify-center gap-2 rounded-xl bg-logo-lime px-4 py-3.5 text-base font-bold tracking-wide text-brand-950 shadow-lg transition hover:brightness-95 disabled:opacity-60"
       >
-        {sending ? "Mengirim..." : "Kirim link login"}
+        {sending ? "Mengirim..." : "Kirim link masuk"}
+        {!sending && (
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        )}
       </button>
     </form>
   );
@@ -93,17 +122,10 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-4 py-10">
-      <div>
-        <p className="text-sm font-medium text-brand-700">PT Eco Karya Teknologi</p>
-        <h1 className="text-3xl font-bold text-slate-900">Crustea Portal</h1>
-        <p className="mt-2 text-slate-600">
-          Masukkan email Anda. Kami akan mengirim link untuk masuk, tanpa kata sandi.
-        </p>
-      </div>
+    <AuthCard title="Selamat Datang" subtitle="Masuk untuk melanjutkan ke Portal Crustea">
       <Suspense>
         <LoginForm />
       </Suspense>
-    </main>
+    </AuthCard>
   );
 }

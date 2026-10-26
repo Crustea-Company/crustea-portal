@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentEmployee } from "@/lib/auth";
-import LogoutButton from "@/components/LogoutButton";
+import AuthCard from "@/components/AuthCard";
 
 export default async function AccessDeniedPage() {
   // Karyawan aktif tidak perlu melihat halaman ini.
@@ -13,21 +13,21 @@ export default async function AccessDeniedPage() {
   } = await supabase.auth.getUser();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-5 px-4 py-10">
-      <div>
-        <p className="text-sm font-medium text-red-700">Akses ditolak</p>
-        <h1 className="text-2xl font-bold text-slate-900">
-          Email ini belum terdaftar sebagai karyawan aktif
-        </h1>
+    <AuthCard title="Akses ditolak" subtitle="Email ini belum terdaftar sebagai karyawan aktif">
+      <div className="flex flex-col gap-5 text-center text-sm text-white/80">
+        <p>
+          Anda masuk sebagai <strong className="text-white">{user?.email ?? "-"}</strong>. Crustea Portal hanya bisa
+          dipakai oleh karyawan aktif PT Eco Karya Teknologi. Kalau menurut Anda ini keliru, hubungi Corporate Affairs.
+        </p>
+        <form action="/auth/logout" method="post">
+          <button
+            type="submit"
+            className="w-full rounded-xl border border-white/25 bg-white/10 px-4 py-3 font-semibold text-white hover:bg-white/20"
+          >
+            Keluar dan pakai email lain
+          </button>
+        </form>
       </div>
-      <p className="text-slate-600">
-        Anda masuk sebagai <strong>{user?.email ?? "-"}</strong>. Crustea Portal
-        hanya bisa dipakai oleh karyawan aktif PT Eco Karya Teknologi. Kalau
-        menurut Anda ini keliru, hubungi Corporate Affairs.
-      </p>
-      <div>
-        <LogoutButton />
-      </div>
-    </main>
+    </AuthCard>
   );
 }
