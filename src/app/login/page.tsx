@@ -29,10 +29,15 @@ function LoginForm() {
 
     setSending(false);
     if (error) {
+      // Supabase membatasi pengiriman email: jeda per alamat email (hitungan detik)
+      // dan batas total per jam untuk semua akun (pengirim bawaan Supabase sangat kecil).
+      const seconds = error.message.match(/after (\d+) seconds?/)?.[1];
       setError(
-        error.status === 429
-          ? "Terlalu banyak permintaan. Tunggu beberapa menit lalu coba lagi."
-          : `Gagal mengirim link: ${error.message}`,
+        error.status !== 429
+          ? `Gagal mengirim link: ${error.message}`
+          : seconds
+            ? `Link untuk email ini baru saja diminta. Tunggu ${seconds} detik lalu coba lagi.`
+            : "Batas pengiriman email login per jam sudah tercapai (berlaku untuk semua akun). Coba lagi sekitar 1 jam lagi.",
       );
       return;
     }
