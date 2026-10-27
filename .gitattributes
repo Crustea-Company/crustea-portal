@@ -1,2 +1,3 @@
 # Data awal disimpan persis apa adanya (jangan ubah akhir baris).
 seed/*.csv -text
+*.bat text eol=crlf
