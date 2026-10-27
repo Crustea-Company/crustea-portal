@@ -81,7 +81,7 @@ Minta nilainya langsung ke Athar (jangan lewat chat/GitHub).
    harus tersedia ketika `npm run build` berjalan, bukan hanya saat container dijalankan.
    - **Docker:** pakai `Dockerfile` di repo dan beri `--build-arg NEXT_PUBLIC_SUPABASE_URL=...` dan
      `--build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...` saat `docker build` (contoh lengkap di atas
-     `Dockerfile`; build menolak berjalan bila keduanya kosong). Setiap kali nilai berubah, build ulang image.
+     `Dockerfile`; build menolak berjalan bila keduanya kosong). Container berjalan di port **3001**. Setiap kali nilai berubah, build ulang image.
    - Gejala bila terlewat: halaman tampil normal, tetapi tombol login macet di "Mengirim..." (versi terbaru
      menampilkan pesan "Aplikasi belum tersambung ke database"). Cara cek cepat: buka file JS halaman login
      di browser dan cari alamat proyek Supabase; kalau tidak ada, build belum menerima variabelnya.
