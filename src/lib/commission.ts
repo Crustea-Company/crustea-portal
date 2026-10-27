@@ -90,10 +90,12 @@ export type CommissionLineInput = {
   sales_total: number; // total nominal penjualan (Rp)
   justification: string; // link bukti leads
   referral_code: string;
+  lead_id?: string | null; // diambil dari modul Penjualan: isi baris mengikuti lead (migrasi 012)
 };
 
 // Baris yang sudah dihitung database.
 export type CommissionLine = CommissionLineInput & {
+  lead_number?: string | null;
   referral_id: string | null;
   referral_name: string | null;
   product_id: string;

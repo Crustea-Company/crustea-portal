@@ -99,6 +99,7 @@ export function ReviewPanel({
   mode,
   advance = false,
   canNote = true,
+  manualSalesLines = true,
 }: {
   id: string;
   status: RequestStatus;
@@ -108,6 +109,7 @@ export function ReviewPanel({
   mode: ReviewMode;
   advance?: boolean; // dinas: uang muka diminta
   canNote?: boolean; // add_request_note: pemohon, F&A, dan (dinas) penugas & HR/CA
+  manualSalesLines?: boolean; // klaim komisi punya baris di luar modul Penjualan (wajib centang lunas)
 }) {
   const router = useRouter();
   const [note, setNote] = useState("");
@@ -125,7 +127,7 @@ export function ReviewPanel({
       return;
     }
     if (commission && to === "approved") {
-      if (!salesPaid) {
+      if (manualSalesLines && !salesPaid) {
         setError("Centang \"Penjualan sudah lunas\" dulu sebelum menerima klaim.");
         return;
       }
@@ -176,7 +178,8 @@ export function ReviewPanel({
   const showDocs = procurement && DOC_STATUSES.includes(status) && actions.length > 0;
   const travel = kind === "travel";
   const commission = kind === "commission";
-  const showSalesPaid = commission && mode === "fa" && (status === "submitted" || status === "in_review");
+  // Baris dari modul Penjualan memakai status Lunas di lead (diperiksa database); centang hanya untuk baris manual.
+  const showSalesPaid = commission && manualSalesLines && mode === "fa" && (status === "submitted" || status === "in_review");
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl border-2 border-brand-600/40 bg-white p-4">

@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import RupiahInput from "@/components/requests/RupiahInput";
-import { formatNumber } from "@/lib/format";
+import { formatDate, formatNumber } from "@/lib/format";
+import type { Lead } from "@/lib/sales";
 import {
   MAX_COMMISSION_LINES,
   formatPct,
@@ -33,6 +34,8 @@ export default function CommissionForm({
   referrals,
   today,
   initial,
+  leads = [],
+  initialLeadIds = [],
 }: {
   fullName: string;
   myCode: string;
@@ -40,6 +43,8 @@ export default function CommissionForm({
   referrals: ReferralOwner[];
   today: string;
   initial?: CommissionInitial; // terisi saat mengubah klaim "Perlu perbaikan" / draf
+  leads?: Lead[]; // penjualan (modul Penjualan) yang boleh saya klaim
+  initialLeadIds?: string[]; // ?lead= dari halaman lead
 }) {
   const router = useRouter();
   const blank = (key: number): Line => ({
@@ -53,9 +58,24 @@ export default function CommissionForm({
     justification: "",
     referral_code: myCode,
   });
-  const [lines, setLines] = useState<Line[]>(
-    initial?.lines.length ? initial.lines.map((l, i) => ({ ...l, referral_code: l.referral_code ?? "", key: i })) : [blank(0)],
-  );
+  const fromLead = (lead: Lead, key: number): Line => ({
+    key,
+    lead_id: lead.id,
+    customer: lead.customer,
+    invoice: lead.so_number ?? "",
+    closing_date: lead.closed_on ?? today,
+    product_code: lead.product_code ?? "",
+    units: lead.units,
+    sales_total: lead.value,
+    justification: "",
+    referral_code: lead.referral_code ?? "",
+  });
+  const leadById = new Map(leads.map((l) => [l.id, l]));
+  const [lines, setLines] = useState<Line[]>(() => {
+    if (initial?.lines.length) return initial.lines.map((l, i) => ({ ...l, referral_code: l.referral_code ?? "", key: i }));
+    const picked = initialLeadIds.flatMap((id) => (leadById.has(id) ? [leadById.get(id) as Lead] : []));
+    return picked.length ? picked.map((l, i) => fromLead(l, i)) : [blank(0)];
+  });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -65,7 +85,16 @@ export default function CommissionForm({
 
   const update = (key: number, patch: Partial<CommissionLineInput>) =>
     setLines((list) => list.map((l) => (l.key === key ? { ...l, ...patch } : l)));
-  const addLine = () => setLines((list) => [...list, blank(Math.max(...list.map((l) => l.key)) + 1)]);
+  const nextKey = (list: Line[]) => Math.max(-1, ...list.map((l) => l.key)) + 1;
+  const addLine = () => setLines((list) => [...list, blank(nextKey(list))]);
+  // Penjualan dari modul Penjualan: baris kosong pertama diganti, selain itu ditambahkan.
+  const addLead = (lead: Lead) =>
+    setLines((list) => {
+      const empty = list.length === 1 && !list[0].lead_id && !list[0].customer && !list[0].product_code;
+      return empty ? [fromLead(lead, 0)] : [...list, fromLead(lead, nextKey(list))];
+    });
+  const usedLeads = new Set(lines.map((l) => l.lead_id).filter(Boolean));
+  const availableLeads = leads.filter((l) => !usedLeads.has(l.id));
   const removeLine = (key: number) => setLines((list) => list.filter((l) => l.key !== key));
 
   const previews = lines.map((l) => previewLine(l, products));
@@ -75,6 +104,7 @@ export default function CommissionForm({
     e.preventDefault();
     setError("");
     for (const [i, l] of lines.entries()) {
+      if (l.lead_id) continue; // diperiksa database dari data lead
       if (!l.product_code) return setError(`Baris ${i + 1}: pilih produk.`);
       if (!previews[i]) return setError(`Baris ${i + 1}: produk belum berlaku pada tanggal closing.`);
       if (l.sales_total <= 0) return setError(`Baris ${i + 1}: total penjualan belum diisi.`);
@@ -92,6 +122,7 @@ export default function CommissionForm({
         sales_total: l.sales_total,
         justification: l.justification,
         referral_code: l.referral_code,
+        lead_id: l.lead_id ?? null,
       })),
       initial?.id ?? null,
     );
@@ -110,9 +141,64 @@ export default function CommissionForm({
         Nama pengklaim: <span className="font-semibold text-slate-900">{fullName}</span>
       </div>
 
+      {availableLeads.length > 0 && lines.length < MAX_COMMISSION_LINES && (
+        <div className="flex flex-col gap-2 rounded-xl border border-brand-200 bg-brand-50 p-3">
+          <p className="text-sm font-semibold text-brand-900">Ambil dari modul Penjualan</p>
+          <p className="text-xs text-brand-900/80">
+            Penjualan yang sudah closing dengan kode referral Anda (atau Anda PIC sales-nya). Isinya terisi otomatis.
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            {availableLeads.map((lead) => (
+              <li key={lead.id} className="flex items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-sm">
+                <span className="min-w-0">
+                  <span className="font-mono text-xs text-slate-500">{lead.number}</span>{" "}
+                  <span className="font-medium text-slate-900">{lead.customer}</span>
+                  <span className="block text-xs text-slate-500">
+                    {rp(lead.value)} · {lead.paid_on ? "lunas" : "belum lunas"}
+                  </span>
+                </span>
+                <button type="button" onClick={() => addLead(lead)} className="shrink-0 text-sm font-semibold text-brand-700 hover:underline">
+                  + Tambahkan
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {lines.map((l, i) => {
         const pv = previews[i];
         const code = l.referral_code.trim().toUpperCase();
+        if (l.lead_id) {
+          const lead = leadById.get(l.lead_id);
+          return (
+            <fieldset key={l.key} className="flex flex-col gap-2 rounded-xl border border-brand-200 p-3">
+              <div className="flex items-center justify-between">
+                <legend className="text-sm font-semibold text-slate-900">
+                  Penjualan {i + 1} · <span className="font-mono">{lead?.number ?? "dari modul Penjualan"}</span>
+                </legend>
+                {lines.length > 1 && (
+                  <button type="button" onClick={() => removeLine(l.key)} className="text-sm font-medium text-red-700 hover:underline">
+                    Hapus baris
+                  </button>
+                )}
+              </div>
+              <p className="text-sm text-slate-700">
+                <span className="font-medium">{l.customer}</span> · {pv?.product.name ?? l.product_code} · {formatNumber(l.units)} unit ·
+                closing {formatDate(l.closing_date)} · SO {l.invoice} · {rp(l.sales_total)}
+              </p>
+              <p className="text-xs text-slate-500">
+                Kode referral: {l.referral_code || "tanpa referral"} · {lead?.paid_on ? `lunas ${formatDate(lead.paid_on)}` : "belum lunas (klaim baru bisa diterima setelah lunas)"}
+              </p>
+              {pv && (
+                <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                  Profit {rp(pv.profit)} × {formatPct(pv.product.commission_pct)} = <span className="font-semibold">{rp(pv.commission)}</span>
+                  {pv.no_profit ? " (profit ≤ 0, komisi 0)" : ""}
+                </p>
+              )}
+            </fieldset>
+          );
+        }
         return (
           <fieldset key={l.key} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3">
             <div className="flex items-center justify-between">

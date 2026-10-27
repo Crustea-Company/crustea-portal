@@ -201,7 +201,7 @@ function VendorTable({ data }: { data: ProcurementData }) {
   );
 }
 
-function CommissionLines({ data }: { data: CommissionData }) {
+function CommissionLines({ data, leadPaid }: { data: CommissionData; leadPaid: Map<string, string | null> }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <h2 className="mb-1 font-semibold text-slate-900">Rincian penjualan</h2>
@@ -239,13 +239,30 @@ function CommissionLines({ data }: { data: CommissionData }) {
                   {rp(Math.abs(l.profit))} × {formatPct(l.commission_pct)}
                 </span>
               </Field>
+              {l.lead_id && (
+                <Field label="Dari modul Penjualan">
+                  <Link href={`/penjualan/${l.lead_id}`} className="text-brand-700 hover:underline">
+                    {l.lead_number ?? "Lihat lead"}
+                  </Link>
+                  {" · "}
+                  {leadPaid.get(l.lead_id) ? (
+                    <span className="font-semibold text-brand-800">lunas {formatDate(leadPaid.get(l.lead_id))}</span>
+                  ) : (
+                    <span className="font-semibold text-orange-800">belum lunas</span>
+                  )}
+                </Field>
+              )}
               <Field label="Asal lead (kode referral)">
                 {l.referral_code ? `${l.referral_code} · ${l.referral_name ?? "-"}` : "Tanpa kode referral"}
               </Field>
               <Field label="Justifikasi">
-                <a href={l.justification} target="_blank" rel="noreferrer" className="break-all text-brand-700 hover:underline">
-                  {l.justification}
-                </a>
+                {!l.justification ? (
+                  "-"
+                ) : (
+                  <a href={l.justification} target="_blank" rel="noreferrer" className="break-all text-brand-700 hover:underline">
+                    {l.justification}
+                  </a>
+                )}
               </Field>
             </dl>
             {(l.no_profit || l.below_min) && (
@@ -366,6 +383,14 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
   const data = req.data as unknown as ReimburseData;
   const payment = req.data as unknown as PaymentData;
   const commission = req.kind === "commission" ? (req.data as unknown as CommissionData) : null;
+  // Status lunas penjualan dari modul Penjualan (syarat diterima untuk baris dari lead).
+  const leadIds = (commission?.lines ?? []).flatMap((l) => (l.lead_id ? [l.lead_id] : []));
+  const leadPaid = new Map<string, string | null>();
+  if (leadIds.length) {
+    const { data: leadRows } = await supabase.from("sales_leads").select("id, paid_on").in("id", leadIds);
+    for (const r of (leadRows ?? []) as { id: string; paid_on: string | null }[]) leadPaid.set(r.id, r.paid_on);
+  }
+  const manualSalesLines = (commission?.lines ?? []).some((l) => !l.lead_id);
   const lastRevisionNote =
     req.status === "needs_revision"
       ? [...((eventRes.data ?? []) as unknown as RequestEvent[])].reverse().find((e) => e.to_status === "needs_revision")?.note
@@ -454,7 +479,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
       </section>
 
       {req.kind === "reimburse" && <MissionDetails data={data} />}
-      {commission && <CommissionLines data={commission} />}
+      {commission && <CommissionLines data={commission} leadPaid={leadPaid} />}
       {travel && <TravelCalcDetails data={travel} />}
       {procurement && <VendorTable data={procurement} />}
       {procurement && mode === "techops" && req.status === "head_approved" && <VendorCompareForm id={req.id} />}
@@ -498,6 +523,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
           mode={mode}
           advance={travel?.advance ?? false}
           canNote={canNote}
+          manualSalesLines={manualSalesLines}
         />
       )}
 

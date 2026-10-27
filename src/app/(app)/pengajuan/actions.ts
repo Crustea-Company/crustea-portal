@@ -325,7 +325,8 @@ export async function submitProcurement(
   return saveAndSubmit("procurement", { title: title.slice(0, 200), amount: input.estimate, data }, attachments, id, null);
 }
 
-// Klaim komisi: HPP, % komisi, profit, dan komisi dihitung database dari master produk (migrasi 011).
+// Klaim komisi: HPP, % komisi, profit, dan komisi dihitung database dari master produk (migrasi 011);
+// baris dari penjualan (lead_id) diisi database dari lead (migrasi 012).
 export async function submitCommission(lines: CommissionLineInput[], id: string | null): Promise<Result> {
   if (lines.length === 0) return { ok: false, message: "Isi minimal satu baris penjualan." };
   if (lines.length > MAX_COMMISSION_LINES) return { ok: false, message: `Maksimal ${MAX_COMMISSION_LINES} baris penjualan.` };
@@ -333,6 +334,11 @@ export async function submitCommission(lines: CommissionLineInput[], id: string 
   const clean: CommissionLineInput[] = [];
   for (const [i, l] of lines.entries()) {
     const n = i + 1;
+    // Baris dari penjualan: database mengisi ulang semua kolom dari lead dan memeriksa hak klaimnya.
+    if (l.lead_id) {
+      clean.push({ ...l, justification: l.justification.trim(), lead_id: l.lead_id });
+      continue;
+    }
     const line = {
       customer: l.customer.trim(),
       invoice: l.invoice.trim(),
@@ -362,10 +368,10 @@ export async function submitCommission(lines: CommissionLineInput[], id: string 
   return saveAndSubmit("commission", { title, amount: 0, data: { lines: clean } }, [], id, null);
 }
 
-// F&A menerima klaim komisi: wajib konfirmasi penjualan sudah lunas.
+// F&A menerima klaim komisi. Baris manual wajib dicentang lunas; baris dari penjualan diperiksa database
+// (status Lunas di modul Penjualan).
 export async function approveCommission(id: string, note: string, salesPaid: boolean): Promise<SimpleResult> {
-  if (!salesPaid) return { ok: false, message: "Centang \"Penjualan sudah lunas\" dulu." };
-  return runStatus(id, "approved", note, null, { sales_paid: true });
+  return runStatus(id, "approved", note, null, { sales_paid: salesPaid });
 }
 
 // TechOps: perbandingan minimal 3 vendor + satu rekomendasi -> "Vendor dibandingkan".

@@ -14,6 +14,7 @@ import { loadTravelFormProps } from "@/lib/travel-data";
 import type { TravelData } from "@/lib/travel";
 import CommissionForm from "../../komisi/CommissionForm";
 import { loadCommissionFormProps } from "@/lib/commission-data";
+import { loadClaimableLeads } from "@/lib/sales-data";
 import type { CommissionData } from "@/lib/commission";
 
 export const metadata: Metadata = { title: "Ubah Pengajuan - Crustea Portal" };
@@ -51,7 +52,10 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
   const travelProps = req.kind === "travel" ? await loadTravelFormProps(supabase, me.id, todayJakarta()) : null;
   const travel = req.data as TravelData;
   const procurement = req.data as ProcurementData;
-  const commissionProps = req.kind === "commission" ? await loadCommissionFormProps(supabase, me.id) : null;
+  const commissionProps =
+    req.kind === "commission"
+      ? { ...(await loadCommissionFormProps(supabase, me.id)), leads: await loadClaimableLeads(supabase, me.id, req.id as string) }
+      : null;
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
@@ -109,6 +113,7 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
                 sales_total: l.sales_total,
                 justification: l.justification,
                 referral_code: l.referral_code ?? "",
+                lead_id: l.lead_id ?? null,
               })),
             }}
           />

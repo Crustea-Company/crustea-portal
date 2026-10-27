@@ -36,6 +36,17 @@ const MENU: Item[] = [
       { href: "/pengajuan/komisi/baru", label: "Klaim komisi" },
     ],
   },
+  {
+    href: "/penjualan",
+    label: "Penjualan & Aset",
+    icon: "chart",
+    children: [
+      { href: "/penjualan", label: "Pipeline penjualan" },
+      { href: "/penjualan/baru", label: "Catat lead" },
+      { href: "/stok", label: "Stok" },
+      { href: "/aset", label: "Aset" },
+    ],
+  },
   { href: "/produk", label: "Produk & Komisi", icon: "box" },
   { href: "/prosedur", label: "Prosedur", icon: "book" },
 ];
@@ -57,7 +68,7 @@ const SYSTEM: Item[] = [
   },
 ];
 
-type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron" | "book" | "receipt" | "box";
+type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron" | "book" | "receipt" | "box" | "chart";
 
 export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout" | "menu"; className?: string }) {
   const p = { viewBox: "0 0 24 24", className, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -74,6 +85,8 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout
       return <svg {...p}><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6M9 16h3" /></svg>;
     case "box":
       return <svg {...p}><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z" /><path d="m3 7.5 9 4.5 9-4.5" /><path d="M12 12v9" /></svg>;
+    case "chart":
+      return <svg {...p}><path d="M4 20h16" /><path d="M6 16v-4M11 16V8M16 16v-6" /><path d="m5 9 5-4 4 3 5-4" /></svg>;
     case "book":
       return <svg {...p}><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" /><path d="M4 19V5" /><path d="M8 7h7M8 11h7" /></svg>;
     case "shield":
@@ -115,7 +128,10 @@ function Section({ title, items }: { title: string; items: Item[] }) {
 function NavItem({ item }: { item: Item }) {
   const pathname = usePathname();
   const search = useSearchParams();
-  const inSection = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+  const inSection =
+    item.href === "/"
+      ? pathname === "/"
+      : pathname.startsWith(item.href) || (item.children ?? []).some((c) => pathname.startsWith(c.href.split("?")[0]));
   const [open, setOpen] = useState(inSection);
 
   // Sub-menu aktif: path sama dan semua parameter di link ikut cocok.
