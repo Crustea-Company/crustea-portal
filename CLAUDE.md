@@ -47,9 +47,11 @@ Pemilik proyek (Athar, Head of Corporate Affairs) **bukan programmer**. Karena i
 - Delegasi = menambahkan orang sebagai PIC (PIC lama tetap) + notifikasi. Catatan tugas terlihat semua karyawan. Pengingat bersifat pribadi.
 - Setiap tambah/ubah/hapus tugas dan PIC/support tercatat otomatis di `task_history` (halaman Tugas > Riwayat).
 
-### Fase berikutnya (belum dikerjakan, jangan dibangun dulu)
-- Fase 2 - KPI: tabel `kpi_items`; realisasi penjualan dari data penjualan berstatus DITERIMA, kuartal kalender.
-- Fase 3 - Form keuangan (pengadaan, payment request, reimbursement, perjalanan dinas): semua direview Finance & Accounting; CEO menerima notifikasi untuk nilai >= Rp5.000.000. Cuti direview HR (Corporate Affairs).
+### Fase 2-3 (disetujui Athar 27 Okt 2026, dikerjakan per modul)
+- Rencana, urutan, dan spesifikasi lengkap tiap modul ada di `docs/fase-2-3/` (mulai dari `00-RENCANA.md`). **Baca file modul yang dikerjakan; jangan membuka ulang file sumber PDF/Excel.**
+- Modul: mesin pengajuan bersama + reimburse, permintaan pembayaran, perjalanan dinas, pengadaan, produk/komisi/referral, penjualan/stok/aset, monitoring KPI & target kuartal. Cuti & lembur: halaman "sedang dalam pengembangan" saja.
+- Form keuangan direview Finance & Accounting; SLA maksimal 2 hari kerja per status; pemohon melihat status. CEO menerima notifikasi untuk nilai >= Rp5.000.000. Cuti direview HR (Corporate Affairs).
+- Halaman **Prosedur** (`procedures`, migrasi 006): isi diubah admin dari aplikasi; kode SOP di tugas tertaut ke prosedur.
 
 ## Fitur Fase 1
 

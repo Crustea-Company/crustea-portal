@@ -464,7 +464,8 @@ function DelegatePanel({ task, ctx, onClose }: { task: Task; ctx: CardCtx; onClo
 // ---------- Rincian ----------
 
 function TaskDetails({ task }: { task: Task }) {
-  if (!(task.output || task.notes || task.workstream || task.start_date)) return null;
+  const sops = task.sop_codes ?? [];
+  if (!(task.output || task.notes || task.workstream || task.start_date || sops.length)) return null;
   return (
     <details className="mt-2 text-xs text-slate-600">
       <summary className="cursor-pointer select-none text-slate-500">Rincian</summary>
@@ -491,6 +492,21 @@ function TaskDetails({ task }: { task: Task }) {
           <div>
             <dt className="inline font-semibold">Keterangan: </dt>
             <dd className="inline whitespace-pre-line">{task.notes}</dd>
+          </div>
+        )}
+      {sops.length > 0 && (
+          <div>
+            <dt className="inline font-semibold">SOP: </dt>
+            <dd className="inline">
+              {sops.map((code, i) => (
+                <span key={code}>
+                  {i > 0 && ", "}
+                  <Link href={`/prosedur?sop=${encodeURIComponent(code)}`} className="font-medium text-brand-700 underline">
+                    {code}
+                  </Link>
+                </span>
+              ))}
+            </dd>
           </div>
         )}
       </dl>

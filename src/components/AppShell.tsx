@@ -14,6 +14,8 @@ const TITLES: [string, string][] = [
   ["/dashboard", "Dashboard"],
   ["/log-kerja", "Log Kerja"],
   ["/admin", "Admin"],
+  ["/prosedur", "Prosedur"],
+  ["/cuti-lembur", "Cuti & Lembur"],
 ];
 
 const ROLE_LABEL: Record<string, string> = { admin: "Admin", ceo: "CEO", head: "Kepala Departemen", staff: "Staf" };

@@ -23,6 +23,7 @@ const MENU: Item[] = [
     ],
   },
   { href: "/log-kerja", label: "Log Kerja", icon: "clock" },
+  { href: "/prosedur", label: "Prosedur", icon: "book" },
 ];
 
 const SYSTEM: Item[] = [
@@ -38,7 +39,7 @@ const SYSTEM: Item[] = [
   },
 ];
 
-type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron";
+type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron" | "book";
 
 export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout" | "menu"; className?: string }) {
   const p = { viewBox: "0 0 24 24", className, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -51,6 +52,8 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout
       return <svg {...p}><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3h6v1" /><path d="m9 12 2 2 4-4" /></svg>;
     case "clock":
       return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
+    case "book":
+      return <svg {...p}><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" /><path d="M4 19V5" /><path d="M8 7h7M8 11h7" /></svg>;
     case "shield":
       return <svg {...p}><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z" /><path d="m9 12 2 2 4-4" /></svg>;
     case "chevron":

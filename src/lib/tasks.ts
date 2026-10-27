@@ -37,7 +37,7 @@ export type TaskNote = {
 
 // Kolom yang diambil untuk setiap tugas (dipakai halaman dan server action).
 export const TASK_SELECT =
-  "id, code, dept_code, title, workstream, output, status, start_date, deadline, is_priority, sprint_id, notes, task_people(employee_id, role)";
+  "id, code, dept_code, title, workstream, output, status, start_date, deadline, is_priority, sprint_id, notes, sop_codes, task_people(employee_id, role)";
 
 export type TaskPerson = { employee_id: string; role: "pic" | "support" };
 
@@ -54,6 +54,7 @@ export type Task = {
   is_priority: boolean;
   sprint_id: number | null;
   notes: string | null;
+  sop_codes?: string[] | null;
   task_people: TaskPerson[];
 };
 
