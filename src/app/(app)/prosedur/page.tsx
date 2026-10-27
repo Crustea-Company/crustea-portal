@@ -66,6 +66,14 @@ export default async function ProsedurPage({ searchParams }: { searchParams: Sea
         </p>
       )}
 
+      <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        Klaim cuti & lembur:{" "}
+        <Link href="/cuti-lembur" className="font-medium text-brand-700 hover:underline">
+          buka halaman Cuti & Lembur
+        </Link>{" "}
+        (sedang dalam pengembangan).
+      </p>
+
       <ProcedureList
         rows={rows.map((r) => ({ ...r, excerpt: r.body.replace(/[#*|>`_\-[\]()]/g, " ").replace(/\s+/g, " ").trim().slice(0, 160) }))}
         departments={deptRes.data ?? []}

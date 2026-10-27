@@ -25,6 +25,8 @@ const TITLES: [string, string][] = [
   ["/produk", "Produk & Komisi"],
   ["/profil", "Profil saya"],
   ["/cuti-lembur", "Cuti & Lembur"],
+  ["/kpi/target", "Target kuartal"],
+  ["/kpi", "Monitoring KPI"],
 ];
 
 const ROLE_LABEL: Record<string, string> = { admin: "Admin", ceo: "CEO", head: "Kepala Departemen", staff: "Staf" };

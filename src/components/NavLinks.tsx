@@ -34,6 +34,7 @@ const MENU: Item[] = [
       { href: "/pengajuan/pengadaan/baru", label: "Pengadaan barang/jasa" },
       { href: "/pengajuan/dinas/baru", label: "Perjalanan dinas" },
       { href: "/pengajuan/komisi/baru", label: "Klaim komisi" },
+      { href: "/cuti-lembur", label: "Cuti & lembur" },
     ],
   },
   {

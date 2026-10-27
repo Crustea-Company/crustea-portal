@@ -14,7 +14,7 @@ CLAUDE.md + satu file modul di sini** — tidak perlu membuka file sumber lagi.
 | 5 | `06-produk-komisi-referral.md` | Master produk, klaim komisi, kode referral — **selesai 27 Okt 2026** | Ya (011) |
 | 6 | `07-penjualan-aset.md` | Sales pipeline, stok, aset — **selesai 27 Okt 2026** | Ya (012) |
 | 7 | `08-monitoring-kpi-target.md` | Monitoring KPI (`kpi_items`) + target kuartal per divisi — **selesai 27 Okt 2026** | Ya (013) |
-| 8 | `09-cuti-lembur.md` | Halaman "sedang dalam pengembangan" | Tidak |
+| 8 | `09-cuti-lembur.md` | Halaman "sedang dalam pengembangan" — **selesai 27 Okt 2026** | Tidak |
 
 Modul 2-6 **bergantung pada #1** (mesin pengajuan). Modul 7-8 berdiri sendiri.
 
