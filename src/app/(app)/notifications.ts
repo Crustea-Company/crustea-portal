@@ -5,11 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 
 export type NotificationItem = {
   id: number;
-  kind: "reminder" | "delegation" | "deadline";
+  kind: "reminder" | "delegation" | "deadline" | "request" | "sla";
   title: string;
   created_at: string;
   read_at: string | null;
   task_id: string | null;
+  request_id: string | null;
   task: { code: string | null; dept_code: string; deadline: string | null } | null;
   actor: { full_name: string } | null;
 };
@@ -27,7 +28,7 @@ export async function loadNotifications(): Promise<{ items: NotificationItem[]; 
     supabase
       .from("notifications")
       .select(
-        "id, kind, title, created_at, read_at, task_id, task:tasks(code, dept_code, deadline), actor:employees!notifications_actor_id_fkey(full_name)",
+        "id, kind, title, created_at, read_at, task_id, request_id, task:tasks(code, dept_code, deadline), actor:employees!notifications_actor_id_fkey(full_name)",
       )
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })

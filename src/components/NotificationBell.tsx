@@ -18,6 +18,8 @@ function daysBefore(deadline: string, createdAt: string): number {
 }
 
 function describe(n: NotificationItem): { label: string; text: string } {
+  if (n.kind === "request") return { label: "Pengajuan", text: n.title };
+  if (n.kind === "sla") return { label: "Lewat SLA", text: n.title };
   const code = n.task?.code ? `${n.task.code} ` : "";
   if (n.kind === "delegation") {
     return {
@@ -38,6 +40,8 @@ const LABEL_STYLE: Record<NotificationItem["kind"], string> = {
   reminder: "bg-violet-100 text-violet-800",
   delegation: "bg-brand-100 text-brand-800",
   deadline: "bg-red-100 text-red-700",
+  request: "bg-amber-100 text-amber-800",
+  sla: "bg-red-600 text-white",
 };
 
 export default function NotificationBell() {
@@ -70,7 +74,9 @@ export default function NotificationBell() {
 
   async function openItem(n: NotificationItem) {
     if (!n.read_at) await markNotificationRead(n.id);
-    if (n.task_id && n.task) {
+    if (n.request_id) {
+      window.location.assign(`/pengajuan/${n.request_id}`);
+    } else if (n.task_id && n.task) {
       const qs = new URLSearchParams({ dept: n.task.dept_code, sprint: "semua" });
       // Muat ulang penuh supaya halaman Tugas langsung menggulir ke tugasnya.
       // (Kalau alamatnya sama persis, mengganti # saja tidak memuat ulang halaman.)

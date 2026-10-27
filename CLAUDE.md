@@ -52,6 +52,7 @@ Pemilik proyek (Athar, Head of Corporate Affairs) **bukan programmer**. Karena i
 - Modul: mesin pengajuan bersama + reimburse, permintaan pembayaran, perjalanan dinas, pengadaan, produk/komisi/referral, penjualan/stok/aset, monitoring KPI & target kuartal. Cuti & lembur: halaman "sedang dalam pengembangan" saja.
 - Form keuangan direview Finance & Accounting; SLA maksimal 2 hari kerja per status; pemohon melihat status. CEO menerima notifikasi untuk nilai >= Rp5.000.000. Cuti direview HR (Corporate Affairs).
 - Halaman **Prosedur** (`procedures`, migrasi 006): isi diubah admin dari aplikasi; kode SOP di tugas tertaut ke prosedur.
+- **Mesin pengajuan** (migrasi 007, sudah dijalankan): tabel `requests` (+ `request_events`, `request_files`, `holidays`), bucket privat `request-files`. Status hanya lewat RPC `change_request_status`; catatan lewat `add_request_note`; SLA = kolom hitung `sla_due`. Kode bersama: `src/lib/requests.ts`, `src/lib/upload.ts`, `src/components/requests/`, server action di `src/app/(app)/pengajuan/actions.ts`. Form baru (pembayaran, pengadaan, dinas, komisi) memakai ini; isi khusus form disimpan di `requests.data`.
 
 ## Fitur Fase 1
 

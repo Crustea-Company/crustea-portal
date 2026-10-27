@@ -14,6 +14,9 @@ const TITLES: [string, string][] = [
   ["/dashboard", "Dashboard"],
   ["/log-kerja", "Log Kerja"],
   ["/admin", "Admin"],
+  ["/pengajuan/review", "Review F&A"],
+  ["/pengajuan/reimburse", "Reimburse"],
+  ["/pengajuan", "Pengajuan"],
   ["/prosedur", "Prosedur"],
   ["/cuti-lembur", "Cuti & Lembur"],
 ];
@@ -26,11 +29,13 @@ export default function AppShell({
   fullName,
   role,
   isAdmin,
+  canSeeReview,
   children,
 }: {
   fullName: string;
   role: string;
   isAdmin: boolean;
+  canSeeReview: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -59,7 +64,7 @@ export default function AppShell({
 
       <div className="flex-1 overflow-y-auto px-3">
         <Suspense>
-          <NavLinks isAdmin={isAdmin} />
+          <NavLinks isAdmin={isAdmin} canSeeReview={canSeeReview} />
         </Suspense>
       </div>
 

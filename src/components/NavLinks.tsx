@@ -23,8 +23,20 @@ const MENU: Item[] = [
     ],
   },
   { href: "/log-kerja", label: "Log Kerja", icon: "clock" },
+  {
+    href: "/pengajuan",
+    label: "Pengajuan",
+    icon: "receipt",
+    children: [
+      { href: "/pengajuan", label: "Pengajuan saya" },
+      { href: "/pengajuan/reimburse/baru", label: "Ajukan reimburse" },
+    ],
+  },
   { href: "/prosedur", label: "Prosedur", icon: "book" },
 ];
+
+// Ditambahkan ke sub-menu Pengajuan untuk F&A, admin, dan CEO.
+const REVIEW_CHILD: Child = { href: "/pengajuan/review", label: "Review F&A" };
 
 const SYSTEM: Item[] = [
   {
@@ -39,7 +51,7 @@ const SYSTEM: Item[] = [
   },
 ];
 
-type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron" | "book";
+type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron" | "book" | "receipt";
 
 export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout" | "menu"; className?: string }) {
   const p = { viewBox: "0 0 24 24", className, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -52,6 +64,8 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout
       return <svg {...p}><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3h6v1" /><path d="m9 12 2 2 4-4" /></svg>;
     case "clock":
       return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
+    case "receipt":
+      return <svg {...p}><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6M9 16h3" /></svg>;
     case "book":
       return <svg {...p}><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" /><path d="M4 19V5" /><path d="M8 7h7M8 11h7" /></svg>;
     case "shield":
@@ -65,10 +79,13 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout
   }
 }
 
-export default function NavLinks({ isAdmin }: { isAdmin: boolean }) {
+export default function NavLinks({ isAdmin, canSeeReview }: { isAdmin: boolean; canSeeReview: boolean }) {
+  const menu = canSeeReview
+    ? MENU.map((m) => (m.href === "/pengajuan" ? { ...m, children: [...(m.children ?? []), REVIEW_CHILD] } : m))
+    : MENU;
   return (
     <nav className="flex flex-col gap-6">
-      <Section title="Menu" items={MENU} />
+      <Section title="Menu" items={menu} />
       {isAdmin && <Section title="Sistem" items={SYSTEM} />}
     </nav>
   );

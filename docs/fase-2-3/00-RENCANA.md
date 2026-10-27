@@ -7,7 +7,7 @@ CLAUDE.md + satu file modul di sini** — tidak perlu membuka file sumber lagi.
 
 | # | File spesifikasi | Isi | Butuh SQL baru |
 |---|---|---|---|
-| 1 | `01-mesin-pengajuan.md` + `02-reimburse.md` | Mesin pengajuan bersama (status, SLA, review F&A, riwayat, notifikasi) + Klaim Reimburse | Ya (007) |
+| 1 | `01-mesin-pengajuan.md` + `02-reimburse.md` | Mesin pengajuan bersama (status, SLA, review F&A, riwayat, notifikasi) + Klaim Reimburse — **selesai 27 Okt 2026** | Ya (007) |
 | 2 | `03-permintaan-pembayaran.md` | Form Permintaan Pembayaran (pakai mesin #1) | Kecil/tidak |
 | 3 | `04-perjalanan-dinas.md` | Form Penugasan Dinas + kalkulator biaya | Ya (golongan jabatan, tarif) |
 | 4 | `05-pengadaan.md` | Purchase Request → PO → GRN → bayar (pakai mesin #1) | Ya |
