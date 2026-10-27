@@ -60,8 +60,8 @@ Minta nilainya langsung ke Athar (jangan lewat chat/GitHub).
    dan login).
 3. Pasang dua variabel `NEXT_PUBLIC_*` di hosting.
 4. Supabase → Authentication → URL Configuration:
-   - **Site URL** = domain produksi (mis. `https://portal.crustea.id`).
-   - **Redirect URLs**: tambah `https://<domain>/**` (biarkan `http://localhost:3000/**` untuk pengembangan).
+   - **Site URL** = `https://internal.crustea.id` (alamat utama saja, tanpa `/login`).
+   - **Redirect URLs**: tambah `https://internal.crustea.id/**` (biarkan `http://localhost:3000/**` untuk pengembangan).
    - **Penting:** Site URL saat ini berisi `http://192.168.1.185:3000` (alamat Wi-Fi laptop Athar untuk uji dari HP;
      Supabase menolak alamat IP di Redirect URLs, jadi harus lewat Site URL). Wajib diganti ke domain produksi.
      Entri `http://192.168.1.185:3000/...` di Redirect URLs boleh dihapus.
