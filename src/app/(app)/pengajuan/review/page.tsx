@@ -11,6 +11,7 @@ import {
   STATUS_LABEL,
   canReviewRequests,
   canSeeAllRequests,
+  faReviewStage,
   isOverdue,
   isUrgent,
   type RequestKind,
@@ -49,9 +50,10 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
   const { data, error } = await query.order("status_since", { ascending: true });
   const all = (data ?? []) as unknown as RequestRow[];
 
-  // "Belum di-review" juga memuat dinas yang surat tugasnya sudah terbit (baru sampai di F&A).
+  // "Belum di-review" memuat semua pengajuan yang belum ditinjau F&A, termasuk dinas & pengadaan
+  // yang masih di tahap penugas/HR/head/TechOps (ditampilkan di bawah yang sudah sampai di F&A).
   const inTab = (r: RequestRow, s: RequestStatus) =>
-    r.status === s || (s === "submitted" && r.kind === "travel" && r.status === "st_issued");
+    s === "submitted" ? faReviewStage(r) !== null : r.status === s;
   const counts = Object.fromEntries(REVIEW_TABS.map((s) => [s, all.filter((r) => inTab(r, s)).length]));
   // Tanpa pilihan: buka tahap pertama yang masih ada isinya (CEO: Menunggu CEO).
   const firstWaiting = (
@@ -79,6 +81,9 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
   if (status === "paid" || status === "rejected") rows = rows.reverse();
   // Permintaan pembayaran berprioritas "Segera" selalu paling atas.
   rows = [...rows.filter(isUrgent), ...rows.filter((r) => !isUrgent(r))];
+  // Belum di-review: yang sudah sampai di F&A dulu, lalu yang masih di tahap sebelumnya.
+  const upcoming = status === "submitted" ? rows.filter((r) => faReviewStage(r) === "upcoming").length : 0;
+  if (upcoming) rows = [...rows.filter((r) => faReviewStage(r) === "now"), ...rows.filter((r) => faReviewStage(r) === "upcoming")];
   const total = rows.reduce((sum, r) => sum + r.amount, 0);
 
   const href = (s: string, k: string) => {
@@ -142,6 +147,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
       {rows.length > 0 && (
         <p className="text-sm text-slate-600">
           {rows.length} pengajuan · total <span className="font-semibold text-slate-900">Rp{formatNumber(total)}</span>
+          {upcoming > 0 && ` · ${upcoming} di antaranya (paling bawah) dinas/pengadaan yang masih di penugas, HR, head, atau TechOps`}
         </p>
       )}
       <RequestList rows={rows} showRequester empty={`Tidak ada pengajuan berstatus ${STATUS_LABEL[status]}.`} />

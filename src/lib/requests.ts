@@ -116,6 +116,20 @@ export const REVIEW_TABS: RequestStatus[] = [
   "rejected",
 ];
 
+// Tab "Belum di-review" di halaman Review F&A: semua pengajuan yang belum ditinjau F&A.
+// "now" = sudah sampai di F&A; "upcoming" = dinas/pengadaan yang masih di penugas, HR, head, atau TechOps.
+export function faReviewStage(r: { kind: RequestKind; status: RequestStatus }): "now" | "upcoming" | null {
+  if (r.kind === "travel") {
+    if (r.status === "st_issued") return "now";
+    return r.status === "submitted" || r.status === "assigner_approved" ? "upcoming" : null;
+  }
+  if (r.kind === "procurement") {
+    if (r.status === "vendor_compared") return "now";
+    return r.status === "submitted" || r.status === "head_approved" ? "upcoming" : null;
+  }
+  return r.status === "submitted" ? "now" : null;
+}
+
 export type RequestRow = {
   id: string;
   kind: RequestKind;
