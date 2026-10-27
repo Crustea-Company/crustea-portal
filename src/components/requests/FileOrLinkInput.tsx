@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { MAX_FILES, type AttachmentInput } from "@/lib/requests";
 import { randomId, uploadRequestFile } from "@/lib/upload";
 
@@ -38,7 +38,8 @@ export async function resolveAttachments(
   return { ok: true, list };
 }
 
-// Unggah foto/PDF (bisa langsung dari kamera HP) atau tempel link, maks 10 lampiran.
+// Tempel link bukti (Google Drive, dll.), maks 10 lampiran. Unggah file ke Supabase
+// Storage sengaja dimatikan supaya tetap di kuota paket gratis; file lama tetap tampil.
 export default function FileOrLinkInput({
   items,
   onChange,
@@ -46,24 +47,9 @@ export default function FileOrLinkInput({
   items: AttachmentItem[];
   onChange: (items: AttachmentItem[]) => void;
 }) {
-  const fileRef = useRef<HTMLInputElement>(null);
   const [link, setLink] = useState("");
   const [error, setError] = useState("");
   const full = items.length >= MAX_FILES;
-
-  function addFiles(files: FileList | null) {
-    if (!files) return;
-    setError("");
-    const room = MAX_FILES - items.length;
-    const picked = [...files];
-    const accepted = picked
-      .filter((f) => /^image\//.test(f.type) || f.type === "application/pdf")
-      .slice(0, room)
-      .map((file) => ({ key: randomId(), kind: "new-file" as const, file }));
-    if (accepted.length < picked.length) setError(`Hanya foto atau PDF, maksimal ${MAX_FILES} lampiran.`);
-    onChange([...items, ...accepted]);
-    if (fileRef.current) fileRef.current.value = "";
-  }
 
   function addLink() {
     const url = link.trim();
@@ -111,23 +97,6 @@ export default function FileOrLinkInput({
         </ul>
       )}
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*,application/pdf"
-        multiple
-        className="hidden"
-        onChange={(e) => addFiles(e.target.files)}
-      />
-      <button
-        type="button"
-        disabled={full}
-        onClick={() => fileRef.current?.click()}
-        className="rounded-lg border border-dashed border-brand-600 px-3 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
-      >
-        + Unggah foto / PDF
-      </button>
-
       <div className="flex gap-2">
         <input
           type="url"
@@ -140,7 +109,7 @@ export default function FileOrLinkInput({
               addLink();
             }
           }}
-          placeholder="atau tempel link (Google Drive, dll.)"
+          placeholder="Tempel link (Google Drive, dll.)"
           className={inputClass}
         />
         <button
@@ -153,7 +122,7 @@ export default function FileOrLinkInput({
         </button>
       </div>
       <p className="text-xs text-slate-500">
-        Maksimal {MAX_FILES} lampiran, 5 MB per file. Foto dari kamera otomatis diperkecil.
+        Maksimal {MAX_FILES} link. Pastikan link bisa dibuka oleh F&A (Google Drive: Bagikan → Siapa saja yang memiliki link).
       </p>
       {error && <p className="text-sm text-red-700">{error}</p>}
     </div>

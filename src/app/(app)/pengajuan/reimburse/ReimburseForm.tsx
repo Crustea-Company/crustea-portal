@@ -64,7 +64,7 @@ export default function ReimburseForm({
       return;
     }
     if (attachments.length === 0) {
-      setError("Lampirkan bukti nota (foto/PDF atau link).");
+      setError("Tempel link bukti nota.");
       return;
     }
 
