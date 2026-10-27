@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import FileOrLinkInput, { resolveAttachments, type AttachmentItem } from "@/components/requests/FileOrLinkInput";
 import type { RequestKind, RequestStatus } from "@/lib/requests";
-import { addRequestNote, changeRequestStatus, deleteDraft, submitTravelReport } from "../actions";
+import { addRequestNote, approveCommission, changeRequestStatus, deleteDraft, submitTravelReport } from "../actions";
 
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20";
@@ -114,6 +114,7 @@ export function ReviewPanel({
   const [paidOn, setPaidOn] = useState(today);
   const [proof, setProof] = useState<AttachmentItem[]>([]);
   const [docs, setDocs] = useState<AttachmentItem[]>([]);
+  const [salesPaid, setSalesPaid] = useState(false); // klaim komisi: syarat diterima
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -121,6 +122,19 @@ export function ReviewPanel({
     setError("");
     if (needsNote && !note.trim()) {
       setError("Tulis catatan/alasan dulu di kolom catatan.");
+      return;
+    }
+    if (commission && to === "approved") {
+      if (!salesPaid) {
+        setError("Centang \"Penjualan sudah lunas\" dulu sebelum menerima klaim.");
+        return;
+      }
+      setPending(true);
+      const res = await approveCommission(id, note, salesPaid);
+      setPending(false);
+      if (!res.ok) return setError(res.message);
+      setNote("");
+      router.refresh();
       return;
     }
     setPending(true);
@@ -161,6 +175,8 @@ export function ReviewPanel({
     (procurement ? status === "payment_approved" : status === "approved" && (kind !== "travel" || advance));
   const showDocs = procurement && DOC_STATUSES.includes(status) && actions.length > 0;
   const travel = kind === "travel";
+  const commission = kind === "commission";
+  const showSalesPaid = commission && mode === "fa" && (status === "submitted" || status === "in_review");
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl border-2 border-brand-600/40 bg-white p-4">
@@ -187,6 +203,21 @@ export function ReviewPanel({
           </span>
           <FileOrLinkInput items={docs} onChange={setDocs} />
         </div>
+      )}
+
+      {showSalesPaid && (
+        <label className="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={salesPaid}
+            onChange={(e) => setSalesPaid(e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-brand-700"
+          />
+          <span>
+            <span className="font-medium">Penjualan sudah lunas</span>{" "}
+            <span className="text-slate-500">(wajib dicentang sebelum klaim diterima; cek pembayaran customer)</span>
+          </span>
+        </label>
       )}
 
       {showPay && (

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/format";
 import { ASSIGNER_ROLES, loadTravelSetup } from "@/lib/travel-data";
 import { calcTravel, isIsoDate, type TravelData, type TravelInput } from "@/lib/travel";
+import { MAX_COMMISSION_LINES, type CommissionLineInput } from "@/lib/commission";
 import {
   BUCKET,
   MAX_FILES,
@@ -322,6 +323,49 @@ export async function submitProcurement(
     needed_date: input.needed_date,
   };
   return saveAndSubmit("procurement", { title: title.slice(0, 200), amount: input.estimate, data }, attachments, id, null);
+}
+
+// Klaim komisi: HPP, % komisi, profit, dan komisi dihitung database dari master produk (migrasi 011).
+export async function submitCommission(lines: CommissionLineInput[], id: string | null): Promise<Result> {
+  if (lines.length === 0) return { ok: false, message: "Isi minimal satu baris penjualan." };
+  if (lines.length > MAX_COMMISSION_LINES) return { ok: false, message: `Maksimal ${MAX_COMMISSION_LINES} baris penjualan.` };
+  const today = todayJakarta();
+  const clean: CommissionLineInput[] = [];
+  for (const [i, l] of lines.entries()) {
+    const n = i + 1;
+    const line = {
+      customer: l.customer.trim(),
+      invoice: l.invoice.trim(),
+      closing_date: l.closing_date,
+      product_code: l.product_code,
+      units: l.units,
+      sales_total: l.sales_total,
+      justification: l.justification.trim(),
+      referral_code: l.referral_code.trim().toUpperCase(),
+    };
+    if (!line.customer) return { ok: false, message: `Baris ${n}: nama customer belum diisi.` };
+    if (!line.invoice) return { ok: false, message: `Baris ${n}: no. invoice/PO/kontrak belum diisi.` };
+    if (!isIsoDate(line.closing_date)) return { ok: false, message: `Baris ${n}: tanggal closing belum diisi.` };
+    if (line.closing_date > today) return { ok: false, message: `Baris ${n}: tanggal closing tidak boleh di masa depan.` };
+    if (!line.product_code) return { ok: false, message: `Baris ${n}: pilih produk.` };
+    if (!Number.isSafeInteger(line.units) || line.units < 1) return { ok: false, message: `Baris ${n}: jumlah unit minimal 1.` };
+    if (!Number.isSafeInteger(line.sales_total) || line.sales_total <= 0) {
+      return { ok: false, message: `Baris ${n}: total penjualan belum diisi.` };
+    }
+    if (!/^https?:\/\/\S+$/i.test(line.justification)) {
+      return { ok: false, message: `Baris ${n}: justifikasi harus berupa link (diawali https://).` };
+    }
+    clean.push(line);
+  }
+  const first = clean[0].customer;
+  const title = `Komisi ${first}${clean.length > 1 ? ` + ${clean.length - 1} penjualan lain` : ""}`.slice(0, 200);
+  return saveAndSubmit("commission", { title, amount: 0, data: { lines: clean } }, [], id, null);
+}
+
+// F&A menerima klaim komisi: wajib konfirmasi penjualan sudah lunas.
+export async function approveCommission(id: string, note: string, salesPaid: boolean): Promise<SimpleResult> {
+  if (!salesPaid) return { ok: false, message: "Centang \"Penjualan sudah lunas\" dulu." };
+  return runStatus(id, "approved", note, null, { sales_paid: true });
 }
 
 // TechOps: perbandingan minimal 3 vendor + satu rekomendasi -> "Vendor dibandingkan".

@@ -90,6 +90,12 @@ export default async function PengajuanPage() {
           >
             + Perjalanan dinas
           </Link>
+          <Link
+            href="/pengajuan/komisi/baru"
+            className="rounded-lg bg-brand-700 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+          >
+            + Klaim komisi
+          </Link>
         </div>
       </div>
 

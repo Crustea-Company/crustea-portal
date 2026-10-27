@@ -12,6 +12,9 @@ import TravelForm from "../../dinas/TravelForm";
 import ProcurementForm from "../../pengadaan/ProcurementForm";
 import { loadTravelFormProps } from "@/lib/travel-data";
 import type { TravelData } from "@/lib/travel";
+import CommissionForm from "../../komisi/CommissionForm";
+import { loadCommissionFormProps } from "@/lib/commission-data";
+import type { CommissionData } from "@/lib/commission";
 
 export const metadata: Metadata = { title: "Ubah Pengajuan - Crustea Portal" };
 
@@ -35,7 +38,7 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
   ]);
   const req = reqRes.data;
   if (!req) notFound();
-  if (req.requester_id !== me.id || !["draft", "needs_revision"].includes(req.status) || !["reimburse", "payment", "travel", "procurement"].includes(req.kind)) {
+  if (req.requester_id !== me.id || !["draft", "needs_revision"].includes(req.status) || !["reimburse", "payment", "travel", "procurement", "commission"].includes(req.kind)) {
     redirect(`/pengajuan/${id}`);
   }
 
@@ -48,6 +51,7 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
   const travelProps = req.kind === "travel" ? await loadTravelFormProps(supabase, me.id, todayJakarta()) : null;
   const travel = req.data as TravelData;
   const procurement = req.data as ProcurementData;
+  const commissionProps = req.kind === "commission" ? await loadCommissionFormProps(supabase, me.id) : null;
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
@@ -60,6 +64,8 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
               ? "Perbaiki penugasan dinas"
               : req.kind === "procurement"
                 ? "Perbaiki permohonan pengadaan"
+              : req.kind === "commission"
+                ? "Perbaiki klaim komisi"
               : "Perbaiki klaim reimburse"}
         </h1>
       </div>
@@ -85,6 +91,25 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
                 advance: travel.advance,
                 emergency_reason: travel.emergency_reason,
               },
+            }}
+          />
+        ) : commissionProps ? (
+          <CommissionForm
+            fullName={me.full_name}
+            today={todayJakarta()}
+            {...commissionProps}
+            initial={{
+              id: req.id as string,
+              lines: ((req.data as CommissionData).lines ?? []).map((l) => ({
+                customer: l.customer,
+                invoice: l.invoice,
+                closing_date: l.closing_date,
+                product_code: l.product_code,
+                units: l.units,
+                sales_total: l.sales_total,
+                justification: l.justification,
+                referral_code: l.referral_code ?? "",
+              })),
             }}
           />
         ) : req.kind === "procurement" ? (

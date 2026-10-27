@@ -33,8 +33,10 @@ const MENU: Item[] = [
       { href: "/pengajuan/pembayaran/baru", label: "Permintaan pembayaran" },
       { href: "/pengajuan/pengadaan/baru", label: "Pengadaan barang/jasa" },
       { href: "/pengajuan/dinas/baru", label: "Perjalanan dinas" },
+      { href: "/pengajuan/komisi/baru", label: "Klaim komisi" },
     ],
   },
+  { href: "/produk", label: "Produk & Komisi", icon: "box" },
   { href: "/prosedur", label: "Prosedur", icon: "book" },
 ];
 
@@ -55,7 +57,7 @@ const SYSTEM: Item[] = [
   },
 ];
 
-type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron" | "book" | "receipt";
+type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron" | "book" | "receipt" | "box";
 
 export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout" | "menu"; className?: string }) {
   const p = { viewBox: "0 0 24 24", className, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -70,6 +72,8 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout
       return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
     case "receipt":
       return <svg {...p}><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6M9 16h3" /></svg>;
+    case "box":
+      return <svg {...p}><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z" /><path d="m3 7.5 9 4.5 9-4.5" /><path d="M12 12v9" /></svg>;
     case "book":
       return <svg {...p}><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" /><path d="M4 19V5" /><path d="M8 7h7M8 11h7" /></svg>;
     case "shield":

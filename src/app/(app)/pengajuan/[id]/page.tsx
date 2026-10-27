@@ -29,6 +29,7 @@ import { DeleteDraftButton, NoteForm, ReviewPanel, TravelReportForm, type Review
 import { LOCAL_ZONE_NOTE, ZONE_LABEL, type TravelData } from "@/lib/travel";
 import type { AttachmentItem } from "@/components/requests/FileOrLinkInput";
 import { ChooseVendorForm, VendorCompareForm } from "./ProcurementPanels";
+import { formatPct, type CommissionData } from "@/lib/commission";
 
 export const metadata: Metadata = { title: "Detail Pengajuan - Crustea Portal" };
 
@@ -200,6 +201,72 @@ function VendorTable({ data }: { data: ProcurementData }) {
   );
 }
 
+function CommissionLines({ data }: { data: CommissionData }) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="mb-1 font-semibold text-slate-900">Rincian penjualan</h2>
+      <p className="mb-3 text-sm text-slate-600">
+        Penjualan lunas:{" "}
+        {data.sales_paid ? (
+          <span className="font-semibold text-brand-800">
+            Sudah dikonfirmasi F&A{data.sales_paid_at ? ` (${formatDate(data.sales_paid_at.slice(0, 10))})` : ""}
+          </span>
+        ) : (
+          <span className="font-semibold text-orange-800">Belum dikonfirmasi</span>
+        )}
+      </p>
+      <div className="flex flex-col gap-3">
+        {(data.lines ?? []).map((l, i) => (
+          <div key={i} className="rounded-xl border border-slate-200 p-3 text-sm">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="font-semibold text-slate-900">{l.customer}</p>
+                <p className="text-slate-600">
+                  {l.product_name} · {formatNumber(l.units)} unit · closing {formatDate(l.closing_date)}
+                </p>
+              </div>
+              <p className="font-bold tabular-nums text-slate-900">{rp(l.commission)}</p>
+            </div>
+            <dl className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Field label="No. Invoice / PO / Kontrak">{l.invoice}</Field>
+              <Field label="Total penjualan">{rp(l.sales_total)}</Field>
+              <Field label="HPP">
+                {rp(l.hpp_unit)}/unit · total {rp(l.hpp_total)}
+              </Field>
+              <Field label="Profit × % komisi">
+                <span className={l.no_profit ? "text-red-700" : ""}>
+                  {l.profit < 0 ? "-" : ""}
+                  {rp(Math.abs(l.profit))} × {formatPct(l.commission_pct)}
+                </span>
+              </Field>
+              <Field label="Asal lead (kode referral)">
+                {l.referral_code ? `${l.referral_code} · ${l.referral_name ?? "-"}` : "Tanpa kode referral"}
+              </Field>
+              <Field label="Justifikasi">
+                <a href={l.justification} target="_blank" rel="noreferrer" className="break-all text-brand-700 hover:underline">
+                  {l.justification}
+                </a>
+              </Field>
+            </dl>
+            {(l.no_profit || l.below_min) && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {l.no_profit && (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Profit ≤ 0, komisi 0</span>
+                )}
+                {l.below_min && (
+                  <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-800">
+                    Di bawah harga minimal
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function MissionDetails({ data }: { data: ReimburseData }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -298,6 +365,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
   const editable = isOwner && (req.status === "draft" || req.status === "needs_revision");
   const data = req.data as unknown as ReimburseData;
   const payment = req.data as unknown as PaymentData;
+  const commission = req.kind === "commission" ? (req.data as unknown as CommissionData) : null;
   const lastRevisionNote =
     req.status === "needs_revision"
       ? [...((eventRes.data ?? []) as unknown as RequestEvent[])].reverse().find((e) => e.to_status === "needs_revision")?.note
@@ -363,7 +431,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
             </Field>
           )}
         </dl>
-        {!travel && (
+        {!travel && !commission && (
           <div className="mt-4">
             <p className="mb-1.5 text-xs font-medium text-slate-500">
               {req.kind === "payment" ? "Invoice / dokumen pendukung" : procurement ? "Lampiran PR" : "Bukti nota"}
@@ -386,6 +454,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
       </section>
 
       {req.kind === "reimburse" && <MissionDetails data={data} />}
+      {commission && <CommissionLines data={commission} />}
       {travel && <TravelCalcDetails data={travel} />}
       {procurement && <VendorTable data={procurement} />}
       {procurement && mode === "techops" && req.status === "head_approved" && <VendorCompareForm id={req.id} />}

@@ -19,8 +19,11 @@ const TITLES: [string, string][] = [
   ["/pengajuan/pembayaran", "Permintaan Pembayaran"],
   ["/pengajuan/dinas", "Perjalanan Dinas"],
   ["/pengajuan/pengadaan", "Pengadaan"],
+  ["/pengajuan/komisi", "Klaim Komisi"],
   ["/pengajuan", "Pengajuan"],
   ["/prosedur", "Prosedur"],
+  ["/produk", "Produk & Komisi"],
+  ["/profil", "Profil saya"],
   ["/cuti-lembur", "Cuti & Lembur"],
 ];
 
@@ -72,10 +75,10 @@ export default function AppShell({
       </div>
 
       <div className="border-t border-slate-200 px-3 py-3">
-        <div className="px-3 pb-2">
+        <Link href="/profil" className="block rounded-xl px-3 pb-2 pt-1 hover:bg-slate-100">
           <p className="truncate text-sm font-semibold text-slate-900">{fullName}</p>
-          <p className="text-xs text-slate-500">{ROLE_LABEL[role] ?? role}</p>
-        </div>
+          <p className="text-xs text-slate-500">{ROLE_LABEL[role] ?? role} · Profil & kode referral</p>
+        </Link>
         <form action="/auth/logout" method="post">
           <button
             type="submit"
