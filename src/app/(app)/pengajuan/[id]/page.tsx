@@ -7,8 +7,13 @@ import { formatDate, formatNumber, todayJakarta } from "@/lib/format";
 import {
   BUCKET,
   KIND_LABEL,
+  PAYMENT_CONTRACT,
+  PAYMENT_PRIORITIES,
   REQUEST_COLUMNS,
+  canApproveAsCeo,
   canReviewRequests,
+  isUrgent,
+  type PaymentData,
   type ReimburseData,
   type RequestFile,
   type RequestRow,
@@ -38,6 +43,26 @@ function ReimburseDetails({ data }: { data: ReimburseData }) {
     <>
       <Field label="Tanggal transaksi">{formatDate(data.transaction_date)}</Field>
       <Field label="Kategori transaksi">{categories.join(", ") || "-"}</Field>
+    </>
+  );
+}
+
+function PaymentDetails({ data }: { data: PaymentData }) {
+  return (
+    <>
+      <Field label="Prioritas">
+        <span className={data.priority === "urgent" ? "font-semibold text-red-700" : ""}>
+          {PAYMENT_PRIORITIES[data.priority] ?? data.priority}
+        </span>
+      </Field>
+      <Field label="Tanggal pembayaran">{formatDate(data.payment_date)}</Field>
+      <Field label="Metode pembayaran">{data.method}</Field>
+      <Field label="Vendor / penerima">{data.vendor}</Field>
+      <Field label="Nomor rekening / VA / QRIS">{data.account}</Field>
+      <Field label="Terkait kontrak">{data.contract.map((c) => PAYMENT_CONTRACT[c] ?? c).join(", ")}</Field>
+      <div className="sm:col-span-2">
+        <Field label="Tujuan pembayaran">{data.purpose}</Field>
+      </div>
     </>
   );
 }
@@ -103,8 +128,11 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
 
   const isOwner = req.requester_id === me.id;
   const isReviewer = canReviewRequests(me) && (!isOwner || me.app_role === "admin");
+  // Status "Menunggu CEO": CEO (atau admin) memutuskan; F&A hanya bisa memberi catatan.
+  const isCeo = req.status === "ceo_review" && canApproveAsCeo(me) && (!isOwner || me.app_role === "admin");
   const editable = isOwner && (req.status === "draft" || req.status === "needs_revision");
   const data = req.data as unknown as ReimburseData;
+  const payment = req.data as unknown as PaymentData;
   const lastRevisionNote =
     req.status === "needs_revision"
       ? [...((eventRes.data ?? []) as unknown as RequestEvent[])].reverse().find((e) => e.to_status === "needs_revision")?.note
@@ -123,6 +151,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
           <span className="font-mono font-semibold text-slate-700">{req.number}</span>
           <span>· {KIND_LABEL[req.kind]}</span>
           <RequestStatusBadge status={req.status} />
+          {isUrgent(req) && <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">Segera</span>}
           <SlaLabel slaDue={req.sla_due} />
         </div>
         <h1 className="text-xl font-bold text-slate-900">{req.title}</h1>
@@ -131,7 +160,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
 
       {lastRevisionNote && (
         <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-900">
-          <p className="font-semibold">Perlu perbaikan dari F&A:</p>
+          <p className="font-semibold">Perlu perbaikan:</p>
           <p className="whitespace-pre-wrap">{lastRevisionNote}</p>
         </div>
       )}
@@ -156,10 +185,13 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
           </Field>
           <Field label="Diajukan">{req.submitted_at ? formatDate(req.submitted_at.slice(0, 10)) : "Belum dikirim"}</Field>
           {req.kind === "reimburse" && <ReimburseDetails data={data} />}
+          {req.kind === "payment" && <PaymentDetails data={payment} />}
           {req.paid_on && <Field label="Tanggal transfer">{formatDate(req.paid_on)}</Field>}
         </dl>
         <div className="mt-4">
-          <p className="mb-1.5 text-xs font-medium text-slate-500">Bukti nota</p>
+          <p className="mb-1.5 text-xs font-medium text-slate-500">
+            {req.kind === "payment" ? "Invoice / dokumen pendukung" : "Bukti nota"}
+          </p>
           <RequestFileList files={proofFiles} />
         </div>
         {transferFiles.length > 0 && (
@@ -172,8 +204,8 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
 
       {req.kind === "reimburse" && <MissionDetails data={data} />}
 
-      {isReviewer && req.status !== "draft" && (
-        <ReviewPanel id={req.id} status={req.status} employeeId={me.id} today={todayJakarta()} />
+      {(isReviewer || isCeo) && req.status !== "draft" && (
+        <ReviewPanel id={req.id} status={req.status} employeeId={me.id} today={todayJakarta()} ceo={isCeo} canNote={isReviewer} />
       )}
 
       <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

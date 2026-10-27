@@ -7,10 +7,15 @@ import { todayJakarta } from "@/lib/format";
 import {
   BUCKET,
   MAX_FILES,
+  PAYMENT_CONTRACT,
+  PAYMENT_PRIORITIES,
   REIMBURSE_CATEGORIES,
   type AttachmentInput,
+  type PaymentData,
+  type PaymentInput,
   type ReimburseData,
   type ReimburseInput,
+  type RequestKind,
   type RequestStatus,
 } from "@/lib/requests";
 
@@ -112,24 +117,23 @@ function parseReimburse(input: ReimburseInput): { error: string } | { title: str
   };
 }
 
-// Simpan lalu kirim pengajuan reimburse. id = null untuk pengajuan baru;
+// Simpan lalu kirim pengajuan. id = null untuk pengajuan baru;
 // id terisi untuk mengubah draf / pengajuan "Perlu perbaikan" lalu mengirimnya ulang.
-export async function submitReimburse(
-  input: ReimburseInput,
+async function saveAndSubmit(
+  kind: RequestKind,
+  row: { title: string; amount: number; data: object },
   attachments: AttachmentInput[],
   id: string | null,
+  missingFiles: string,
 ): Promise<Result> {
   const me = await getCurrentEmployee();
   if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
 
-  const parsed = parseReimburse(input);
-  if ("error" in parsed) return { ok: false, message: parsed.error };
-  if (attachments.length === 0) return { ok: false, message: "Lampirkan bukti nota (file atau link)." };
+  if (attachments.length === 0) return { ok: false, message: missingFiles };
   const badFile = checkAttachments(attachments, me.id);
   if (badFile) return { ok: false, message: badFile };
 
   const supabase = await createClient();
-  const row = { title: parsed.title, amount: parsed.amount, data: parsed.data };
   let requestId = id;
 
   if (requestId) {
@@ -140,7 +144,7 @@ export async function submitReimburse(
   } else {
     const { data, error } = await supabase
       .from("requests")
-      .insert({ kind: "reimburse", requester_id: me.id, ...row })
+      .insert({ kind, requester_id: me.id, ...row })
       .select("id")
       .single();
     if (error) return { ok: false, message: `Gagal menyimpan: ${error.message}` };
@@ -163,6 +167,50 @@ export async function submitReimburse(
 
   revalidateRequests(requestId);
   return { ok: true, id: requestId };
+}
+
+export async function submitReimburse(
+  input: ReimburseInput,
+  attachments: AttachmentInput[],
+  id: string | null,
+): Promise<Result> {
+  const parsed = parseReimburse(input);
+  if ("error" in parsed) return { ok: false, message: parsed.error };
+  return saveAndSubmit("reimburse", parsed, attachments, id, "Lampirkan bukti nota (file atau link).");
+}
+
+function parsePayment(input: PaymentInput): { error: string } | { title: string; amount: number; data: PaymentData } {
+  const vendor = input.vendor.trim();
+  const account = input.account.trim();
+  const purpose = input.purpose.trim();
+  const method = input.method.trim();
+  const contract = input.contract.filter((c) => c in PAYMENT_CONTRACT);
+
+  if (!(input.priority in PAYMENT_PRIORITIES)) return { error: "Pilih prioritas pembayaran." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.payment_date)) return { error: "Tanggal pembayaran belum diisi." };
+  if (!method) return { error: "Pilih metode pembayaran." };
+  if (!Number.isSafeInteger(input.amount) || input.amount <= 0) return { error: "Jumlah (Rp) harus lebih dari 0." };
+  if (!vendor) return { error: "Vendor / nama penerima belum diisi." };
+  if (!account) return { error: "Nomor rekening / VA / QRIS belum diisi." };
+  if (!purpose) return { error: "Tujuan pembayaran belum diisi." };
+  if (contract.length === 0) return { error: "Centang minimal satu pilihan \"Terkait kontrak\"." };
+
+  const firstLine = purpose.split("\n")[0];
+  return {
+    title: `${vendor}: ${firstLine}`.slice(0, 200),
+    amount: input.amount,
+    data: { priority: input.priority, payment_date: input.payment_date, method, vendor, account, purpose, contract },
+  };
+}
+
+export async function submitPayment(
+  input: PaymentInput,
+  attachments: AttachmentInput[],
+  id: string | null,
+): Promise<Result> {
+  const parsed = parsePayment(input);
+  if ("error" in parsed) return { ok: false, message: parsed.error };
+  return saveAndSubmit("payment", parsed, attachments, id, "Lampirkan link invoice atau dokumen pendukung.");
 }
 
 // Ubah status oleh peninjau (atau kirim ulang oleh pemohon). Aturan urutan & peran ada di database.

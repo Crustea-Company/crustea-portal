@@ -12,6 +12,7 @@ import {
   canReviewRequests,
   canSeeAllRequests,
   isOverdue,
+  isUrgent,
   type RequestKind,
   type RequestRow,
   type RequestStatus,
@@ -30,7 +31,9 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
   const params = await searchParams;
   const status: RequestStatus = (REVIEW_TABS as string[]).includes(String(params.status))
     ? (params.status as RequestStatus)
-    : "submitted";
+    : me.app_role === "ceo"
+      ? "ceo_review"
+      : "submitted";
   const kind = typeof params.jenis === "string" && params.jenis in KIND_LABEL ? (params.jenis as RequestKind) : "";
 
   const supabase = await createClient();
@@ -44,6 +47,8 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
   let rows = all.filter((r) => r.status === status);
   // Antrian: yang paling lama menunggu di atas. Selesai/ditolak: terbaru di atas.
   if (status === "paid" || status === "rejected") rows = rows.reverse();
+  // Permintaan pembayaran berprioritas "Segera" selalu paling atas.
+  rows = [...rows.filter(isUrgent), ...rows.filter((r) => !isUrgent(r))];
   const total = rows.reduce((sum, r) => sum + r.amount, 0);
 
   const href = (s: string, k: string) => {

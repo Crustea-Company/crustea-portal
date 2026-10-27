@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatDate, formatNumber } from "@/lib/format";
-import { KIND_LABEL, isOverdue, type RequestRow } from "@/lib/requests";
+import { KIND_LABEL, isOverdue, isUrgent, type RequestRow } from "@/lib/requests";
 import RequestStatusBadge, { SlaLabel } from "./RequestStatusBadge";
 
 // Daftar kartu pengajuan (dipakai di Pengajuan saya dan Review F&A).
@@ -39,7 +39,10 @@ export default function RequestList({
                   {r.dept_code ? ` (${r.dept_code})` : ""}
                 </span>
               )}
-              <span className="ml-auto">
+              <span className="ml-auto flex items-center gap-1.5">
+                {isUrgent(r) && (
+                  <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">Segera</span>
+                )}
                 <RequestStatusBadge status={r.status} />
               </span>
             </div>

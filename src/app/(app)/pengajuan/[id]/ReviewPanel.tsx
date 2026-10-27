@@ -15,8 +15,8 @@ const PRIMARY = "bg-brand-700 text-white hover:bg-brand-800";
 const NEUTRAL = "border border-slate-300 text-slate-700 hover:bg-slate-100";
 const DANGER = "border border-red-300 text-red-700 hover:bg-red-50";
 
-// Tombol yang tersedia untuk peninjau di setiap status.
-function actionsFor(status: RequestStatus): Action[] {
+// Tombol yang tersedia untuk peninjau di setiap status. ceo = boleh memutuskan "Menunggu CEO".
+function actionsFor(status: RequestStatus, ceo: boolean): Action[] {
   const decide: Action[] = [
     { to: "approved", label: "Terima", style: PRIMARY },
     { to: "needs_revision", label: "Perlu perbaikan", style: NEUTRAL, needsNote: true },
@@ -24,6 +24,7 @@ function actionsFor(status: RequestStatus): Action[] {
   ];
   if (status === "submitted") return [{ to: "in_review", label: "Mulai review", style: PRIMARY }, ...decide.map((a) => (a.to === "approved" ? { ...a, style: NEUTRAL } : a))];
   if (status === "in_review") return decide;
+  if (status === "ceo_review" && ceo) return decide.map((a) => (a.to === "approved" ? { ...a, label: "Setujui (CEO)" } : a));
   return [];
 }
 
@@ -33,11 +34,15 @@ export function ReviewPanel({
   status,
   employeeId,
   today,
+  ceo = false,
+  canNote = true,
 }: {
   id: string;
   status: RequestStatus;
   employeeId: string;
   today: string;
+  ceo?: boolean;
+  canNote?: boolean; // add_request_note hanya untuk pemohon & peninjau F&A
 }) {
   const router = useRouter();
   const [note, setNote] = useState("");
@@ -78,11 +83,14 @@ export function ReviewPanel({
     router.refresh();
   }
 
-  const actions = actionsFor(status);
+  const actions = actionsFor(status, ceo);
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl border-2 border-brand-600/40 bg-white p-4">
-      <h2 className="font-semibold text-slate-900">Tindakan peninjau</h2>
+      <h2 className="font-semibold text-slate-900">{ceo ? "Persetujuan CEO" : "Tindakan peninjau"}</h2>
+      {status === "ceo_review" && !ceo && (
+        <p className="text-sm text-slate-600">Menunggu persetujuan CEO. Anda masih bisa mengirim catatan.</p>
+      )}
 
       <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
         Catatan <span className="font-normal text-slate-500">(wajib untuk Perlu perbaikan dan Tolak; terlihat pemohon)</span>
@@ -126,14 +134,16 @@ export function ReviewPanel({
             Tandai ditransfer
           </button>
         )}
-        <button
-          type="button"
-          disabled={pending || !note.trim()}
-          onClick={noteOnly}
-          className={`rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-60 ${NEUTRAL}`}
-        >
-          Kirim catatan saja
-        </button>
+        {canNote && (
+          <button
+            type="button"
+            disabled={pending || !note.trim()}
+            onClick={noteOnly}
+            className={`rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-60 ${NEUTRAL}`}
+          >
+            Kirim catatan saja
+          </button>
+        )}
       </div>
     </section>
   );

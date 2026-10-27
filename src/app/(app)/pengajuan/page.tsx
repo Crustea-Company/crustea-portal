@@ -29,7 +29,7 @@ export default async function PengajuanPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-logo-leaf">Pengajuan</p>
           <h1 className="text-2xl font-bold text-slate-900">Pengajuan saya</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {canSeeAllRequests(me) && (
             <Link
               href="/pengajuan/review"
@@ -43,6 +43,12 @@ export default async function PengajuanPage() {
             className="rounded-lg bg-brand-700 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-800"
           >
             + Ajukan reimburse
+          </Link>
+          <Link
+            href="/pengajuan/pembayaran/baru"
+            className="rounded-lg bg-brand-700 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+          >
+            + Permintaan pembayaran
           </Link>
         </div>
       </div>

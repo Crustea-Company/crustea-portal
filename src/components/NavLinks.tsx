@@ -30,6 +30,7 @@ const MENU: Item[] = [
     children: [
       { href: "/pengajuan", label: "Pengajuan saya" },
       { href: "/pengajuan/reimburse/baru", label: "Ajukan reimburse" },
+      { href: "/pengajuan/pembayaran/baru", label: "Permintaan pembayaran" },
     ],
   },
   { href: "/prosedur", label: "Prosedur", icon: "book" },
