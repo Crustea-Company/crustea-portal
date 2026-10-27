@@ -151,7 +151,13 @@ export default async function PenjualanPage({ searchParams }: { searchParams: Se
             </table>
           </div>
         )}
-        <p className="text-xs text-slate-500">Target vs aktual per kuartal ada di modul Monitoring KPI & target.</p>
+        <p className="text-xs text-slate-500">
+          Target vs aktual per kuartal:{" "}
+          <Link href="/kpi/target" className="font-medium text-brand-700 hover:underline">
+            Monitoring KPI → Target kuartal
+          </Link>
+          .
+        </p>
       </section>
 
       <div className="flex flex-wrap items-center gap-2">
