@@ -3,6 +3,13 @@
 import { createClient } from "@/lib/supabase/client";
 import { BUCKET, MAX_FILE_BYTES } from "@/lib/requests";
 
+// Kode acak. crypto.randomUUID hanya ada di https/localhost; saat dibuka dari HP
+// lewat alamat IP laptop (http://192.168...) fungsi itu tidak tersedia.
+export function randomId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+}
+
 const MAX_SIDE = 1600; // piksel sisi terpanjang setelah dikompres
 const QUALITY = 0.8;
 
@@ -40,7 +47,7 @@ export async function uploadRequestFile(
     return { ok: false, message: `${file.name} lebih dari 5 MB. Perkecil dulu atau kirim sebagai link.` };
   }
   const safe = ready.name.replace(/[^\w.\-]+/g, "_").slice(-80) || "file";
-  const path = `${employeeId}/${crypto.randomUUID()}/${safe}`;
+  const path = `${employeeId}/${randomId()}/${safe}`;
   const supabase = createClient();
   const { error } = await supabase.storage.from(BUCKET).upload(path, ready, { contentType: ready.type || undefined });
   if (error) return { ok: false, message: `Gagal mengunggah ${file.name}: ${error.message}` };

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { MAX_FILES, type AttachmentInput } from "@/lib/requests";
-import { uploadRequestFile } from "@/lib/upload";
+import { randomId, uploadRequestFile } from "@/lib/upload";
 
 // Satu lampiran di form: file baru (belum diunggah), file yang sudah diunggah
 // (id terisi kalau sudah tersimpan di pengajuan), atau link.
@@ -59,7 +59,7 @@ export default function FileOrLinkInput({
     const accepted = picked
       .filter((f) => /^image\//.test(f.type) || f.type === "application/pdf")
       .slice(0, room)
-      .map((file) => ({ key: crypto.randomUUID(), kind: "new-file" as const, file }));
+      .map((file) => ({ key: randomId(), kind: "new-file" as const, file }));
     if (accepted.length < picked.length) setError(`Hanya foto atau PDF, maksimal ${MAX_FILES} lampiran.`);
     onChange([...items, ...accepted]);
     if (fileRef.current) fileRef.current.value = "";
@@ -73,7 +73,7 @@ export default function FileOrLinkInput({
       return;
     }
     setError("");
-    onChange([...items, { key: crypto.randomUUID(), kind: "link", url, name: url }]);
+    onChange([...items, { key: randomId(), kind: "link", url, name: url }]);
     setLink("");
   }
 
