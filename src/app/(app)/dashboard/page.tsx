@@ -16,6 +16,10 @@ import {
 } from "@/lib/ats";
 import { TASK_SELECT, type EmployeeLite, type Sprint, type Task, type TaskNote } from "@/lib/tasks";
 import TodoSlider from "./TodoSlider";
+import CollapsibleSection from "@/components/CollapsibleSection";
+import LogSummaryCards from "../log-kerja/LogSummaryCards";
+import LogForm from "../log-kerja/LogForm";
+import LogList, { type WorkLog } from "../log-kerja/LogList";
 
 export const metadata: Metadata = { title: "Dashboard - Crustea Portal" };
 
@@ -50,6 +54,7 @@ export default async function DashboardPage() {
     sprintsRes,
     notesRes,
     remindersRes,
+    todayLogsRes,
   ] = await Promise.all([
     fetchAll<Task>(() => supabase.from("tasks").select(TASK_SELECT).neq("status", "done").order("id")),
     supabase.from("departments").select("code, name").order("code"),
@@ -76,6 +81,13 @@ export default async function DashboardPage() {
       supabase.from("task_notes").select("id, task_id, author_id, body, created_at, updated_at").order("created_at").order("id"),
     ),
     supabase.from("task_reminders").select("task_id, remind_at"),
+    // Log kerja saya hari ini (untuk bagian Log kerja di dashboard).
+    supabase
+      .from("work_logs")
+      .select("id, log_date, activity, minutes, proof, is_correction")
+      .eq("employee_id", me.id)
+      .eq("log_date", today)
+      .order("created_at", { ascending: false }),
   ]);
 
   const lastLocked = (lockedRes.data?.[0]?.period_month as string | undefined) ?? null;
@@ -97,6 +109,7 @@ export default async function DashboardPage() {
     sprintsRes.error ??
     notesRes.error ??
     remindersRes.error ??
+    todayLogsRes.error ??
     snapshotsRes.error;
   if (error) {
     return (
@@ -130,6 +143,13 @@ export default async function DashboardPage() {
       t.task_people.some((p) => p.role === "pic" && p.employee_id === me.id),
   );
   const todoIds = new Set(todoTasks.map((t) => t.id));
+
+  // ---------- Log kerja saya ----------
+  const mine = (rows: { employee_id: string; minutes: number }[]) =>
+    rows.filter((r) => r.employee_id === me.id).reduce((t, r) => t + r.minutes, 0);
+  const myPeriodMinutes = mine(periodLogsRes.data);
+  const myWeekMinutes = mine(weekLogsRes.data);
+  const myTodayMinutes = (todayLogsRes.data ?? []).reduce((t, r) => t + (r.minutes as number), 0);
 
   // ---------- ATS per karyawan ----------
   const sumBy = (rows: { employee_id: string; minutes: number }[]) => {
@@ -175,8 +195,35 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <section>
-        <h2 className="mb-3 font-semibold text-slate-900">Tugas per departemen</h2>
+      <CollapsibleSection title="Log kerja" summary={`Hari ini: ${formatHours(myTodayMinutes)} jam`}>
+        <div className="flex flex-col gap-4">
+          <LogSummaryCards
+            empStatus={me.emp_status}
+            weekMinutes={myWeekMinutes}
+            periodMinutes={myPeriodMinutes}
+            today={today}
+            currentPeriod={currentPeriod}
+          />
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="mb-3 font-semibold text-slate-900">Catat pekerjaan</p>
+            <LogForm today={today} />
+          </div>
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-slate-900">Log saya hari ini</p>
+              <Link href="/log-kerja" className="text-sm font-medium text-brand-700 hover:underline">
+                Buka halaman Log Kerja →
+              </Link>
+            </div>
+            <LogList logs={(todayLogsRes.data ?? []) as WorkLog[]} locked={false} adminMode={false} today={today} />
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Tugas per departemen"
+        summary={`${formatNumber(totalOverdue)} terlambat · ${formatNumber(totalDue)} minggu ini`}
+      >
         <div className="mb-3 grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-red-200 bg-red-50 p-4">
             <p className="text-sm font-medium text-red-800">Terlambat</p>
@@ -232,7 +279,7 @@ export default async function DashboardPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </CollapsibleSection>
 
       <section>
         <h2 className="mb-3 font-semibold text-slate-900">Perlu diselesaikan</h2>

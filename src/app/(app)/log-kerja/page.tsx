@@ -15,6 +15,7 @@ import {
 import LogForm from "./LogForm";
 import LogList, { type WorkLog } from "./LogList";
 import PeriodPicker from "./PeriodPicker";
+import LogSummaryCards from "./LogSummaryCards";
 import ExportPanel from "./ExportPanel";
 import { exportableEmployees } from "@/lib/access";
 import EmployeePicker from "./EmployeePicker";
@@ -88,14 +89,6 @@ export default async function LogKerjaPage({ searchParams }: { searchParams: Sea
     );
   }
 
-  const weekTarget = weeklyHours(viewed.emp_status) * 60;
-  const weekDone = sumMinutes(weekRes.data);
-  const weekLeft = weekTarget - weekDone;
-
-  const periodTarget = monthlyExpectedHours(viewed.emp_status) * 60;
-  const periodDone = sumMinutes(periodRes.data);
-  const achievement = periodDone / periodTarget;
-
   // Pilihan periode untuk unduhan: Jan 2025 s.d. periode berjalan, terbaru di atas.
   const exportPeriods: string[] = [];
   for (let d = new Date(`${currentPeriod}T00:00:00Z`); d >= new Date("2025-01-01T00:00:00Z"); d.setUTCMonth(d.getUTCMonth() - 1)) {
@@ -138,43 +131,13 @@ export default async function LogKerjaPage({ searchParams }: { searchParams: Sea
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-sm font-medium text-slate-500">Sisa jam minggu ini</p>
-          {weekLeft > 0 ? (
-            <p className="mt-1 text-3xl font-bold text-slate-900">
-              {formatHours(weekLeft)} <span className="text-base font-medium">jam</span>
-            </p>
-          ) : (
-            <p className="mt-1 text-2xl font-bold text-brand-700">Target tercapai</p>
-          )}
-          <p className="mt-1 text-sm text-slate-600">
-            Sudah dicatat {formatHours(weekDone)} dari {weeklyHours(viewed.emp_status)} jam
-          </p>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {formatDate(week.start)} - {formatDate(week.end)}
-          </p>
-        </section>
-
-        <section className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-sm font-medium text-slate-500">Ketercapaian periode berjalan</p>
-          <p
-            className={`mt-1 text-3xl font-bold ${achievement >= 1 ? "text-brand-700" : "text-slate-900"}`}
-          >
-            {formatPercent(achievement)}
-          </p>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-brand-600"
-              style={{ width: `${Math.min(achievement, 1) * 100}%` }}
-            />
-          </div>
-          <p className="mt-2 text-sm text-slate-600">
-            {formatHours(periodDone)} dari {monthlyExpectedHours(viewed.emp_status)} jam
-          </p>
-          <p className="mt-0.5 text-xs text-slate-500">{periodLabelWithRange(currentPeriod)}</p>
-        </section>
-      </div>
+      <LogSummaryCards
+        empStatus={viewed.emp_status}
+        weekMinutes={sumMinutes(weekRes.data)}
+        periodMinutes={sumMinutes(periodRes.data)}
+        today={today}
+        currentPeriod={currentPeriod}
+      />
 
       {!viewingOther && (
         <section className="rounded-xl border border-slate-200 bg-white p-4">

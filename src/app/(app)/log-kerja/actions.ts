@@ -50,6 +50,7 @@ export async function addWorkLog(_prev: FormState, formData: FormData): Promise<
   if (error) return { ok: false, message: `Gagal menyimpan: ${error.message}` };
 
   revalidatePath("/log-kerja");
+  revalidatePath("/dashboard");
   return {
     ok: true,
     message: data.is_correction
@@ -90,6 +91,7 @@ export async function updateWorkLog(_prev: FormState, formData: FormData): Promi
   }
 
   revalidatePath("/log-kerja");
+  revalidatePath("/dashboard");
   return { ok: true, message: "Perubahan tersimpan." };
 }
 
@@ -119,6 +121,7 @@ export async function adminUpdateWorkLog(_prev: FormState, formData: FormData): 
   if (error) return { ok: false, message: `Gagal menyimpan: ${error.message}` };
 
   revalidatePath("/log-kerja");
+  revalidatePath("/dashboard");
   revalidatePath("/admin");
   return { ok: true, message: "Koreksi tersimpan dan tercatat di riwayat perubahan." };
 }
@@ -136,6 +139,7 @@ export async function adminDeleteWorkLog(
   if (error) return { ok: false, message: `Gagal menghapus: ${error.message}` };
 
   revalidatePath("/log-kerja");
+  revalidatePath("/dashboard");
   revalidatePath("/admin");
   return { ok: true };
 }
@@ -149,5 +153,6 @@ export async function deleteWorkLog(id: string): Promise<{ ok: boolean; message?
     return { ok: false, message: "Log ini tidak bisa dihapus (periodenya sudah ditutup)." };
   }
   revalidatePath("/log-kerja");
+  revalidatePath("/dashboard");
   return { ok: true };
 }

@@ -23,17 +23,22 @@ const taskLink = (t: Task) =>
 // seperti di halaman Tugas. Slider: HP 1 kartu + sebagian berikutnya, desktop 3 kartu.
 export default function TodoSlider(props: TaskStateInit) {
   const { me } = props;
-  const { tasks, card, messageBox, form } = useTaskState(props);
+  const { tasks, card, messageBox, form, openNew } = useTaskState(props);
 
   // Daftar ditetapkan saat halaman dibuka, supaya kartu tidak langsung hilang
   // ketika statusnya diubah (mis. ke Pending lalu mengatur pengingat).
+  // Tugas yang baru ditambahkan dari dashboard ikut masuk daftar.
   const [mineIds, deptIds] = useMemo(() => {
-    const open = props.tasks.filter((t) => t.status !== "done");
+    const initialIds = new Set(props.tasks.map((t) => t.id));
+    const open = [
+      ...props.tasks.filter((t) => t.status !== "done"),
+      ...tasks.filter((t) => !initialIds.has(t.id)),
+    ];
     return [
       new Set(open.filter((t) => t.task_people.some((p) => p.role === "pic" && p.employee_id === me.id)).map((t) => t.id)),
       new Set(open.filter((t) => t.dept_code === me.dept_code).map((t) => t.id)),
     ];
-  }, [props.tasks, me.id, me.dept_code]);
+  }, [props.tasks, tasks, me.id, me.dept_code]);
 
   const [tab, setTab] = useState<"mine" | "dept">("mine");
   const [sortKey, setSortKey] = useState(SORT_OPTIONS[0].value);
@@ -75,7 +80,17 @@ export default function TodoSlider(props: TaskStateInit) {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={openNew}
+          className="flex items-center gap-1.5 rounded-lg bg-brand-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-800"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Tambah tugas
+        </button>
+        <div className="ml-auto flex items-center gap-1">
           <select
             aria-label="Urutkan"
             value={sortKey}
