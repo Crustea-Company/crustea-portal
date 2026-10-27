@@ -5,12 +5,10 @@ import { formatDate, todayJakarta } from "@/lib/format";
 import {
   formatHours,
   formatPercent,
-  monthlyExpectedHours,
   periodLabel,
   periodLabelWithRange,
   periodOf,
   weekRange,
-  weeklyHours,
 } from "@/lib/ats";
 import LogForm from "./LogForm";
 import LogList, { type WorkLog } from "./LogList";
