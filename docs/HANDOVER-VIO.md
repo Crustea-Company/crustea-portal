@@ -58,7 +58,18 @@ Minta nilainya langsung ke Athar (jangan lewat chat/GitHub).
 2. Hosting Next.js: Vercel paling mudah (region Singapore `sin1`), atau server sendiri dengan
    `npm run build && npm run start` (Node 20+) di belakang reverse proxy **HTTPS** (wajib untuk PWA, kamera,
    dan login).
-3. Pasang dua variabel `NEXT_PUBLIC_*` di hosting.
+3. Pasang dua variabel `NEXT_PUBLIC_*` di hosting. **Variabel ini ditanam ke kode browser saat build**, jadi
+   harus tersedia ketika `npm run build` berjalan, bukan hanya saat container dijalankan.
+   - **Docker:** pakai `Dockerfile` di repo dan beri `--build-arg NEXT_PUBLIC_SUPABASE_URL=...` dan
+     `--build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...` saat `docker build` (contoh lengkap di atas
+     `Dockerfile`; build menolak berjalan bila keduanya kosong). Setiap kali nilai berubah, build ulang image.
+   - Gejala bila terlewat: halaman tampil normal, tetapi tombol login macet di "Mengirim..." (versi terbaru
+     menampilkan pesan "Aplikasi belum tersambung ke database"). Cara cek cepat: buka file JS halaman login
+     di browser dan cari alamat proyek Supabase; kalau tidak ada, build belum menerima variabelnya.
+   - **Reverse proxy** (nginx, dll.) wajib meneruskan header `Host` asli dan `X-Forwarded-Proto: https`
+     (nginx: `proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme;`). Aplikasi memakai
+     header ini untuk mengarahkan kembali setelah login dan logout; tanpa itu pengguna bisa diarahkan ke
+     alamat internal container.
 4. Supabase → Authentication → URL Configuration:
    - **Site URL** = `https://internal.crustea.id` (alamat utama saja, tanpa `/login`).
    - **Redirect URLs**: tambah `https://internal.crustea.id/**` (biarkan `http://localhost:3000/**` untuk pengembangan).

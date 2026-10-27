@@ -1,0 +1,12 @@
+# Jangan ikut ke image: kunci rahasia, hasil build lokal, dan data pengembangan.
+.env*
+!.env.example
+node_modules
+.next
+.git
+.claude
+seed
+docs
+scripts
+Jalankan Crustea Portal.bat
+npm-debug.log*

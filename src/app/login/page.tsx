@@ -22,11 +22,24 @@ function LoginForm() {
     setSending(true);
     setError(null);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
+    // Kunci Supabase ditanam saat build. Kalau kosong (mis. build Docker tanpa build-arg),
+    // tampilkan pesan, jangan macet di "Mengirim...".
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+      setSending(false);
+      setError("Aplikasi belum tersambung ke database (pengaturan server belum lengkap). Hubungi admin/TechOps.");
+      return;
+    }
+
+    let error: { status?: number; message: string } | null = null;
+    try {
+      const supabase = createClient();
+      ({ error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      }));
+    } catch (e) {
+      error = { message: e instanceof Error ? e.message : "Koneksi gagal. Periksa internet lalu coba lagi." };
+    }
 
     setSending(false);
     if (error) {
