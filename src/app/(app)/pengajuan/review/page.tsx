@@ -37,7 +37,10 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
   const { data, error } = await query.order("status_since", { ascending: true });
   const all = (data ?? []) as unknown as RequestRow[];
 
-  const counts = Object.fromEntries(REVIEW_TABS.map((s) => [s, all.filter((r) => r.status === s).length]));
+  // "Belum di-review" juga memuat dinas yang surat tugasnya sudah terbit (baru sampai di F&A).
+  const inTab = (r: RequestRow, s: RequestStatus) =>
+    r.status === s || (s === "submitted" && r.kind === "travel" && r.status === "st_issued");
+  const counts = Object.fromEntries(REVIEW_TABS.map((s) => [s, all.filter((r) => inTab(r, s)).length]));
   // Tanpa pilihan: buka tahap pertama yang masih ada isinya (CEO: Menunggu CEO).
   const firstWaiting = (
     ["submitted", "in_review", "st_issued", "ceo_review", "approved", "assigner_approved"] as RequestStatus[]
@@ -48,7 +51,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
       ? "ceo_review"
       : (firstWaiting ?? "submitted");
   const overdue = all.filter(isOverdue).length;
-  let rows = all.filter((r) => r.status === status);
+  let rows = all.filter((r) => inTab(r, status));
   // Antrian: yang paling lama menunggu di atas. Selesai/ditolak: terbaru di atas.
   if (status === "paid" || status === "rejected") rows = rows.reverse();
   // Permintaan pembayaran berprioritas "Segera" selalu paling atas.
