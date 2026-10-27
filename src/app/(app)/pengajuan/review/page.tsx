@@ -23,6 +23,18 @@ export const metadata: Metadata = { title: "Review Pengajuan - Crustea Portal" }
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+const PROCUREMENT_TABS: RequestStatus[] = [
+  "vendor_compared",
+  "fa_verified",
+  "fa_approved",
+  "ceo_approved",
+  "payment_approved",
+  "head_approved",
+  "po_issued",
+  "received",
+  "returned",
+];
+
 // Antrian review F&A per status. CEO bisa membuka halaman ini tanpa tombol aksi.
 export default async function ReviewPage({ searchParams }: { searchParams: SearchParams }) {
   const me = (await getCurrentEmployee())!;
@@ -43,7 +55,18 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
   const counts = Object.fromEntries(REVIEW_TABS.map((s) => [s, all.filter((r) => inTab(r, s)).length]));
   // Tanpa pilihan: buka tahap pertama yang masih ada isinya (CEO: Menunggu CEO).
   const firstWaiting = (
-    ["submitted", "in_review", "st_issued", "ceo_review", "approved", "assigner_approved"] as RequestStatus[]
+    [
+      "submitted",
+      "in_review",
+      "st_issued",
+      "vendor_compared",
+      "fa_approved",
+      "ceo_approved",
+      "payment_approved",
+      "ceo_review",
+      "approved",
+      "assigner_approved",
+    ] as RequestStatus[]
   ).find((s) => counts[s] > 0);
   const status: RequestStatus = (REVIEW_TABS as string[]).includes(String(params.status))
     ? (params.status as RequestStatus)
@@ -81,7 +104,8 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
       )}
 
       <nav className="flex flex-wrap gap-1.5">
-        {REVIEW_TABS.map((s) => (
+        {/* Tab tahap pengadaan hanya muncul bila ada isinya atau sedang dipilih. */}
+        {REVIEW_TABS.filter((s) => !PROCUREMENT_TABS.includes(s) || counts[s] > 0 || s === status).map((s) => (
           <Link
             key={s}
             href={href(s, kind)}

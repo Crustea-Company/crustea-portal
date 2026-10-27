@@ -9,16 +9,20 @@ import { calcTravel, isIsoDate, type TravelData, type TravelInput } from "@/lib/
 import {
   BUCKET,
   MAX_FILES,
+  MIN_VENDORS,
   PAYMENT_CONTRACT,
   PAYMENT_PRIORITIES,
   REIMBURSE_CATEGORIES,
   type AttachmentInput,
   type PaymentData,
   type PaymentInput,
+  type ProcurementData,
+  type ProcurementInput,
   type ReimburseData,
   type ReimburseInput,
   type RequestKind,
   type RequestStatus,
+  type VendorQuote,
 } from "@/lib/requests";
 
 type Result = { ok: true; id: string } | { ok: false; message: string };
@@ -291,6 +295,95 @@ export async function submitTravel(
   );
 }
 
+// Permohonan pengadaan (PR): ditinjau head departemen pemohon dulu, lampiran boleh kosong.
+export async function submitProcurement(
+  input: ProcurementInput,
+  attachments: AttachmentInput[],
+  id: string | null,
+): Promise<Result> {
+  const title = input.title.trim();
+  const specification = input.specification.trim();
+  const unit = input.unit.trim();
+  if (!title) return { ok: false, message: "Judul kebutuhan belum diisi." };
+  if (!specification) return { ok: false, message: "Spesifikasi belum diisi." };
+  if (!Number.isSafeInteger(input.quantity) || input.quantity <= 0) return { ok: false, message: "Jumlah harus lebih dari 0." };
+  if (!unit) return { ok: false, message: "Satuan belum diisi." };
+  if (!Number.isSafeInteger(input.estimate) || input.estimate <= 0) {
+    return { ok: false, message: "Estimasi harga (Rp) harus lebih dari 0." };
+  }
+  if (!isIsoDate(input.needed_date)) return { ok: false, message: "Tanggal dibutuhkan belum diisi." };
+
+  const data: ProcurementData = {
+    specification,
+    quantity: input.quantity,
+    unit,
+    estimate: input.estimate,
+    budgeted: Boolean(input.budgeted),
+    needed_date: input.needed_date,
+  };
+  return saveAndSubmit("procurement", { title: title.slice(0, 200), amount: input.estimate, data }, attachments, id, null);
+}
+
+// TechOps: perbandingan minimal 3 vendor + satu rekomendasi -> "Vendor dibandingkan".
+export async function submitVendorComparison(
+  id: string,
+  vendors: VendorQuote[],
+  recommended: number,
+  note: string,
+): Promise<SimpleResult> {
+  const clean = vendors.map((v) => ({
+    name: v.name.trim(),
+    avl: Boolean(v.avl),
+    price: v.price,
+    spec: v.spec.trim(),
+    lead_time: v.lead_time.trim(),
+    warranty: v.warranty.trim(),
+    pros: v.pros.trim(),
+    cons: v.cons.trim(),
+  }));
+  if (clean.length < MIN_VENDORS) return { ok: false, message: `Isi minimal ${MIN_VENDORS} vendor pembanding.` };
+  for (const [i, v] of clean.entries()) {
+    if (!v.name) return { ok: false, message: `Nama vendor ke-${i + 1} belum diisi.` };
+    if (!Number.isSafeInteger(v.price) || v.price <= 0) return { ok: false, message: `Harga vendor ${v.name} belum diisi.` };
+  }
+  if (!Number.isInteger(recommended) || recommended < 0 || recommended >= clean.length) {
+    return { ok: false, message: "Pilih satu vendor yang direkomendasikan." };
+  }
+  return runStatus(id, "vendor_compared", note, null, { vendors: clean, recommended });
+}
+
+// Head F&A: pilih vendor + metode -> "Disetujui Head F&A" (>= Rp5 juta otomatis ke CEO).
+export async function chooseProcurementVendor(
+  id: string,
+  selected: number,
+  method: string,
+  note: string,
+): Promise<SimpleResult> {
+  if (!Number.isInteger(selected) || selected < 0) return { ok: false, message: "Pilih vendor." };
+  if (!method.trim()) return { ok: false, message: "Pilih metode pengadaan." };
+  return runStatus(id, "fa_approved", note, null, { selected, method: method.trim() });
+}
+
+async function runStatus(
+  id: string,
+  to: RequestStatus,
+  note: string,
+  paidOn: string | null,
+  data: object | null,
+): Promise<SimpleResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("change_request_status", {
+    p_id: id,
+    p_to: to,
+    p_note: note.trim() || null,
+    p_paid_on: paidOn,
+    p_data: data,
+  });
+  if (error) return { ok: false, message: error.message };
+  revalidateRequests(id);
+  return { ok: true };
+}
+
 // Pemohon melampirkan FPTD & laporan misi (link) setelah kembali. F&A diberi tahu lewat catatan.
 export async function submitTravelReport(id: string, attachments: AttachmentInput[]): Promise<SimpleResult> {
   const me = await getCurrentEmployee();
@@ -314,6 +407,7 @@ export async function changeRequestStatus(
   note: string,
   paidOn: string | null,
   transferFiles: AttachmentInput[] = [],
+  documents: AttachmentInput[] = [], // pengadaan: link PO / GRN / invoice (ditambahkan, tidak mengganti)
 ): Promise<SimpleResult> {
   const me = await getCurrentEmployee();
   if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
@@ -329,16 +423,20 @@ export async function changeRequestStatus(
     }
   }
 
-  const { error } = await supabase.rpc("change_request_status", {
-    p_id: id,
-    p_to: to,
-    p_note: note.trim() || null,
-    p_paid_on: to === "paid" ? paidOn : null,
-  });
-  if (error) return { ok: false, message: error.message };
+  if (documents.length) {
+    const bad = checkAttachments(documents, me.id);
+    if (bad) return { ok: false, message: bad };
+    const { error } = await supabase.from("request_files").insert(
+      documents.map((a) =>
+        a.kind === "file"
+          ? { request_id: id, purpose: "document", kind: "file", path: a.path, name: a.name, size_bytes: a.size_bytes }
+          : { request_id: id, purpose: "document", kind: "link", url: a.url.trim(), name: a.name.trim() || a.url.trim() },
+      ),
+    );
+    if (error) return { ok: false, message: `Gagal menyimpan dokumen: ${error.message}` };
+  }
 
-  revalidateRequests(id);
-  return { ok: true };
+  return runStatus(id, to, note, to === "paid" ? paidOn : null, null);
 }
 
 export async function addRequestNote(id: string, note: string): Promise<SimpleResult> {

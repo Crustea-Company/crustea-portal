@@ -12,8 +12,12 @@ import {
   REQUEST_COLUMNS,
   canApproveAsCeo,
   canReviewRequests,
+  isFaHead,
+  isProcurementHead,
+  isTechOps,
   isUrgent,
   type PaymentData,
+  type ProcurementData,
   type ReimburseData,
   type RequestFile,
   type RequestRow,
@@ -24,6 +28,7 @@ import RequestFileList, { type ViewFile } from "@/components/requests/RequestFil
 import { DeleteDraftButton, NoteForm, ReviewPanel, TravelReportForm, type ReviewMode } from "./ReviewPanel";
 import { LOCAL_ZONE_NOTE, ZONE_LABEL, type TravelData } from "@/lib/travel";
 import type { AttachmentItem } from "@/components/requests/FileOrLinkInput";
+import { ChooseVendorForm, VendorCompareForm } from "./ProcurementPanels";
 
 export const metadata: Metadata = { title: "Detail Pengajuan - Crustea Portal" };
 
@@ -137,6 +142,64 @@ function TravelCalcDetails({ data }: { data: TravelData }) {
   );
 }
 
+function ProcurementDetails({ data }: { data: ProcurementData }) {
+  const vendor = data.selected !== undefined ? data.vendors?.[data.selected] : undefined;
+  return (
+    <>
+      <Field label="Jumlah">
+        {formatNumber(data.quantity)} {data.unit}
+      </Field>
+      <Field label="Tanggal dibutuhkan">{formatDate(data.needed_date)}</Field>
+      <Field label="Estimasi harga (PR)">{rp(data.estimate)}</Field>
+      <Field label="Sudah dianggarkan?">{data.budgeted ? "Sudah" : "Belum"}</Field>
+      {vendor && <Field label="Vendor terpilih">{vendor.name}</Field>}
+      {data.method && <Field label="Metode pengadaan">{data.method}</Field>}
+      {data.po_number && <Field label="No. PO">{data.po_number}</Field>}
+      <div className="sm:col-span-2">
+        <Field label="Spesifikasi">{data.specification}</Field>
+      </div>
+    </>
+  );
+}
+
+function VendorTable({ data }: { data: ProcurementData }) {
+  if (!data.vendors?.length) return null;
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="mb-3 font-semibold text-slate-900">Perbandingan vendor (TechOps)</h2>
+      <div className="flex flex-col gap-3">
+        {data.vendors.map((v, i) => (
+          <div
+            key={i}
+            className={`rounded-xl border p-3 text-sm ${i === data.selected ? "border-brand-600 bg-brand-50" : "border-slate-200"}`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-semibold text-slate-900">
+                {v.name}
+                {v.avl && <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">AVL</span>}
+                {i === data.recommended && (
+                  <span className="ml-2 rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-800">Rekomendasi</span>
+                )}
+                {i === data.selected && (
+                  <span className="ml-2 rounded-full bg-brand-700 px-2 py-0.5 text-xs font-semibold text-white">Dipilih</span>
+                )}
+              </p>
+              <p className="font-bold tabular-nums text-slate-900">{rp(v.price)}</p>
+            </div>
+            <dl className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {v.spec && <Field label="Spesifikasi">{v.spec}</Field>}
+              {v.lead_time && <Field label="Lead time">{v.lead_time}</Field>}
+              {v.warranty && <Field label="Garansi">{v.warranty}</Field>}
+              {v.pros && <Field label="Kelebihan">{v.pros}</Field>}
+              {v.cons && <Field label="Kekurangan">{v.cons}</Field>}
+            </dl>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function MissionDetails({ data }: { data: ReimburseData }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -196,6 +259,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
   const proofFiles = viewFiles.filter((f) => f.purpose === "proof");
   const reportFiles = viewFiles.filter((f) => f.purpose === "report");
   const transferFiles = viewFiles.filter((f) => f.purpose === "transfer");
+  const documentFiles = viewFiles.filter((f) => f.purpose === "document");
 
   const isOwner = req.requester_id === me.id;
   const isReviewer = canReviewRequests(me) && (!isOwner || me.app_role === "admin");
@@ -206,15 +270,31 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
   const isAssigner = req.assigner_id === me.id || me.app_role === "admin";
   const isHr = me.dept_code === "CA" || me.app_role === "admin";
   const notSelf = !isOwner || me.app_role === "admin";
+  const procurement = req.kind === "procurement" ? (req.data as unknown as ProcurementData) : null;
+  const isTo = isTechOps(me);
+  const isProcHead = isProcurementHead(me, req.dept_code);
   let mode: ReviewMode | null = null;
-  if (travel) {
+  if (procurement) {
+    const s = req.status;
+    if (s === "submitted" && isProcHead && notSelf) mode = "head";
+    else if (s === "head_approved" && isTo && notSelf) mode = "techops";
+    else if ((s === "fa_verified" || s === "received") && isFaHead(me) && notSelf) mode = "fahead";
+    else if (isCeo) mode = "ceo";
+    else if ((s === "po_issued" || s === "returned") && (isTo || isOwner)) mode = "receiver";
+    else if (isReviewer) mode = "fa";
+    else if (s === "paid" && isTo && notSelf) mode = "techops";
+    else if (!isOwner && (isTo || isProcHead)) mode = "viewer";
+  } else if (travel) {
     if (req.status === "submitted" && isAssigner && (notSelf || me.app_role === "ceo")) mode = "assigner";
     else if (req.status === "assigner_approved" && isHr && notSelf) mode = "hr";
     else if (isReviewer) mode = "fa";
     else if (!isOwner && (isAssigner || isHr)) mode = "viewer";
   } else if (isCeo) mode = "ceo";
   else if (isReviewer) mode = "fa";
-  const canNote = isReviewer || (travel !== null && !isOwner && (isAssigner || isHr));
+  const canNote =
+    isReviewer ||
+    (travel !== null && !isOwner && (isAssigner || isHr)) ||
+    (procurement !== null && !isOwner && (isTo || isProcHead));
   const editable = isOwner && (req.status === "draft" || req.status === "needs_revision");
   const data = req.data as unknown as ReimburseData;
   const payment = req.data as unknown as PaymentData;
@@ -227,8 +307,11 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
     <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6">
       {sent && (
         <p className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-800">
-          Pengajuan terkirim. {travel ? "Penugas" : "F&A"} akan meninjau maksimal 2 hari kerja; statusnya bisa dipantau
-          di halaman ini.
+          Pengajuan terkirim.{" "}
+          {procurement
+            ? "Head departemen Anda akan meninjau maksimal 1×24 jam"
+            : `${travel ? "Penugas" : "F&A"} akan meninjau maksimal 2 hari kerja`}
+          ; statusnya bisa dipantau di halaman ini.
         </p>
       )}
 
@@ -273,16 +356,25 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
           {req.kind === "reimburse" && <ReimburseDetails data={data} />}
           {req.kind === "payment" && <PaymentDetails data={payment} />}
           {travel && <TravelDetails data={travel} stNumber={req.st_number} />}
+          {procurement && <ProcurementDetails data={procurement} />}
           {req.paid_on && (
-            <Field label={travel ? "Tanggal uang muka dicairkan" : "Tanggal transfer"}>{formatDate(req.paid_on)}</Field>
+            <Field label={travel ? "Tanggal uang muka dicairkan" : procurement ? "Tanggal bayar vendor" : "Tanggal transfer"}>
+              {formatDate(req.paid_on)}
+            </Field>
           )}
         </dl>
         {!travel && (
           <div className="mt-4">
             <p className="mb-1.5 text-xs font-medium text-slate-500">
-              {req.kind === "payment" ? "Invoice / dokumen pendukung" : "Bukti nota"}
+              {req.kind === "payment" ? "Invoice / dokumen pendukung" : procurement ? "Lampiran PR" : "Bukti nota"}
             </p>
             <RequestFileList files={proofFiles} />
+          </div>
+        )}
+        {documentFiles.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-1.5 text-xs font-medium text-slate-500">Dokumen pengadaan (PO, GRN/BAST, invoice)</p>
+            <RequestFileList files={documentFiles} />
           </div>
         )}
         {transferFiles.length > 0 && (
@@ -295,6 +387,11 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
 
       {req.kind === "reimburse" && <MissionDetails data={data} />}
       {travel && <TravelCalcDetails data={travel} />}
+      {procurement && <VendorTable data={procurement} />}
+      {procurement && mode === "techops" && req.status === "head_approved" && <VendorCompareForm id={req.id} />}
+      {procurement && mode === "fahead" && req.status === "fa_verified" && (
+        <ChooseVendorForm id={req.id} vendors={procurement.vendors ?? []} recommended={procurement.recommended ?? null} />
+      )}
 
       {travel && ["approved", "paid", "completed"].includes(req.status) && (
         <section className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

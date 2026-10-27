@@ -18,6 +18,7 @@ const TITLES: [string, string][] = [
   ["/pengajuan/reimburse", "Reimburse"],
   ["/pengajuan/pembayaran", "Permintaan Pembayaran"],
   ["/pengajuan/dinas", "Perjalanan Dinas"],
+  ["/pengajuan/pengadaan", "Pengadaan"],
   ["/pengajuan", "Pengajuan"],
   ["/prosedur", "Prosedur"],
   ["/cuti-lembur", "Cuti & Lembur"],

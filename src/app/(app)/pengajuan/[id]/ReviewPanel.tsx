@@ -16,7 +16,8 @@ const NEUTRAL = "border border-slate-300 text-slate-700 hover:bg-slate-100";
 const DANGER = "border border-red-300 text-red-700 hover:bg-red-50";
 
 // Peran pengguna pada tahap ini: F&A, CEO, penugas dinas, HR/CA (surat tugas), atau hanya memberi catatan.
-export type ReviewMode = "fa" | "ceo" | "assigner" | "hr" | "viewer";
+// Pengadaan: head dept pemohon, TechOps, Head F&A, dan penerima barang (TechOps/pemohon).
+export type ReviewMode = "fa" | "ceo" | "assigner" | "hr" | "viewer" | "head" | "techops" | "fahead" | "receiver";
 
 const HEADING: Record<ReviewMode, string> = {
   fa: "Tindakan peninjau",
@@ -24,7 +25,14 @@ const HEADING: Record<ReviewMode, string> = {
   assigner: "Persetujuan penugas",
   hr: "Surat tugas (Corporate Affairs)",
   viewer: "Catatan untuk pemohon",
+  head: "Persetujuan head departemen",
+  techops: "Tindakan TechOps",
+  fahead: "Tindakan Head F&A",
+  receiver: "Penerimaan barang/jasa",
 };
+
+// Status pengadaan yang boleh disertai link dokumen (PO, GRN/BAST, invoice).
+const DOC_STATUSES: RequestStatus[] = ["fa_approved", "ceo_approved", "po_issued", "returned", "received"];
 
 // Tombol yang tersedia di setiap status (urutan & peran yang sama dengan change_request_status).
 function actionsFor(status: RequestStatus, kind: RequestKind, mode: ReviewMode, advance: boolean): Action[] {
@@ -33,6 +41,34 @@ function actionsFor(status: RequestStatus, kind: RequestKind, mode: ReviewMode, 
     { to: "needs_revision", label: "Perlu perbaikan", style: NEUTRAL, needsNote: true },
     { to: "rejected", label: "Tolak", style: DANGER, needsNote: true },
   ];
+  if (kind === "procurement") {
+    const revise: Action[] = decide("").slice(1);
+    if (status === "submitted" && mode === "head") return decide("Setujui PR", "head_approved");
+    // Persetujuan TechOps & Head F&A lewat form perbandingan/pilihan vendor; di sini hanya perbaikan/tolak.
+    if (status === "head_approved" && mode === "techops") return revise;
+    if (status === "vendor_compared" && mode === "fa") return decide("Verifikasi Finance", "fa_verified");
+    if (status === "fa_verified" && mode === "fahead") return revise;
+    if (status === "ceo_review" && mode === "ceo") return decide("Setujui (CEO)", "ceo_approved");
+    if ((status === "fa_approved" || status === "ceo_approved") && mode === "fa") {
+      return [{ to: "po_issued", label: "Terbitkan PO", style: PRIMARY }];
+    }
+    if (status === "po_issued" && mode === "receiver") {
+      return [
+        { to: "received", label: "Diterima sesuai (GRN/BAST)", style: PRIMARY },
+        { to: "returned", label: "Retur ke vendor", style: DANGER, needsNote: true },
+      ];
+    }
+    if (status === "returned" && mode === "receiver") {
+      return [{ to: "received", label: "Pengganti diterima sesuai", style: PRIMARY }];
+    }
+    if (status === "received" && mode === "fahead") {
+      return [{ to: "payment_approved", label: "Setujui pembayaran (PO, GRN, invoice cocok)", style: PRIMARY }];
+    }
+    if (status === "paid" && (mode === "fa" || mode === "techops")) {
+      return [{ to: "completed", label: "Selesai: aset/stok dicatat", style: PRIMARY, needsNote: true }];
+    }
+    return [];
+  }
   if (kind === "travel") {
     if (status === "submitted" && mode === "assigner") return decide("Setujui penugasan", "assigner_approved");
     if (status === "assigner_approved" && mode === "hr") return decide("Terbitkan surat tugas", "st_issued");
@@ -77,6 +113,7 @@ export function ReviewPanel({
   const [note, setNote] = useState("");
   const [paidOn, setPaidOn] = useState(today);
   const [proof, setProof] = useState<AttachmentItem[]>([]);
+  const [docs, setDocs] = useState<AttachmentItem[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -89,9 +126,13 @@ export function ReviewPanel({
     setPending(true);
     let files: Awaited<ReturnType<typeof resolveAttachments>> = { ok: true, list: [] };
     if (to === "paid" && proof.length) files = await resolveAttachments(proof, employeeId);
-    const res = files.ok
-      ? await changeRequestStatus(id, to, note, to === "paid" ? paidOn : null, files.list)
-      : files;
+    let docFiles: Awaited<ReturnType<typeof resolveAttachments>> = { ok: true, list: [] };
+    if (showDocs && docs.length) docFiles = await resolveAttachments(docs, employeeId);
+    const res = !files.ok
+      ? files
+      : !docFiles.ok
+        ? docFiles
+        : await changeRequestStatus(id, to, note, to === "paid" ? paidOn : null, files.list, docFiles.list);
     setPending(false);
     if (!res.ok) {
       setError(res.message);
@@ -99,6 +140,7 @@ export function ReviewPanel({
     }
     setNote("");
     setProof([]);
+    setDocs([]);
     router.refresh();
   }
 
@@ -113,7 +155,11 @@ export function ReviewPanel({
   }
 
   const actions = actionsFor(status, kind, mode, advance);
-  const showPay = mode === "fa" && status === "approved" && (kind !== "travel" || advance);
+  const procurement = kind === "procurement";
+  const showPay =
+    mode === "fa" &&
+    (procurement ? status === "payment_approved" : status === "approved" && (kind !== "travel" || advance));
+  const showDocs = procurement && DOC_STATUSES.includes(status) && actions.length > 0;
   const travel = kind === "travel";
 
   return (
@@ -124,9 +170,24 @@ export function ReviewPanel({
       )}
 
       <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-        Catatan <span className="font-normal text-slate-500">(wajib untuk Perlu perbaikan dan Tolak; terlihat pemohon)</span>
+        Catatan{" "}
+        <span className="font-normal text-slate-500">
+          {procurement
+            ? "(wajib untuk Perlu perbaikan, Tolak, Retur, dan Selesai: tulis nomor aset/catatan stok; terlihat pemohon)"
+            : "(wajib untuk Perlu perbaikan dan Tolak; terlihat pemohon)"}
+        </span>
         <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} className={inputClass} />
       </label>
+
+      {showDocs && (
+        <div className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+          Link dokumen{" "}
+          <span className="font-normal text-slate-500">
+            (boleh kosong: PO, GRN/BAST, invoice; arsip di Drive Finance/Procurement/[Tahun]/[Divisi]/[No. PR])
+          </span>
+          <FileOrLinkInput items={docs} onChange={setDocs} />
+        </div>
+      )}
 
       {showPay && (
         <div className="flex flex-col gap-3 rounded-xl bg-slate-50 p-3">
@@ -162,7 +223,7 @@ export function ReviewPanel({
             onClick={() => run("paid")}
             className={`rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60 ${PRIMARY}`}
           >
-            {travel ? "Tandai uang muka dicairkan" : "Tandai ditransfer"}
+            {travel ? "Tandai uang muka dicairkan" : procurement ? "Tandai dibayar ke vendor" : "Tandai ditransfer"}
           </button>
         )}
         {canNote && (

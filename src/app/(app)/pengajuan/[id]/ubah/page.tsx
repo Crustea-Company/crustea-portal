@@ -4,11 +4,12 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/format";
-import type { PaymentData, ReimburseData, RequestFile } from "@/lib/requests";
+import type { PaymentData, ProcurementData, ReimburseData, RequestFile } from "@/lib/requests";
 import type { AttachmentItem } from "@/components/requests/FileOrLinkInput";
 import ReimburseForm from "../../reimburse/ReimburseForm";
 import PaymentForm from "../../pembayaran/PaymentForm";
 import TravelForm from "../../dinas/TravelForm";
+import ProcurementForm from "../../pengadaan/ProcurementForm";
 import { loadTravelFormProps } from "@/lib/travel-data";
 import type { TravelData } from "@/lib/travel";
 
@@ -34,7 +35,7 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
   ]);
   const req = reqRes.data;
   if (!req) notFound();
-  if (req.requester_id !== me.id || !["draft", "needs_revision"].includes(req.status) || !["reimburse", "payment", "travel"].includes(req.kind)) {
+  if (req.requester_id !== me.id || !["draft", "needs_revision"].includes(req.status) || !["reimburse", "payment", "travel", "procurement"].includes(req.kind)) {
     redirect(`/pengajuan/${id}`);
   }
 
@@ -46,6 +47,7 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
 
   const travelProps = req.kind === "travel" ? await loadTravelFormProps(supabase, me.id, todayJakarta()) : null;
   const travel = req.data as TravelData;
+  const procurement = req.data as ProcurementData;
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
@@ -56,6 +58,8 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
             ? "Perbaiki permintaan pembayaran"
             : req.kind === "travel"
               ? "Perbaiki penugasan dinas"
+              : req.kind === "procurement"
+                ? "Perbaiki permohonan pengadaan"
               : "Perbaiki klaim reimburse"}
         </h1>
       </div>
@@ -81,6 +85,26 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
                 advance: travel.advance,
                 emergency_reason: travel.emergency_reason,
               },
+            }}
+          />
+        ) : req.kind === "procurement" ? (
+          <ProcurementForm
+            employeeId={me.id}
+            fullName={me.full_name}
+            deptCode={me.dept_code}
+            today={todayJakarta()}
+            initial={{
+              id: req.id as string,
+              input: {
+                title: req.title as string,
+                specification: procurement.specification,
+                quantity: procurement.quantity,
+                unit: procurement.unit,
+                estimate: procurement.estimate,
+                budgeted: procurement.budgeted,
+                needed_date: procurement.needed_date,
+              },
+              attachments,
             }}
           />
         ) : req.kind === "payment" ? (

@@ -53,6 +53,7 @@ Pemilik proyek (Athar, Head of Corporate Affairs) **bukan programmer**. Karena i
 - Form keuangan direview Finance & Accounting; SLA maksimal 2 hari kerja per status; pemohon melihat status. CEO menerima notifikasi untuk nilai >= Rp5.000.000. Cuti direview HR (Corporate Affairs).
 - Halaman **Prosedur** (`procedures`, migrasi 006): isi diubah admin dari aplikasi; kode SOP di tugas tertaut ke prosedur.
 - **Mesin pengajuan** (migrasi 007, sudah dijalankan): tabel `requests` (+ `request_events`, `request_files`, `holidays`), bucket privat `request-files`. Status hanya lewat RPC `change_request_status`; catatan lewat `add_request_note`; SLA = kolom hitung `sla_due`. Kode bersama: `src/lib/requests.ts`, `src/lib/upload.ts`, `src/components/requests/`, server action di `src/app/(app)/pengajuan/actions.ts`. Form baru (pembayaran, pengadaan, dinas, komisi) memakai ini; isi khusus form disimpan di `requests.data`. Bukti/lampiran **hanya link** (keputusan Athar 27 Okt 2026: tetap di paket gratis Supabase); tombol unggah file dimatikan di `FileOrLinkInput`.
+- **Pengadaan** (migrasi 010, sudah dijalankan): kind `procurement`, alur head dept → TechOps (≥3 vendor) → Finance → Head F&A (≥ Rp5 jt: CEO) → PO (`data.po_number`) → diterima/retur → approval bayar → dibayar → selesai. Isian tahap lewat parameter `p_data` di `change_request_status`; form di `src/app/(app)/pengajuan/pengadaan/`, panel TO/Head F&A di `pengajuan/[id]/ProcurementPanels.tsx`.
 
 ## Fitur Fase 1
 

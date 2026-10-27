@@ -10,7 +10,7 @@ CLAUDE.md + satu file modul di sini** — tidak perlu membuka file sumber lagi.
 | 1 | `01-mesin-pengajuan.md` + `02-reimburse.md` | Mesin pengajuan bersama (status, SLA, review F&A, riwayat, notifikasi) + Klaim Reimburse — **selesai 27 Okt 2026** | Ya (007) |
 | 2 | `03-permintaan-pembayaran.md` | Form Permintaan Pembayaran (pakai mesin #1) | Kecil/tidak |
 | 3 | `04-perjalanan-dinas.md` | Form Penugasan Dinas + kalkulator biaya | Ya (golongan jabatan, tarif) |
-| 4 | `05-pengadaan.md` | Purchase Request → PO → GRN → bayar (pakai mesin #1) | Ya |
+| 4 | `05-pengadaan.md` | Purchase Request → PO → GRN → bayar (pakai mesin #1) — **selesai 27 Okt 2026** | Ya (010) |
 | 5 | `06-produk-komisi-referral.md` | Master produk, klaim komisi, kode referral | Ya |
 | 6 | `07-penjualan-aset.md` | Sales pipeline, stok, aset | Ya |
 | 7 | `08-monitoring-kpi-target.md` | Monitoring KPI (`kpi_items`) + target kuartal per divisi | Ya (target, realisasi) |

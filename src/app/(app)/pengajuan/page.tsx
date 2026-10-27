@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { REQUEST_COLUMNS, canSeeAllRequests, type RequestRow } from "@/lib/requests";
+import { REQUEST_COLUMNS, canSeeAllRequests, isFaHead, isTechOps, type RequestRow } from "@/lib/requests";
 import RequestList from "@/components/requests/RequestList";
 
 export const metadata: Metadata = { title: "Pengajuan - Crustea Portal" };
 
-const FINISHED = ["paid", "rejected"];
+// Selesai: ditolak, selesai, atau ditransfer (dinas & pengadaan masih berlanjut setelah dibayar).
+const isFinished = (r: RequestRow) =>
+  r.status === "rejected" || r.status === "completed" || (r.status === "paid" && r.kind !== "travel" && r.kind !== "procurement");
 
 export default async function PengajuanPage() {
   const me = (await getCurrentEmployee())!;
@@ -29,9 +31,24 @@ export default async function PengajuanPage() {
     .or(isHr ? `and(status.eq.submitted,assigner_id.eq.${me.id}),status.eq.assigner_approved` : `and(status.eq.submitted,assigner_id.eq.${me.id})`)
     .neq("requester_id", me.id)
     .order("status_since");
-  const waiting = (todo ?? []) as unknown as RequestRow[];
-  const active = rows.filter((r) => !FINISHED.includes(r.status));
-  const done = rows.filter((r) => FINISHED.includes(r.status));
+  // Pengadaan yang menunggu saya: head dept (setujui PR), TechOps (vendor, penerimaan, aset), Head F&A.
+  const procStatuses = [
+    ...(me.app_role === "head" ? [`and(status.eq.submitted,dept_code.eq.${me.dept_code})`] : []),
+    ...(isTechOps(me) ? ["status.in.(head_approved,po_issued,returned,paid)"] : []),
+    ...(isFaHead(me) ? ["status.in.(fa_verified,received)"] : []),
+  ];
+  const { data: procTodo } = procStatuses.length
+    ? await supabase
+        .from("requests")
+        .select(REQUEST_COLUMNS)
+        .eq("kind", "procurement")
+        .or(procStatuses.join(","))
+        .neq("requester_id", me.id)
+        .order("status_since")
+    : { data: [] };
+  const waiting = [...(todo ?? []), ...(procTodo ?? [])] as unknown as RequestRow[];
+  const active = rows.filter((r) => !isFinished(r));
+  const done = rows.filter(isFinished);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6">
@@ -60,6 +77,12 @@ export default async function PengajuanPage() {
             className="rounded-lg bg-brand-700 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-800"
           >
             + Permintaan pembayaran
+          </Link>
+          <Link
+            href="/pengajuan/pengadaan/baru"
+            className="rounded-lg bg-brand-700 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+          >
+            + Pengadaan barang/jasa
           </Link>
           <Link
             href="/pengajuan/dinas/baru"
