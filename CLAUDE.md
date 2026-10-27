@@ -16,6 +16,7 @@ Pemilik proyek (Athar, Head of Corporate Affairs) **bukan programmer**. Karena i
 - Next.js (App Router, TypeScript), Tailwind CSS, bisa di-install sebagai PWA di Android.
 - Supabase: database Postgres, login, dan Row Level Security (RLS). Region Singapore.
 - Login: magic link email (Supabase Auth). Hanya email yang ada di tabel `employees` dengan `is_active = true` yang boleh memakai aplikasi; email lain ditampilkan halaman "Akses ditolak".
+- Sesi: `src/middleware.ts` memverifikasi JWT Supabase di setiap permintaan (server action/POST tanpa JWT valid = 401) dan cookie sesi aplikasi bertanda tangan `crustea_sesi` (`src/lib/session.ts`, kunci `SESSION_SECRET` di `.env.local`/server): habis bila 7 hari tidak dipakai atau 30 hari sejak login.
 - Saat ini dikembangkan di laptop (localhost). Deployment ke server akan dibantu Vio (TechOps) setelah Fase 1 selesai.
 - Skema database: `schema.sql`, lalu perubahan berikutnya berurutan di folder `migrations/` (dijalankan Athar lewat SQL Editor Supabase setelah disetujui). Data awal: folder `seed/` (file CSV, jangan diedit manual).
 

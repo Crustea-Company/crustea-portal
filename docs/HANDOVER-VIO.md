@@ -29,9 +29,28 @@ Tidak ada backend terpisah: halaman server + server action Next.js memanggil Sup
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | aplikasi | URL proyek Supabase |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | aplikasi | kunci publik (aman di browser, dibatasi RLS) |
+| `SESSION_SECRET` | aplikasi (server, saat berjalan) | kunci tanda tangan cookie sesi, acak min. 32 karakter; **rahasia**, beri lewat `docker run -e`, bukan build-arg. Kosong = pengecekan sesi aplikasi dilewati (ada peringatan di log) |
 | `SUPABASE_SECRET_KEY` | hanya skrip `scripts/*.mjs` | **jangan** dipasang di server produksi kecuali perlu menjalankan skrip |
 
 Minta nilainya langsung ke Athar (jangan lewat chat/GitHub).
+
+## 3a. Sesi login & JWT (permintaan Vio, 27 Okt 2026)
+
+- **JWT di setiap permintaan.** Login magic link menghasilkan JWT Supabase (access token, berlaku 1 jam,
+  diperbarui otomatis dengan refresh token) yang disimpan di cookie. `src/middleware.ts` berjalan di
+  **setiap** permintaan ke aplikasi (halaman, server action, route handler seperti unduh Excel) dan
+  memverifikasi JWT itu dengan `supabase.auth.getClaims()` (tanda tangan + masa berlaku). Tanpa JWT valid:
+  halaman dialihkan ke `/login`; server action / POST mendapat **401 JSON**. Semua query ke database juga
+  membawa JWT pengguna (`Authorization: Bearer`), dan Postgres menyaring lewat RLS berdasarkan JWT itu.
+  Tidak ada endpoint backend yang bisa dipakai tanpa JWT.
+- **Sesi aplikasi (logika di kode, bukan hanya Supabase).** `src/lib/session.ts`: setelah login,
+  `/auth/callback` membuat cookie `crustea_sesi` (httpOnly, `secure` di produksi, ditandatangani
+  HMAC-SHA256 dengan `SESSION_SECRET`) yang terikat ke `sub` + `session_id` JWT. Middleware menolak bila
+  cookie hilang/dipalsukan/tidak cocok dengan JWT, **tidak dipakai 7 hari** (`IDLE_TIMEOUT_MS`), atau
+  **30 hari sejak login** (`MAX_SESSION_MS`, dihitung dari waktu login di JWT sehingga tidak bisa
+  diperpanjang). Saat ditolak, sesi Supabase di perangkat itu ikut diakhiri dan pengguna melihat pesan
+  "Sesi login Anda sudah berakhir". Keluar (`/auth/logout`) menghapus kedua sesi.
+- Setelah fitur ini dipasang, pengguna yang sudah login sebelumnya diminta login ulang satu kali.
 
 ## 4. Database
 
@@ -58,7 +77,7 @@ Minta nilainya langsung ke Athar (jangan lewat chat/GitHub).
 2. Hosting Next.js: Vercel paling mudah (region Singapore `sin1`), atau server sendiri dengan
    `npm run build && npm run start` (Node 20+) di belakang reverse proxy **HTTPS** (wajib untuk PWA, kamera,
    dan login).
-3. Pasang dua variabel `NEXT_PUBLIC_*` di hosting. **Variabel ini ditanam ke kode browser saat build**, jadi
+3. Pasang dua variabel `NEXT_PUBLIC_*` di hosting, plus `SESSION_SECRET` (rahasia, saat berjalan; lihat 3a). **Variabel ini ditanam ke kode browser saat build**, jadi
    harus tersedia ketika `npm run build` berjalan, bukan hanya saat container dijalankan.
    - **Docker:** pakai `Dockerfile` di repo dan beri `--build-arg NEXT_PUBLIC_SUPABASE_URL=...` dan
      `--build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...` saat `docker build` (contoh lengkap di atas

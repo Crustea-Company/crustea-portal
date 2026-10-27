@@ -9,9 +9,13 @@
 #     -t crustea-portal .
 #   docker run -d -p 3000:3000 \
 #     -e NEXT_PUBLIC_SUPABASE_URL=... -e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=... \
+#     -e SESSION_SECRET=<acak, min. 32 karakter> \
 #     crustea-portal
 #
-# Kedua nilai itu kunci publik (aman di browser, dibatasi RLS). SUPABASE_SECRET_KEY tidak dibutuhkan.
+# Kedua nilai NEXT_PUBLIC_* itu kunci publik (aman di browser, dibatasi RLS). SUPABASE_SECRET_KEY tidak dibutuhkan.
+# SESSION_SECRET RAHASIA dan hanya dibaca saat berjalan (jangan jadikan build-arg). Buat sekali:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+# Mengganti nilainya = semua pengguna harus login ulang.
 
 FROM node:22-alpine AS build
 WORKDIR /app

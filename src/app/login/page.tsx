@@ -14,7 +14,9 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "link"
       ? "Link login tidak valid atau sudah kedaluwarsa. Silakan minta link baru."
-      : null,
+      : searchParams.get("error") === "sesi"
+        ? "Sesi login Anda sudah berakhir (lama tidak dipakai atau sudah 30 hari). Silakan login ulang."
+        : null,
   );
 
   async function handleSubmit(e: React.FormEvent) {
