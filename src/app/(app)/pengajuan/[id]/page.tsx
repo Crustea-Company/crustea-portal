@@ -21,7 +21,9 @@ import {
 import RequestStatusBadge, { SlaLabel } from "@/components/requests/RequestStatusBadge";
 import RequestTimeline, { type RequestEvent } from "@/components/requests/RequestTimeline";
 import RequestFileList, { type ViewFile } from "@/components/requests/RequestFileList";
-import { DeleteDraftButton, NoteForm, ReviewPanel } from "./ReviewPanel";
+import { DeleteDraftButton, NoteForm, ReviewPanel, TravelReportForm, type ReviewMode } from "./ReviewPanel";
+import { LOCAL_ZONE_NOTE, ZONE_LABEL, type TravelData } from "@/lib/travel";
+import type { AttachmentItem } from "@/components/requests/FileOrLinkInput";
 
 export const metadata: Metadata = { title: "Detail Pengajuan - Crustea Portal" };
 
@@ -64,6 +66,74 @@ function PaymentDetails({ data }: { data: PaymentData }) {
         <Field label="Tujuan pembayaran">{data.purpose}</Field>
       </div>
     </>
+  );
+}
+
+const rp = (n: number) => `Rp${formatNumber(n)}`;
+
+function TravelDetails({ data, stNumber }: { data: TravelData; stNumber: string | null }) {
+  return (
+    <>
+      <Field label="Ditugaskan oleh">
+        {data.assigner_name}
+        {data.assigner_title ? ` (${data.assigner_title})` : ""}
+      </Field>
+      <Field label="Golongan jabatan">{data.grade_label}</Field>
+      <Field label="Tujuan / lokasi">{data.destination}</Field>
+      <Field label="No. surat tugas">{stNumber ?? "Belum terbit"}</Field>
+      <Field label="Berangkat – kembali">
+        {formatDate(data.depart_date)} – {formatDate(data.return_date)} ({data.calc.days} hari)
+      </Field>
+      <Field label="Tanggal form">{formatDate(data.form_date)}</Field>
+      <Field label="Memenuhi tenggat?">
+        {data.calc.meets_notice ? (
+          `Ya (${data.calc.notice_days} hari kerja sebelum berangkat)`
+        ) : (
+          <span className="text-orange-800">
+            Tidak ({data.calc.notice_days} hari kerja). Alasan darurat: {data.emergency_reason}
+          </span>
+        )}
+      </Field>
+      <Field label="Uang muka diminta?">{data.advance ? "Ya" : "Tidak"}</Field>
+      <Field label="Batas FPTD & laporan misi">{formatDate(data.calc.report_due)}</Field>
+      <div className="sm:col-span-2">
+        <Field label="Target tugas">{data.target}</Field>
+      </div>
+    </>
+  );
+}
+
+function TravelCalcDetails({ data }: { data: TravelData }) {
+  const c = data.calc;
+  const pct = `${Math.round(c.factor * 100)}%`;
+  const rows: [string, number][] = [
+    [`Uang harian (${rp(data.rate.daily)} × ${pct} × ${c.days} hari)`, c.daily_total],
+    [`Hotel (${rp(data.rate.hotel)} × ${c.nights} malam)`, c.hotel],
+    [`Transport lokal (${rp(data.rate.local_transport)} × ${c.days} hari)`, c.local_transport],
+    ["Tiket pesawat/kereta/bus", c.ticket],
+    [`Kendaraan pribadi (${formatNumber(data.private_km)} km)`, c.private_vehicle],
+    ["Representasi", c.representation],
+  ];
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+      <h2 className="mb-1 font-semibold text-slate-900">Perhitungan estimasi</h2>
+      <p className="mb-3 text-slate-600">
+        Jarak {formatNumber(data.distance_km)} km · zona {ZONE_LABEL[c.zone]} · faktor uang harian {pct}
+      </p>
+      <dl className="flex flex-col gap-1.5">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-3">
+            <dt className="text-slate-600">{label}</dt>
+            <dd className="text-right tabular-nums">{rp(value)}</dd>
+          </div>
+        ))}
+        <div className="flex justify-between gap-3 border-t border-slate-200 pt-2 font-bold text-slate-900">
+          <dt>Total estimasi</dt>
+          <dd className="tabular-nums">{rp(c.total)}</dd>
+        </div>
+      </dl>
+      {c.zone === "local" && <p className="mt-2 text-slate-600">{LOCAL_ZONE_NOTE}</p>}
+    </section>
   );
 }
 
@@ -124,12 +194,27 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
     href: f.kind === "link" ? f.url : (signed.get(f.path ?? "") ?? null),
   }));
   const proofFiles = viewFiles.filter((f) => f.purpose === "proof");
+  const reportFiles = viewFiles.filter((f) => f.purpose === "report");
   const transferFiles = viewFiles.filter((f) => f.purpose === "transfer");
 
   const isOwner = req.requester_id === me.id;
   const isReviewer = canReviewRequests(me) && (!isOwner || me.app_role === "admin");
   // Status "Menunggu CEO": CEO (atau admin) memutuskan; F&A hanya bisa memberi catatan.
   const isCeo = req.status === "ceo_review" && canApproveAsCeo(me) && (!isOwner || me.app_role === "admin");
+  // Dinas: penugas menyetujui, HR/CA menerbitkan surat tugas, F&A memverifikasi.
+  const travel = req.kind === "travel" ? (req.data as unknown as TravelData) : null;
+  const isAssigner = req.assigner_id === me.id || me.app_role === "admin";
+  const isHr = me.dept_code === "CA" || me.app_role === "admin";
+  const notSelf = !isOwner || me.app_role === "admin";
+  let mode: ReviewMode | null = null;
+  if (travel) {
+    if (req.status === "submitted" && isAssigner && (notSelf || me.app_role === "ceo")) mode = "assigner";
+    else if (req.status === "assigner_approved" && isHr && notSelf) mode = "hr";
+    else if (isReviewer) mode = "fa";
+    else if (!isOwner && (isAssigner || isHr)) mode = "viewer";
+  } else if (isCeo) mode = "ceo";
+  else if (isReviewer) mode = "fa";
+  const canNote = isReviewer || (travel !== null && !isOwner && (isAssigner || isHr));
   const editable = isOwner && (req.status === "draft" || req.status === "needs_revision");
   const data = req.data as unknown as ReimburseData;
   const payment = req.data as unknown as PaymentData;
@@ -142,7 +227,8 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
     <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6">
       {sent && (
         <p className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-800">
-          Pengajuan terkirim. F&A akan meninjau maksimal 2 hari kerja; statusnya bisa dipantau di halaman ini.
+          Pengajuan terkirim. {travel ? "Penugas" : "F&A"} akan meninjau maksimal 2 hari kerja; statusnya bisa dipantau
+          di halaman ini.
         </p>
       )}
 
@@ -150,7 +236,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
           <span className="font-mono font-semibold text-slate-700">{req.number}</span>
           <span>· {KIND_LABEL[req.kind]}</span>
-          <RequestStatusBadge status={req.status} />
+          <RequestStatusBadge status={req.status} kind={req.kind} />
           {isUrgent(req) && <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">Segera</span>}
           <SlaLabel slaDue={req.sla_due} />
         </div>
@@ -186,14 +272,19 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
           <Field label="Diajukan">{req.submitted_at ? formatDate(req.submitted_at.slice(0, 10)) : "Belum dikirim"}</Field>
           {req.kind === "reimburse" && <ReimburseDetails data={data} />}
           {req.kind === "payment" && <PaymentDetails data={payment} />}
-          {req.paid_on && <Field label="Tanggal transfer">{formatDate(req.paid_on)}</Field>}
+          {travel && <TravelDetails data={travel} stNumber={req.st_number} />}
+          {req.paid_on && (
+            <Field label={travel ? "Tanggal uang muka dicairkan" : "Tanggal transfer"}>{formatDate(req.paid_on)}</Field>
+          )}
         </dl>
-        <div className="mt-4">
-          <p className="mb-1.5 text-xs font-medium text-slate-500">
-            {req.kind === "payment" ? "Invoice / dokumen pendukung" : "Bukti nota"}
-          </p>
-          <RequestFileList files={proofFiles} />
-        </div>
+        {!travel && (
+          <div className="mt-4">
+            <p className="mb-1.5 text-xs font-medium text-slate-500">
+              {req.kind === "payment" ? "Invoice / dokumen pendukung" : "Bukti nota"}
+            </p>
+            <RequestFileList files={proofFiles} />
+          </div>
+        )}
         {transferFiles.length > 0 && (
           <div className="mt-4">
             <p className="mb-1.5 text-xs font-medium text-slate-500">Bukti transfer</p>
@@ -203,14 +294,50 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
       </section>
 
       {req.kind === "reimburse" && <MissionDetails data={data} />}
+      {travel && <TravelCalcDetails data={travel} />}
 
-      {(isReviewer || isCeo) && req.status !== "draft" && (
-        <ReviewPanel id={req.id} status={req.status} employeeId={me.id} today={todayJakarta()} ceo={isCeo} canNote={isReviewer} />
+      {travel && ["approved", "paid", "completed"].includes(req.status) && (
+        <section className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="font-semibold text-slate-900">FPTD & laporan misi</h2>
+          <p className="text-sm text-slate-600">
+            Batas: <span className="font-semibold">{formatDate(travel.calc.report_due)}</span>
+            {reportFiles.length === 0 && travel.calc.report_due < todayJakarta() && (
+              <span className="ml-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">Terlambat</span>
+            )}
+          </p>
+          {isOwner && req.status !== "completed" ? (
+            <TravelReportForm
+              id={req.id}
+              employeeId={me.id}
+              initial={reportFiles.map(
+                (f): AttachmentItem =>
+                  f.kind === "file"
+                    ? { key: f.id, kind: "file", id: f.id, path: f.path ?? "", name: f.name, size_bytes: f.size_bytes ?? 0 }
+                    : { key: f.id, kind: "link", id: f.id, url: f.url ?? "", name: f.name },
+              )}
+            />
+          ) : (
+            <RequestFileList files={reportFiles} />
+          )}
+        </section>
+      )}
+
+      {mode && req.status !== "draft" && (
+        <ReviewPanel
+          id={req.id}
+          status={req.status}
+          employeeId={me.id}
+          today={todayJakarta()}
+          kind={req.kind}
+          mode={mode}
+          advance={travel?.advance ?? false}
+          canNote={canNote}
+        />
       )}
 
       <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="font-semibold text-slate-900">Riwayat</h2>
-        <RequestTimeline events={(eventRes.data ?? []) as unknown as RequestEvent[]} />
+        <RequestTimeline events={(eventRes.data ?? []) as unknown as RequestEvent[]} kind={req.kind} />
         {isOwner && req.status !== "draft" && <NoteForm id={req.id} />}
       </section>
 

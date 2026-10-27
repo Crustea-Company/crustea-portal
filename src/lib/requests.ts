@@ -8,8 +8,11 @@ export type RequestStatus =
   | "submitted"
   | "in_review"
   | "ceo_review"
+  | "assigner_approved"
+  | "st_issued"
   | "approved"
   | "paid"
+  | "completed"
   | "needs_revision"
   | "rejected";
 
@@ -26,8 +29,11 @@ export const STATUS_LABEL: Record<RequestStatus, string> = {
   submitted: "Belum di-review",
   in_review: "Sedang di-review",
   ceo_review: "Menunggu CEO",
+  assigner_approved: "Disetujui penugas",
+  st_issued: "Surat tugas terbit",
   approved: "Diterima",
   paid: "Ditransfer",
+  completed: "Selesai",
   needs_revision: "Perlu perbaikan",
   rejected: "Ditolak",
 };
@@ -37,14 +43,38 @@ export const STATUS_STYLE: Record<RequestStatus, string> = {
   submitted: "bg-amber-100 text-amber-800",
   in_review: "bg-violet-100 text-violet-800",
   ceo_review: "bg-sky-100 text-sky-800",
+  assigner_approved: "bg-sky-100 text-sky-800",
+  st_issued: "bg-indigo-100 text-indigo-800",
   approved: "bg-brand-100 text-brand-800",
   paid: "bg-brand-700 text-white",
+  completed: "bg-brand-800 text-white",
   needs_revision: "bg-orange-100 text-orange-800",
   rejected: "bg-red-100 text-red-700",
 };
 
+// Label per jenis (sama dengan request_status_label(s, k) di database): dinas memakai istilahnya sendiri.
+export function statusLabel(status: RequestStatus, kind?: RequestKind): string {
+  if (kind === "travel") {
+    if (status === "submitted") return "Diajukan";
+    if (status === "approved") return "Diverifikasi Finance";
+    if (status === "paid") return "Uang muka dicairkan";
+  }
+  return STATUS_LABEL[status];
+}
+
 // Urutan tab di halaman Review F&A.
-export const REVIEW_TABS: RequestStatus[] = ["submitted", "in_review", "ceo_review", "approved", "needs_revision", "paid", "rejected"];
+export const REVIEW_TABS: RequestStatus[] = [
+  "submitted",
+  "in_review",
+  "ceo_review",
+  "assigner_approved",
+  "st_issued",
+  "approved",
+  "needs_revision",
+  "paid",
+  "completed",
+  "rejected",
+];
 
 export type RequestRow = {
   id: string;
@@ -59,6 +89,8 @@ export type RequestRow = {
   sla_due: string | null;
   submitted_at: string | null;
   paid_on: string | null;
+  assigner_id: string | null;
+  st_number: string | null;
   created_at: string;
   data: Record<string, unknown>;
   requester?: { full_name: string } | null;
@@ -66,7 +98,7 @@ export type RequestRow = {
 
 // Kolom yang diambil untuk daftar & detail. sla_due dihitung database (2 hari kerja).
 export const REQUEST_COLUMNS =
-  "id, kind, number, requester_id, dept_code, title, amount, status, status_since, sla_due, submitted_at, paid_on, created_at, data, requester:employees!requests_requester_id_fkey(full_name)";
+  "id, kind, number, requester_id, dept_code, title, amount, status, status_since, sla_due, submitted_at, paid_on, assigner_id, st_number, created_at, data, requester:employees!requests_requester_id_fkey(full_name)";
 
 export function isOverdue(r: { sla_due: string | null }): boolean {
   return r.sla_due !== null && Date.parse(r.sla_due) < Date.now();
@@ -75,7 +107,7 @@ export function isOverdue(r: { sla_due: string | null }): boolean {
 export type RequestFile = {
   id: string;
   kind: "file" | "link";
-  purpose: "proof" | "transfer";
+  purpose: "proof" | "transfer" | "report";
   path: string | null;
   url: string | null;
   name: string;

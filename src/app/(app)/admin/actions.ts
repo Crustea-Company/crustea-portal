@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { TRAVEL_PARAM_KEYS, defaultGrade, type TravelParams, type TravelRate } from "@/lib/travel";
 
 type Result = { ok: boolean; message: string };
 
@@ -53,6 +54,7 @@ export type EmployeeInput = {
   emp_status: "PKWTT" | "PKWT" | "INTERN";
   app_role: "admin" | "ceo" | "head" | "staff";
   ats_required: boolean;
+  grade: string; // golongan jabatan (tarif dinas)
 };
 
 const EMP_STATUSES = ["PKWTT", "PKWT", "INTERN"];
@@ -82,6 +84,7 @@ export async function saveEmployee(input: EmployeeInput, id: string | null): Pro
     emp_status: input.emp_status,
     app_role: input.app_role,
     ats_required: input.ats_required,
+    grade: input.grade || defaultGrade(input.app_role, input.emp_status),
   };
 
   const supabase = await createClient();
@@ -121,4 +124,30 @@ export async function setEmployeeActive(id: string, active: boolean, leftAt: str
     ok: true,
     message: active ? `${data[0].full_name} diaktifkan kembali.` : `${data[0].full_name} dinonaktifkan.`,
   };
+}
+
+// Simpan tarif & parameter perjalanan dinas (tab Admin > Tarif dinas).
+export async function saveTravelRates(rates: TravelRate[], params: TravelParams): Promise<Result> {
+  const me = await getCurrentEmployee();
+  if (me?.app_role !== "admin") return { ok: false, message: "Hanya admin yang boleh melakukan ini." };
+  const amounts = rates.flatMap((r) => [r.daily, r.hotel, r.local_transport, r.representation]);
+  if (amounts.some((n) => !Number.isSafeInteger(n) || n < 0)) return { ok: false, message: "Tarif tidak boleh negatif." };
+  if (TRAVEL_PARAM_KEYS.some((k) => !Number.isFinite(params[k]) || params[k] < 0)) {
+    return { ok: false, message: "Parameter tidak boleh negatif." };
+  }
+
+  const supabase = await createClient();
+  for (const r of rates) {
+    const { error } = await supabase
+      .from("travel_rates")
+      .update({ daily: r.daily, hotel: r.hotel, local_transport: r.local_transport, representation: r.representation })
+      .eq("grade", r.grade);
+    if (error) return { ok: false, message: `Gagal menyimpan tarif: ${error.message}` };
+  }
+  for (const k of TRAVEL_PARAM_KEYS) {
+    const { error } = await supabase.from("travel_params").update({ value: params[k] }).eq("key", k);
+    if (error) return { ok: false, message: `Gagal menyimpan parameter: ${error.message}` };
+  }
+  revalidatePath("/admin");
+  return { ok: true, message: "Tarif dinas disimpan." };
 }

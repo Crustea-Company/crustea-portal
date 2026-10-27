@@ -29,11 +29,13 @@ const inputClass =
 export default function EmployeeManager({
   employees,
   departments,
+  grades,
   meId,
   today,
 }: {
   employees: AdminEmployee[];
   departments: { code: string; name: string }[];
+  grades: { grade: string; label: string }[];
   meId: string;
   today: string;
 }) {
@@ -150,6 +152,11 @@ export default function EmployeeManager({
                       {ROLE_LABEL[e.app_role]}
                     </span>
                     <span className="rounded bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-700">{e.emp_status}</span>
+                    {e.grade && (
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">
+                        {grades.find((g) => g.grade === e.grade)?.label ?? e.grade}
+                      </span>
+                    )}
                     {!e.ats_required && (
                       <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">Tidak wajib ATS</span>
                     )}
@@ -237,6 +244,7 @@ export default function EmployeeManager({
         <EmployeeForm
           employee={editing === "new" ? null : editing}
           departments={departments}
+          grades={grades}
           isSelf={editing !== "new" && editing.id === meId}
           onClose={() => setEditing(null)}
           onSaved={(text) => {
@@ -253,12 +261,14 @@ export default function EmployeeManager({
 function EmployeeForm({
   employee,
   departments,
+  grades,
   isSelf,
   onClose,
   onSaved,
 }: {
   employee: AdminEmployee | null;
   departments: { code: string; name: string }[];
+  grades: { grade: string; label: string }[];
   isSelf: boolean;
   onClose: () => void;
   onSaved: (message: string) => void;
@@ -271,6 +281,7 @@ function EmployeeForm({
     emp_status: employee?.emp_status ?? "PKWTT",
     app_role: employee?.app_role ?? "staff",
     ats_required: employee?.ats_required ?? true,
+    grade: employee?.grade ?? "",
   }));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -345,6 +356,17 @@ function EmployeeForm({
                 {(Object.keys(STATUS_LABEL) as EmployeeInput["emp_status"][]).map((s) => (
                   <option key={s} value={s}>
                     {STATUS_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 font-medium text-slate-700">
+              Golongan jabatan (tarif dinas)
+              <select value={input.grade} onChange={(e) => set("grade", e.target.value)} className={inputClass}>
+                <option value="">Otomatis dari peran & status</option>
+                {grades.map((g) => (
+                  <option key={g.grade} value={g.grade}>
+                    {g.label}
                   </option>
                 ))}
               </select>

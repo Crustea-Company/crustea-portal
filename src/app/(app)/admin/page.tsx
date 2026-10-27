@@ -6,6 +6,8 @@ import { formatDate, formatDateTime, todayJakarta } from "@/lib/format";
 import { periodLabel, periodOf, periodRange } from "@/lib/ats";
 import PeriodRow, { type PeriodInfo } from "./PeriodRow";
 import EmployeeManager, { type AdminEmployee } from "./EmployeeManager";
+import TravelRatesEditor from "./TravelRatesEditor";
+import { loadTravelSetup } from "@/lib/travel-data";
 
 export const metadata: Metadata = { title: "Admin - Crustea Portal" };
 
@@ -31,6 +33,7 @@ const EMPLOYEE_FIELDS: [string, string][] = [
   ["emp_status", "Status kerja"],
   ["app_role", "Peran"],
   ["ats_required", "Wajib ATS"],
+  ["grade", "Golongan jabatan"],
   ["is_active", "Aktif"],
   ["left_at", "Tanggal keluar"],
 ];
@@ -71,6 +74,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const TABS = [
   { key: "karyawan", label: "Karyawan" },
   { key: "periode", label: "Periode ATS" },
+  { key: "dinas", label: "Tarif dinas" },
   { key: "riwayat", label: "Riwayat perubahan" },
 ] as const;
 
@@ -93,14 +97,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
   const today = todayJakarta();
   const currentPeriod = periodOf(today);
 
-  const [periodsRes, snapshotsRes, employeesRes, departmentsRes, auditRes] = await Promise.all([
+  const [periodsRes, snapshotsRes, employeesRes, departmentsRes, travel, auditRes] = await Promise.all([
     supabase.from("periods").select("period_month, locked_at"),
     supabase.from("period_snapshots").select("period_month"),
     supabase
       .from("employees")
-      .select("id, email, full_name, dept_code, job_title, emp_status, app_role, ats_required, is_active, left_at")
+      .select("id, email, full_name, dept_code, job_title, emp_status, app_role, ats_required, grade, is_active, left_at")
       .order("full_name"),
     supabase.from("departments").select("code, name").order("code"),
+    // tarif dinas: dipakai di tab Karyawan (pilihan golongan) dan tab Tarif dinas
+    loadTravelSetup(supabase, todayJakarta()),
     supabase
       .from("audit_log")
       .select("id, table_name, row_id, action, old_data, new_data, actor, reason, at")
@@ -174,6 +180,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
           <EmployeeManager
             employees={(employeesRes.data ?? []) as AdminEmployee[]}
             departments={departmentsRes.data ?? []}
+            grades={travel.rates.map((r) => ({ grade: r.grade, label: r.label }))}
             meId={me.id}
             today={today}
           />
@@ -193,6 +200,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
           ))}
         </ul>
       </section>
+      )}
+
+      {tab === "dinas" && (
+        <section>
+          <h2 className="mb-1 font-semibold text-slate-900">Tarif perjalanan dinas</h2>
+          <p className="mb-3 text-sm text-slate-600">
+            Dipakai kalkulator form dinas. Pengajuan yang sudah dikirim tetap memakai tarif saat diajukan.
+          </p>
+          <TravelRatesEditor rates={travel.rates} params={travel.params} />
+        </section>
       )}
 
       {tab === "riwayat" && (

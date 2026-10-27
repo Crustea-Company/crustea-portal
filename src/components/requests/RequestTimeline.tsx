@@ -1,5 +1,5 @@
 import { formatDateTime } from "@/lib/format";
-import { STATUS_LABEL, type RequestStatus } from "@/lib/requests";
+import { statusLabel, type RequestKind, type RequestStatus } from "@/lib/requests";
 
 export type RequestEvent = {
   id: number;
@@ -11,12 +11,12 @@ export type RequestEvent = {
   actor: { full_name: string } | null;
 };
 
-function describe(e: RequestEvent): string {
+function describe(e: RequestEvent, kind?: RequestKind): string {
   switch (e.action) {
     case "submit":
       return e.from_status === "needs_revision" ? "Mengirim ulang setelah perbaikan" : "Mengirim pengajuan";
     case "status":
-      return `Mengubah status menjadi ${e.to_status ? STATUS_LABEL[e.to_status] : "-"}`;
+      return `Mengubah status menjadi ${e.to_status ? statusLabel(e.to_status, kind) : "-"}`;
     case "note":
       return "Memberi catatan";
     case "edit":
@@ -25,7 +25,7 @@ function describe(e: RequestEvent): string {
 }
 
 // Riwayat pengajuan: siapa, kapan, apa, dan catatannya. Terbaru di atas.
-export default function RequestTimeline({ events }: { events: RequestEvent[] }) {
+export default function RequestTimeline({ events, kind }: { events: RequestEvent[]; kind?: RequestKind }) {
   if (events.length === 0) return <p className="text-sm text-slate-500">Belum ada riwayat.</p>;
   return (
     <ol className="flex flex-col gap-0">
@@ -37,7 +37,7 @@ export default function RequestTimeline({ events }: { events: RequestEvent[] }) 
             }`}
           />
           <p className="text-sm text-slate-800">
-            <span className="font-semibold">{e.actor?.full_name ?? "Sistem"}</span> · {describe(e)}
+            <span className="font-semibold">{e.actor?.full_name ?? "Sistem"}</span> · {describe(e, kind)}
           </p>
           <p className="text-xs text-slate-500">{formatDateTime(e.at)}</p>
           {e.note && (

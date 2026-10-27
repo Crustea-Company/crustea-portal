@@ -8,6 +8,9 @@ import type { PaymentData, ReimburseData, RequestFile } from "@/lib/requests";
 import type { AttachmentItem } from "@/components/requests/FileOrLinkInput";
 import ReimburseForm from "../../reimburse/ReimburseForm";
 import PaymentForm from "../../pembayaran/PaymentForm";
+import TravelForm from "../../dinas/TravelForm";
+import { loadTravelFormProps } from "@/lib/travel-data";
+import type { TravelData } from "@/lib/travel";
 
 export const metadata: Metadata = { title: "Ubah Pengajuan - Crustea Portal" };
 
@@ -21,7 +24,7 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
 
   const supabase = await createClient();
   const [reqRes, fileRes] = await Promise.all([
-    supabase.from("requests").select("id, kind, requester_id, title, amount, status, data").eq("id", id).maybeSingle(),
+    supabase.from("requests").select("id, kind, requester_id, assigner_id, title, amount, status, data").eq("id", id).maybeSingle(),
     supabase
       .from("request_files")
       .select("id, kind, purpose, path, url, name, size_bytes")
@@ -31,7 +34,7 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
   ]);
   const req = reqRes.data;
   if (!req) notFound();
-  if (req.requester_id !== me.id || !["draft", "needs_revision"].includes(req.status) || !["reimburse", "payment"].includes(req.kind)) {
+  if (req.requester_id !== me.id || !["draft", "needs_revision"].includes(req.status) || !["reimburse", "payment", "travel"].includes(req.kind)) {
     redirect(`/pengajuan/${id}`);
   }
 
@@ -41,16 +44,46 @@ export default async function UbahPengajuanPage({ params }: { params: Params }) 
       : { key: f.id, kind: "link", id: f.id, url: f.url ?? "", name: f.name },
   );
 
+  const travelProps = req.kind === "travel" ? await loadTravelFormProps(supabase, me.id, todayJakarta()) : null;
+  const travel = req.data as TravelData;
+
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-logo-leaf">Pengajuan</p>
         <h1 className="text-2xl font-bold text-slate-900">
-          {req.kind === "payment" ? "Perbaiki permintaan pembayaran" : "Perbaiki klaim reimburse"}
+          {req.kind === "payment"
+            ? "Perbaiki permintaan pembayaran"
+            : req.kind === "travel"
+              ? "Perbaiki penugasan dinas"
+              : "Perbaiki klaim reimburse"}
         </h1>
       </div>
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        {req.kind === "payment" ? (
+        {travelProps ? (
+          <TravelForm
+            meId={me.id}
+            fullName={me.full_name}
+            {...travelProps}
+            initial={{
+              id: req.id as string,
+              input: {
+                assigner_id: (req.assigner_id as string | null) ?? "",
+                destination: travel.destination,
+                target: travel.target,
+                depart_date: travel.depart_date,
+                return_date: travel.return_date,
+                distance_km: travel.distance_km,
+                province_factor: travel.province_factor,
+                ticket: travel.ticket,
+                private_km: travel.private_km,
+                representation: travel.representation,
+                advance: travel.advance,
+                emergency_reason: travel.emergency_reason,
+              },
+            }}
+          />
+        ) : req.kind === "payment" ? (
           <PaymentForm
             employeeId={me.id}
             fullName={me.full_name}

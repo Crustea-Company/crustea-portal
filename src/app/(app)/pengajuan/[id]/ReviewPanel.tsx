@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import FileOrLinkInput, { resolveAttachments, type AttachmentItem } from "@/components/requests/FileOrLinkInput";
-import type { RequestStatus } from "@/lib/requests";
-import { addRequestNote, changeRequestStatus, deleteDraft } from "../actions";
+import type { RequestKind, RequestStatus } from "@/lib/requests";
+import { addRequestNote, changeRequestStatus, deleteDraft, submitTravelReport } from "../actions";
 
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20";
@@ -15,16 +15,41 @@ const PRIMARY = "bg-brand-700 text-white hover:bg-brand-800";
 const NEUTRAL = "border border-slate-300 text-slate-700 hover:bg-slate-100";
 const DANGER = "border border-red-300 text-red-700 hover:bg-red-50";
 
-// Tombol yang tersedia untuk peninjau di setiap status. ceo = boleh memutuskan "Menunggu CEO".
-function actionsFor(status: RequestStatus, ceo: boolean): Action[] {
-  const decide: Action[] = [
-    { to: "approved", label: "Terima", style: PRIMARY },
+// Peran pengguna pada tahap ini: F&A, CEO, penugas dinas, HR/CA (surat tugas), atau hanya memberi catatan.
+export type ReviewMode = "fa" | "ceo" | "assigner" | "hr" | "viewer";
+
+const HEADING: Record<ReviewMode, string> = {
+  fa: "Tindakan peninjau",
+  ceo: "Persetujuan CEO",
+  assigner: "Persetujuan penugas",
+  hr: "Surat tugas (Corporate Affairs)",
+  viewer: "Catatan untuk pemohon",
+};
+
+// Tombol yang tersedia di setiap status (urutan & peran yang sama dengan change_request_status).
+function actionsFor(status: RequestStatus, kind: RequestKind, mode: ReviewMode, advance: boolean): Action[] {
+  const decide = (label: string, to: RequestStatus = "approved"): Action[] => [
+    { to, label, style: PRIMARY },
     { to: "needs_revision", label: "Perlu perbaikan", style: NEUTRAL, needsNote: true },
     { to: "rejected", label: "Tolak", style: DANGER, needsNote: true },
   ];
-  if (status === "submitted") return [{ to: "in_review", label: "Mulai review", style: PRIMARY }, ...decide.map((a) => (a.to === "approved" ? { ...a, style: NEUTRAL } : a))];
-  if (status === "in_review") return decide;
-  if (status === "ceo_review" && ceo) return decide.map((a) => (a.to === "approved" ? { ...a, label: "Setujui (CEO)" } : a));
+  if (kind === "travel") {
+    if (status === "submitted" && mode === "assigner") return decide("Setujui penugasan", "assigner_approved");
+    if (status === "assigner_approved" && mode === "hr") return decide("Terbitkan surat tugas", "st_issued");
+    if (status === "st_issued" && mode === "fa") return decide("Verifikasi Finance");
+    if (mode === "fa" && (status === "paid" || (status === "approved" && !advance))) {
+      return [{ to: "completed", label: "Tandai selesai", style: PRIMARY }];
+    }
+    return [];
+  }
+  if (mode === "fa" && status === "submitted") {
+    return [
+      { to: "in_review", label: "Mulai review", style: PRIMARY },
+      ...decide("Terima").map((a) => (a.to === "approved" ? { ...a, style: NEUTRAL } : a)),
+    ];
+  }
+  if (mode === "fa" && status === "in_review") return decide("Terima");
+  if (mode === "ceo" && status === "ceo_review") return decide("Setujui (CEO)");
   return [];
 }
 
@@ -34,15 +59,19 @@ export function ReviewPanel({
   status,
   employeeId,
   today,
-  ceo = false,
+  kind,
+  mode,
+  advance = false,
   canNote = true,
 }: {
   id: string;
   status: RequestStatus;
   employeeId: string;
   today: string;
-  ceo?: boolean;
-  canNote?: boolean; // add_request_note hanya untuk pemohon & peninjau F&A
+  kind: RequestKind;
+  mode: ReviewMode;
+  advance?: boolean; // dinas: uang muka diminta
+  canNote?: boolean; // add_request_note: pemohon, F&A, dan (dinas) penugas & HR/CA
 }) {
   const router = useRouter();
   const [note, setNote] = useState("");
@@ -83,12 +112,14 @@ export function ReviewPanel({
     router.refresh();
   }
 
-  const actions = actionsFor(status, ceo);
+  const actions = actionsFor(status, kind, mode, advance);
+  const showPay = mode === "fa" && status === "approved" && (kind !== "travel" || advance);
+  const travel = kind === "travel";
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl border-2 border-brand-600/40 bg-white p-4">
-      <h2 className="font-semibold text-slate-900">{ceo ? "Persetujuan CEO" : "Tindakan peninjau"}</h2>
-      {status === "ceo_review" && !ceo && (
+      <h2 className="font-semibold text-slate-900">{HEADING[mode]}</h2>
+      {status === "ceo_review" && mode !== "ceo" && (
         <p className="text-sm text-slate-600">Menunggu persetujuan CEO. Anda masih bisa mengirim catatan.</p>
       )}
 
@@ -97,10 +128,10 @@ export function ReviewPanel({
         <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} className={inputClass} />
       </label>
 
-      {status === "approved" && (
+      {showPay && (
         <div className="flex flex-col gap-3 rounded-xl bg-slate-50 p-3">
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-            Tanggal transfer
+            {travel ? "Tanggal pencairan uang muka" : "Tanggal transfer"}
             <input type="date" required max={today} value={paidOn} onChange={(e) => setPaidOn(e.target.value)} className={inputClass} />
           </label>
           <div className="flex flex-col gap-1 text-sm font-medium text-slate-700">
@@ -124,14 +155,14 @@ export function ReviewPanel({
             {a.label}
           </button>
         ))}
-        {status === "approved" && (
+        {showPay && (
           <button
             type="button"
             disabled={pending || !paidOn}
             onClick={() => run("paid")}
             className={`rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60 ${PRIMARY}`}
           >
-            Tandai ditransfer
+            {travel ? "Tandai uang muka dicairkan" : "Tandai ditransfer"}
           </button>
         )}
         {canNote && (
@@ -210,5 +241,51 @@ export function DeleteDraftButton({ id }: { id: string }) {
     >
       Hapus draf
     </button>
+  );
+}
+
+// Pemohon dinas melampirkan link FPTD & laporan misi setelah kembali.
+export function TravelReportForm({
+  id,
+  employeeId,
+  initial,
+}: {
+  id: string;
+  employeeId: string;
+  initial: AttachmentItem[];
+}) {
+  const router = useRouter();
+  const [items, setItems] = useState<AttachmentItem[]>(initial);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    setError("");
+    setSaved(false);
+    if (items.length === 0) return setError("Tempel link FPTD dan laporan misi.");
+    setPending(true);
+    const files = await resolveAttachments(items, employeeId);
+    const res = files.ok ? await submitTravelReport(id, files.list) : files;
+    setPending(false);
+    if (!res.ok) return setError(res.message);
+    setSaved(true);
+    router.refresh();
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <FileOrLinkInput items={items} onChange={setItems} />
+      {error && <p className="text-sm text-red-700">{error}</p>}
+      {saved && <p className="text-sm text-brand-800">Tersimpan. F&A sudah diberi tahu.</p>}
+      <button
+        type="button"
+        disabled={pending}
+        onClick={save}
+        className={`self-start rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60 ${PRIMARY}`}
+      >
+        {pending ? "Menyimpan..." : "Kirim FPTD & laporan misi"}
+      </button>
+    </div>
   );
 }

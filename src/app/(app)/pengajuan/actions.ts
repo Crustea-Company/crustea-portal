@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/format";
+import { loadTravelSetup } from "@/lib/travel-data";
+import { calcTravel, isIsoDate, type TravelData, type TravelInput } from "@/lib/travel";
 import {
   BUCKET,
   MAX_FILES,
@@ -44,7 +46,7 @@ function checkAttachments(list: AttachmentInput[], employeeId: string): string |
 async function syncAttachments(
   supabase: Supabase,
   requestId: string,
-  purpose: "proof" | "transfer",
+  purpose: "proof" | "transfer" | "report",
   list: AttachmentInput[],
 ): Promise<string | null> {
   const { data: existing, error: readErr } = await supabase
@@ -121,15 +123,15 @@ function parseReimburse(input: ReimburseInput): { error: string } | { title: str
 // id terisi untuk mengubah draf / pengajuan "Perlu perbaikan" lalu mengirimnya ulang.
 async function saveAndSubmit(
   kind: RequestKind,
-  row: { title: string; amount: number; data: object },
+  row: { title: string; amount: number; data: object; assigner_id?: string },
   attachments: AttachmentInput[],
   id: string | null,
-  missingFiles: string,
+  missingFiles: string | null, // null = lampiran boleh kosong
 ): Promise<Result> {
   const me = await getCurrentEmployee();
   if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
 
-  if (attachments.length === 0) return { ok: false, message: missingFiles };
+  if (attachments.length === 0 && missingFiles) return { ok: false, message: missingFiles };
   const badFile = checkAttachments(attachments, me.id);
   if (badFile) return { ok: false, message: badFile };
 
@@ -211,6 +213,96 @@ export async function submitPayment(
   const parsed = parsePayment(input);
   if ("error" in parsed) return { ok: false, message: parsed.error };
   return saveAndSubmit("payment", parsed, attachments, id, "Lampirkan link invoice atau dokumen pendukung.");
+}
+
+// Penugasan perjalanan dinas: biaya dihitung ulang di server dengan tarif golongan pemohon.
+export async function submitTravel(
+  input: TravelInput,
+  attachments: AttachmentInput[],
+  id: string | null,
+): Promise<Result> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+
+  const destination = input.destination.trim();
+  const target = input.target.trim();
+  const reason = input.emergency_reason.trim();
+  const nums = [input.distance_km, input.province_factor, input.ticket, input.private_km, input.representation];
+  if (!destination) return { ok: false, message: "Tujuan/lokasi belum diisi." };
+  if (!target) return { ok: false, message: "Target tugas belum diisi." };
+  if (!isIsoDate(input.depart_date) || !isIsoDate(input.return_date)) {
+    return { ok: false, message: "Tanggal berangkat dan kembali wajib diisi." };
+  }
+  if (nums.some((n) => !Number.isSafeInteger(n) || n < 0)) return { ok: false, message: "Angka tidak boleh negatif." };
+  if (input.province_factor < 70 || input.province_factor > 100) {
+    return { ok: false, message: "Faktor uang harian dalam provinsi harus 70-100%." };
+  }
+
+  const supabase = await createClient();
+  const today = todayJakarta();
+  const [{ rates, params, holidays, error }, meRes, assignerRes] = await Promise.all([
+    loadTravelSetup(supabase, today),
+    supabase.from("employees").select("grade").eq("id", me.id).single(),
+    supabase.from("employees").select("id, full_name, job_title, is_active").eq("id", input.assigner_id).maybeSingle(),
+  ]);
+  if (error) return { ok: false, message: `Gagal memuat tarif dinas: ${error}` };
+  const rate = rates.find((r) => r.grade === meRes.data?.grade);
+  if (!rate) return { ok: false, message: "Golongan jabatan Anda belum diatur. Hubungi admin." };
+  const assigner = assignerRes.data;
+  if (!assigner?.is_active) return { ok: false, message: "Pilih siapa yang menugaskan." };
+  if (assigner.id === me.id && me.app_role !== "ceo") return { ok: false, message: "Penugas tidak boleh diri sendiri." };
+  if (input.representation > rate.representation) {
+    return {
+      ok: false,
+      message: rate.representation
+        ? "Representasi melebihi plafon golongan Anda."
+        : "Golongan Anda tidak mendapat biaya representasi.",
+    };
+  }
+
+  const calc = calcTravel(input, rate, params, today, new Set(holidays));
+  if (!calc) return { ok: false, message: "Tanggal kembali tidak boleh sebelum tanggal berangkat." };
+  if (!calc.meets_notice && !reason) {
+    return { ok: false, message: "Tenggat penugasan tidak terpenuhi: tuliskan alasan darurat." };
+  }
+
+  const { assigner_id, ...rest } = input;
+  const data: TravelData = {
+    ...rest,
+    destination,
+    target,
+    emergency_reason: calc.meets_notice ? "" : reason,
+    form_date: today,
+    assigner_name: assigner.full_name as string,
+    assigner_title: (assigner.job_title as string | null) ?? "",
+    grade: rate.grade,
+    grade_label: rate.label,
+    rate,
+    calc,
+  };
+  return saveAndSubmit(
+    "travel",
+    { title: `Dinas ke ${destination}`.slice(0, 200), amount: calc.total, data, assigner_id },
+    attachments,
+    id,
+    null,
+  );
+}
+
+// Pemohon melampirkan FPTD & laporan misi (link) setelah kembali. F&A diberi tahu lewat catatan.
+export async function submitTravelReport(id: string, attachments: AttachmentInput[]): Promise<SimpleResult> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+  if (attachments.length === 0) return { ok: false, message: "Tempel link FPTD dan laporan misi." };
+  const bad = checkAttachments(attachments, me.id);
+  if (bad) return { ok: false, message: bad };
+
+  const supabase = await createClient();
+  const err = await syncAttachments(supabase, id, "report", attachments);
+  if (err) return { ok: false, message: `Gagal menyimpan: ${err}` };
+  await supabase.rpc("add_request_note", { p_id: id, p_note: "FPTD dan laporan misi sudah dilampirkan." });
+  revalidateRequests(id);
+  return { ok: true };
 }
 
 // Ubah status oleh peninjau (atau kirim ulang oleh pemohon). Aturan urutan & peran ada di database.

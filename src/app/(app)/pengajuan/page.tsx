@@ -19,6 +19,17 @@ export default async function PengajuanPage() {
     .order("created_at", { ascending: false });
 
   const rows = (data ?? []) as unknown as RequestRow[];
+
+  // Penugasan dinas yang menunggu persetujuan saya (penugas) atau nomor surat tugas (Corporate Affairs).
+  const isHr = me.dept_code === "CA" || me.app_role === "admin";
+  const { data: todo } = await supabase
+    .from("requests")
+    .select(REQUEST_COLUMNS)
+    .eq("kind", "travel")
+    .or(isHr ? `and(status.eq.submitted,assigner_id.eq.${me.id}),status.eq.assigner_approved` : `and(status.eq.submitted,assigner_id.eq.${me.id})`)
+    .neq("requester_id", me.id)
+    .order("status_since");
+  const waiting = (todo ?? []) as unknown as RequestRow[];
   const active = rows.filter((r) => !FINISHED.includes(r.status));
   const done = rows.filter((r) => FINISHED.includes(r.status));
 
@@ -50,6 +61,12 @@ export default async function PengajuanPage() {
           >
             + Permintaan pembayaran
           </Link>
+          <Link
+            href="/pengajuan/dinas/baru"
+            className="rounded-lg bg-brand-700 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+          >
+            + Perjalanan dinas
+          </Link>
         </div>
       </div>
 
@@ -57,6 +74,13 @@ export default async function PengajuanPage() {
         <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           Gagal memuat pengajuan: {error.message}
         </p>
+      )}
+
+      {waiting.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="font-semibold text-slate-900">Perlu tindakan Anda</h2>
+          <RequestList rows={waiting} showRequester empty="" />
+        </section>
       )}
 
       <section className="flex flex-col gap-2">

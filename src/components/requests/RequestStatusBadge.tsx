@@ -1,10 +1,10 @@
 import { formatDateTime } from "@/lib/format";
-import { STATUS_LABEL, STATUS_STYLE, isOverdue, type RequestStatus } from "@/lib/requests";
+import { STATUS_STYLE, isOverdue, statusLabel, type RequestKind, type RequestStatus } from "@/lib/requests";
 
-export default function RequestStatusBadge({ status }: { status: RequestStatus }) {
+export default function RequestStatusBadge({ status, kind }: { status: RequestStatus; kind?: RequestKind }) {
   return (
     <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLE[status]}`}>
-      {STATUS_LABEL[status]}
+      {statusLabel(status, kind)}
     </span>
   );
 }

@@ -43,7 +43,7 @@ export default function RequestList({
                 {isUrgent(r) && (
                   <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">Segera</span>
                 )}
-                <RequestStatusBadge status={r.status} />
+                <RequestStatusBadge status={r.status} kind={r.kind} />
               </span>
             </div>
             <p className="line-clamp-2 font-medium text-slate-900">{r.title}</p>
