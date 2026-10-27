@@ -24,12 +24,18 @@ export async function loadTravelSetup(supabase: Supabase, fromDate: string) {
   return { rates, params, holidays, error };
 }
 
+// Yang boleh dipilih sebagai penugas: kepala departemen dan pimpinan (CEO, admin).
+export const ASSIGNER_ROLES = ["head", "ceo", "admin"];
+
 // Data untuk TravelForm: tarif golongan pemohon, parameter, libur, dan daftar calon penugas.
 export async function loadTravelFormProps(supabase: Supabase, meId: string, today: string) {
   const [setup, meRes, empRes] = await Promise.all([
     loadTravelSetup(supabase, today),
     supabase.from("employees").select("grade").eq("id", meId).single(),
-    supabase.from("employees").select("id, full_name, job_title").eq("is_active", true).order("full_name"),
+    supabase.from("employees").select("id, full_name, job_title")
+      .eq("is_active", true)
+      .in("app_role", ASSIGNER_ROLES)
+      .order("full_name"),
   ]);
   return {
     rate: setup.rates.find((r) => r.grade === meRes.data?.grade) ?? null,

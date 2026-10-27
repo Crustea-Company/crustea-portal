@@ -48,6 +48,7 @@ const SYSTEM: Item[] = [
     children: [
       { href: "/admin?bagian=karyawan", label: "Karyawan" },
       { href: "/admin?bagian=periode", label: "Periode ATS" },
+      { href: "/admin?bagian=dinas", label: "Tarif dinas" },
       { href: "/admin?bagian=riwayat", label: "Riwayat perubahan" },
     ],
   },

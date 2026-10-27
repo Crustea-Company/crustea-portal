@@ -29,11 +29,6 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
   if (!canSeeAllRequests(me)) redirect("/pengajuan");
 
   const params = await searchParams;
-  const status: RequestStatus = (REVIEW_TABS as string[]).includes(String(params.status))
-    ? (params.status as RequestStatus)
-    : me.app_role === "ceo"
-      ? "ceo_review"
-      : "submitted";
   const kind = typeof params.jenis === "string" && params.jenis in KIND_LABEL ? (params.jenis as RequestKind) : "";
 
   const supabase = await createClient();
@@ -43,6 +38,15 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
   const all = (data ?? []) as unknown as RequestRow[];
 
   const counts = Object.fromEntries(REVIEW_TABS.map((s) => [s, all.filter((r) => r.status === s).length]));
+  // Tanpa pilihan: buka tahap pertama yang masih ada isinya (CEO: Menunggu CEO).
+  const firstWaiting = (
+    ["submitted", "in_review", "st_issued", "ceo_review", "approved", "assigner_approved"] as RequestStatus[]
+  ).find((s) => counts[s] > 0);
+  const status: RequestStatus = (REVIEW_TABS as string[]).includes(String(params.status))
+    ? (params.status as RequestStatus)
+    : me.app_role === "ceo"
+      ? "ceo_review"
+      : (firstWaiting ?? "submitted");
   const overdue = all.filter(isOverdue).length;
   let rows = all.filter((r) => r.status === status);
   // Antrian: yang paling lama menunggu di atas. Selesai/ditolak: terbaru di atas.
@@ -73,7 +77,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Searc
         </p>
       )}
 
-      <nav className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1">
+      <nav className="flex flex-wrap gap-1.5">
         {REVIEW_TABS.map((s) => (
           <Link
             key={s}

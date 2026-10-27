@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/format";
-import { loadTravelSetup } from "@/lib/travel-data";
+import { ASSIGNER_ROLES, loadTravelSetup } from "@/lib/travel-data";
 import { calcTravel, isIsoDate, type TravelData, type TravelInput } from "@/lib/travel";
 import {
   BUCKET,
@@ -243,13 +243,15 @@ export async function submitTravel(
   const [{ rates, params, holidays, error }, meRes, assignerRes] = await Promise.all([
     loadTravelSetup(supabase, today),
     supabase.from("employees").select("grade").eq("id", me.id).single(),
-    supabase.from("employees").select("id, full_name, job_title, is_active").eq("id", input.assigner_id).maybeSingle(),
+    supabase.from("employees").select("id, full_name, job_title, is_active, app_role").eq("id", input.assigner_id).maybeSingle(),
   ]);
   if (error) return { ok: false, message: `Gagal memuat tarif dinas: ${error}` };
   const rate = rates.find((r) => r.grade === meRes.data?.grade);
   if (!rate) return { ok: false, message: "Golongan jabatan Anda belum diatur. Hubungi admin." };
   const assigner = assignerRes.data;
-  if (!assigner?.is_active) return { ok: false, message: "Pilih siapa yang menugaskan." };
+  if (!assigner?.is_active || !ASSIGNER_ROLES.includes(assigner.app_role as string)) {
+    return { ok: false, message: "Penugas harus kepala departemen atau pimpinan." };
+  }
   if (assigner.id === me.id && me.app_role !== "ceo") return { ok: false, message: "Penugas tidak boleh diri sendiri." };
   if (input.representation > rate.representation) {
     return {
