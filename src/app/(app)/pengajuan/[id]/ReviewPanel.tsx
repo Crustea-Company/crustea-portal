@@ -174,7 +174,9 @@ export function ReviewPanel({
   const procurement = kind === "procurement";
   const showPay =
     mode === "fa" &&
-    (procurement ? status === "payment_approved" : status === "approved" && (kind !== "travel" || advance));
+    (procurement
+      ? status === "payment_approved"
+      : status === "approved" && kind !== "aqua_plan" && (kind !== "travel" || advance));
   const showDocs = procurement && DOC_STATUSES.includes(status) && actions.length > 0;
   const travel = kind === "travel";
   const commission = kind === "commission";

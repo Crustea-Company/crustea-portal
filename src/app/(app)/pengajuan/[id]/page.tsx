@@ -30,6 +30,8 @@ import { LOCAL_ZONE_NOTE, ZONE_LABEL, type TravelData } from "@/lib/travel";
 import type { AttachmentItem } from "@/components/requests/FileOrLinkInput";
 import { ChooseVendorForm, VendorCompareForm } from "./ProcurementPanels";
 import { formatPct, type CommissionData } from "@/lib/commission";
+import { isAquaEditor, type RabData } from "@/lib/aquaculture";
+import AquaPlanDetails from "./AquaPlanDetails";
 
 export const metadata: Metadata = { title: "Detail Pengajuan - Crustea Portal" };
 
@@ -383,6 +385,10 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
   const data = req.data as unknown as ReimburseData;
   const payment = req.data as unknown as PaymentData;
   const commission = req.kind === "commission" ? (req.data as unknown as CommissionData) : null;
+  // Paket RAB Aquaculture: diubah di editor RAB oleh tim AQ; tim AQ, TechOps, DM boleh memberi catatan (review lintas tim).
+  const aquaPlan = req.kind === "aqua_plan" ? (req.data as unknown as RabData) : null;
+  const aquaEditable = aquaPlan !== null && isAquaEditor(me) && (req.status === "draft" || req.status === "needs_revision");
+  const aquaNoter = aquaPlan !== null && (isAquaEditor(me) || me.dept_code === "TO" || me.dept_code === "DM");
   // Status lunas penjualan dari modul Penjualan (syarat diterima untuk baris dari lead).
   const leadIds = (commission?.lines ?? []).flatMap((l) => (l.lead_id ? [l.lead_id] : []));
   const leadPaid = new Map<string, string | null>();
@@ -427,7 +433,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
         </div>
       )}
 
-      {editable && (
+      {editable && !aquaPlan && (
         <div className="flex flex-wrap gap-2">
           <Link
             href={`/pengajuan/${req.id}/ubah`}
@@ -456,7 +462,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
             </Field>
           )}
         </dl>
-        {!travel && !commission && (
+        {!travel && !commission && !aquaPlan && (
           <div className="mt-4">
             <p className="mb-1.5 text-xs font-medium text-slate-500">
               {req.kind === "payment" ? "Invoice / dokumen pendukung" : procurement ? "Lampiran PR" : "Bukti nota"}
@@ -480,6 +486,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
 
       {req.kind === "reimburse" && <MissionDetails data={data} />}
       {commission && <CommissionLines data={commission} leadPaid={leadPaid} />}
+      {aquaPlan && <AquaPlanDetails data={aquaPlan} editable={aquaEditable} />}
       {travel && <TravelCalcDetails data={travel} />}
       {procurement && <VendorTable data={procurement} />}
       {procurement && mode === "techops" && req.status === "head_approved" && <VendorCompareForm id={req.id} />}
@@ -530,7 +537,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
       <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="font-semibold text-slate-900">Riwayat</h2>
         <RequestTimeline events={(eventRes.data ?? []) as unknown as RequestEvent[]} kind={req.kind} />
-        {isOwner && req.status !== "draft" && <NoteForm id={req.id} />}
+        {(isOwner || (aquaNoter && !mode)) && req.status !== "draft" && <NoteForm id={req.id} />}
       </section>
 
       <Link

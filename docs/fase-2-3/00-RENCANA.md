@@ -15,6 +15,7 @@ CLAUDE.md + satu file modul di sini** — tidak perlu membuka file sumber lagi.
 | 6 | `07-penjualan-aset.md` | Sales pipeline, stok, aset — **selesai 27 Okt 2026** | Ya (012) |
 | 7 | `08-monitoring-kpi-target.md` | Monitoring KPI (`kpi_items`) + target kuartal per divisi — **selesai 27 Okt 2026** | Ya (013) |
 | 8 | `09-cuti-lembur.md` | Halaman "sedang dalam pengembangan" — **selesai 27 Okt 2026** | Tidak |
+| 9 | `10-aquaculture.md` | Aquaculture > Project Management: pipeline 4 proyek, paket kelayakan finansial + RAB (F&A → CEO), kontrak, dana masuk ke target kuartal — **selesai 28 Okt 2026** | Ya (015) |
 
 Modul 2-6 **bergantung pada #1** (mesin pengajuan). Modul 7-8 berdiri sendiri.
 

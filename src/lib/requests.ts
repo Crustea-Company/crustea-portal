@@ -1,7 +1,7 @@
-// Mesin pengajuan bersama (reimburse, permintaan pembayaran, pengadaan, dinas, komisi).
+// Mesin pengajuan bersama (reimburse, permintaan pembayaran, pengadaan, dinas, komisi, RAB Aquaculture).
 // Lihat migrations/007_pengajuan_reimburse.sql dan docs/fase-2-3/01-mesin-pengajuan.md.
 
-export type RequestKind = "reimburse" | "payment" | "procurement" | "travel" | "commission";
+export type RequestKind = "reimburse" | "payment" | "procurement" | "travel" | "commission" | "aqua_plan";
 
 export type RequestStatus =
   | "draft"
@@ -31,6 +31,7 @@ export const KIND_LABEL: Record<RequestKind, string> = {
   procurement: "Pengadaan",
   travel: "Perjalanan dinas",
   commission: "Klaim komisi",
+  aqua_plan: "RAB Aquaculture",
 };
 
 export const STATUS_LABEL: Record<RequestStatus, string> = {
@@ -90,6 +91,7 @@ export function statusLabel(status: RequestStatus, kind?: RequestKind): string {
     if (status === "submitted") return "Menunggu head";
     if (status === "paid") return "Dibayar ke vendor";
   }
+  if (kind === "aqua_plan" && status === "approved") return "Disetujui CEO";
   return STATUS_LABEL[status];
 }
 

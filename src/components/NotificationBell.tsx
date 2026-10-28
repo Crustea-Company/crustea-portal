@@ -22,6 +22,7 @@ function describe(n: NotificationItem): { label: string; text: string } {
   if (n.kind === "sla") return { label: "Lewat SLA", text: n.title };
   if (n.kind === "sales") return { label: "Penjualan", text: n.title };
   if (n.kind === "asset") return { label: "Aset", text: n.title };
+  if (n.kind === "aqua") return { label: "Aquaculture", text: n.title };
   const code = n.task?.code ? `${n.task.code} ` : "";
   if (n.kind === "delegation") {
     return {
@@ -46,6 +47,7 @@ const LABEL_STYLE: Record<NotificationItem["kind"], string> = {
   sla: "bg-red-600 text-white",
   sales: "bg-brand-100 text-brand-800",
   asset: "bg-slate-200 text-slate-800",
+  aqua: "bg-brand-100 text-brand-800",
 };
 
 export default function NotificationBell() {

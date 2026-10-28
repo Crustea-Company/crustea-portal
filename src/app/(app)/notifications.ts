@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type NotificationItem = {
   id: number;
-  kind: "reminder" | "delegation" | "deadline" | "request" | "sla" | "sales" | "asset";
+  kind: "reminder" | "delegation" | "deadline" | "request" | "sla" | "sales" | "asset" | "aqua";
   title: string;
   created_at: string;
   read_at: string | null;

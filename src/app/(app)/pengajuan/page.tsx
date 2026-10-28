@@ -9,7 +9,10 @@ export const metadata: Metadata = { title: "Pengajuan - Crustea Portal" };
 
 // Selesai: ditolak, selesai, atau ditransfer (dinas & pengadaan masih berlanjut setelah dibayar).
 const isFinished = (r: RequestRow) =>
-  r.status === "rejected" || r.status === "completed" || (r.status === "paid" && r.kind !== "travel" && r.kind !== "procurement");
+  r.status === "rejected" ||
+  r.status === "completed" ||
+  (r.status === "paid" && r.kind !== "travel" && r.kind !== "procurement") ||
+  (r.status === "approved" && r.kind === "aqua_plan");
 
 export default async function PengajuanPage() {
   const me = (await getCurrentEmployee())!;
