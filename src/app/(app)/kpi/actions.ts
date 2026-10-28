@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isIsoDate } from "@/lib/travel";
+import { TARGET_DIVISIONS } from "@/lib/kpi";
 
 type Result = { ok: true } | { ok: false; message: string };
 
@@ -65,9 +66,17 @@ export type SourceInput = {
   name: string;
   division: string;
   weight: number | null; // persen
+  target_amount: number | null; // target alokasi tetap (Rp), menggantikan bobot x total
   alloc_label: string;
   from_sales: boolean;
-  strategies: { id: number | null; strategy: string; projection: number }[];
+  strategies: {
+    id: number | null;
+    strategy: string;
+    projection: number;
+    note: string;
+    realization: number | null;
+    realization_note: string;
+  }[];
 };
 
 export type TargetInput = { total: number; notes: string; sources: SourceInput[] };
@@ -77,14 +86,16 @@ function checkTarget(input: TargetInput): string | null {
   const labels = new Set<string>();
   for (const s of input.sources) {
     if (!s.name.trim()) return "Nama sumber belum diisi.";
-    if (!s.division.trim()) return `Divisi PIC untuk "${s.name}" belum diisi.`;
+    if (!(TARGET_DIVISIONS as readonly string[]).includes(s.division)) return `Divisi PIC untuk "${s.name}" belum dipilih.`;
     if (s.weight != null && (!Number.isFinite(s.weight) || s.weight < 0 || s.weight > 100)) return `Bobot "${s.name}" harus 0-100%.`;
+    if (s.target_amount != null && (!Number.isSafeInteger(s.target_amount) || s.target_amount < 0)) return `Target alokasi "${s.name}" tidak valid.`;
     const label = (s.alloc_label.trim() || s.name.trim()).toLowerCase();
     if (labels.has(label)) return `Label alokasi "${label}" dipakai dua kali.`;
     labels.add(label);
     for (const g of s.strategies) {
       if (!g.strategy.trim()) return `Nama strategi di "${s.name}" belum diisi.`;
       if (!Number.isSafeInteger(g.projection) || g.projection < 0) return `Proyeksi di "${s.name}" tidak valid.`;
+      if (g.realization != null && (!Number.isSafeInteger(g.realization) || g.realization < 0)) return `Realisasi di "${s.name}" tidak valid.`;
     }
   }
   if (input.sources.filter((s) => s.from_sales).length > 1) return "Hanya satu sumber yang boleh mengambil data Penjualan.";
@@ -119,8 +130,9 @@ export async function saveTarget(targetId: number, input: TargetInput): Promise<
     const row = {
       target_id: targetId,
       name: s.name.trim(),
-      division: s.division.trim(),
+      division: s.division,
       weight: s.weight,
+      target_amount: s.target_amount,
       alloc_label: s.alloc_label.trim() || s.name.trim(),
       from_sales: s.from_sales,
       sort: i + 1,
@@ -136,7 +148,15 @@ export async function saveTarget(targetId: number, input: TargetInput): Promise<
     const dropG = (oldG ?? []).map((r) => r.id as number).filter((id) => !keepG.has(id));
     if (dropG.length) await supabase.from("target_strategies").delete().in("id", dropG);
     for (const [j, g] of s.strategies.entries()) {
-      const gRow = { source_id: sourceId, strategy: g.strategy.trim(), projection: g.projection, sort: j + 1 };
+      const gRow = {
+        source_id: sourceId,
+        strategy: g.strategy.trim(),
+        projection: g.projection,
+        note: g.note.trim() || null,
+        realization: g.realization,
+        realization_note: g.realization_note.trim() || null,
+        sort: j + 1,
+      };
       const gRes = g.id
         ? await supabase.from("target_strategies").update(gRow).eq("id", g.id)
         : await supabase.from("target_strategies").insert(gRow);
@@ -147,7 +167,7 @@ export async function saveTarget(targetId: number, input: TargetInput): Promise<
   return { ok: true };
 }
 
-// Kuartal baru: sumber, bobot, dan strategi disalin dari kuartal terakhir (proyeksi dikosongkan).
+// Kuartal baru: sumber, bobot, dan strategi disalin dari kuartal terakhir (proyeksi, realisasi, dan target tetap dikosongkan).
 export async function createQuarter(year: number, quarter: number, total: number): Promise<Result & { id?: number }> {
   if (!Number.isInteger(year) || year < 2024 || year > 2100 || ![1, 2, 3, 4].includes(quarter)) {
     return { ok: false, message: "Tahun/kuartal tidak valid." };
@@ -169,10 +189,10 @@ export async function createQuarter(year: number, quarter: number, total: number
   if (prev) {
     const { data: sources } = await supabase
       .from("target_sources")
-      .select("name, division, weight, alloc_label, from_sales, sort, target_strategies(strategy, sort)")
+      .select("name, division, weight, alloc_label, from_sales, sort, target_strategies(strategy, note, sort)")
       .eq("target_id", prev.id);
     for (const s of sources ?? []) {
-      const { target_strategies: strategies, ...rest } = s as typeof s & { target_strategies: { strategy: string; sort: number }[] };
+      const { target_strategies: strategies, ...rest } = s as typeof s & { target_strategies: { strategy: string; note: string | null; sort: number }[] };
       const { data: ns } = await supabase.from("target_sources").insert({ ...rest, target_id: t.id }).select("id").single();
       if (ns && strategies.length) {
         await supabase.from("target_strategies").insert(strategies.map((g) => ({ ...g, source_id: ns.id, projection: 0 })));

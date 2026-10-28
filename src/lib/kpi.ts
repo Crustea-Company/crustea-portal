@@ -58,7 +58,19 @@ export const pct = (part: number, whole: number) => (whole > 0 ? Math.round((par
 
 export type QuarterTarget = { id: number; year: number; quarter: number; total: number; notes: string | null };
 
-export type TargetStrategy = { id: number; source_id: number; strategy: string; projection: number; sort: number };
+export type TargetStrategy = {
+  id: number;
+  source_id: number;
+  strategy: string;
+  projection: number;
+  note: string | null;
+  realization: number | null; // diisi manual; kosong = belum dirinci
+  realization_note: string | null;
+  sort: number;
+};
+
+// Divisi PIC target kuartal (Open Project = TechOps).
+export const TARGET_DIVISIONS = ["Bisdev", "Aquaculture", "TechOps"] as const;
 
 export type TargetSource = {
   id: number;
@@ -66,6 +78,7 @@ export type TargetSource = {
   name: string;
   division: string;
   weight: number | null; // persen
+  target_amount: number | null; // target alokasi tetap; bila ada, menggantikan bobot x total
   alloc_label: string;
   from_sales: boolean;
   sort: number;
@@ -94,8 +107,10 @@ export function quarterMonths(t: { year: number; quarter: number }): string[] {
   return [0, 1, 2].map((i) => `${t.year}-${String((t.quarter - 1) * 3 + i + 1).padStart(2, "0")}`);
 }
 
-export const sourceTarget = (total: number, s: Pick<TargetSource, "weight">) =>
-  s.weight == null ? 0 : Math.round((total * s.weight) / 100);
+export const sourceTarget = (total: number, s: Pick<TargetSource, "weight" | "target_amount">) =>
+  s.target_amount != null ? s.target_amount : s.weight == null ? 0 : Math.round((total * s.weight) / 100);
+
+export const hasTarget = (s: Pick<TargetSource, "weight" | "target_amount">) => s.weight != null || s.target_amount != null;
 
 export const sourceProjection = (s: Pick<TargetSource, "strategies">) =>
   s.strategies.reduce((sum, g) => sum + g.projection, 0);

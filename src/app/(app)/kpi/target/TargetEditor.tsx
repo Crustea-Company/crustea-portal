@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import RupiahInput from "@/components/requests/RupiahInput";
 import { formatNumber } from "@/lib/format";
-import { quarterLabel, type QuarterTarget, type TargetSource } from "@/lib/kpi";
+import { TARGET_DIVISIONS, quarterLabel, type QuarterTarget, type TargetSource } from "@/lib/kpi";
 import { saveTarget, type SourceInput } from "../actions";
 
 const inputClass =
@@ -17,9 +17,17 @@ const toInput = (sources: TargetSource[]): SourceInput[] =>
     name: s.name,
     division: s.division,
     weight: s.weight,
+    target_amount: s.target_amount,
     alloc_label: s.alloc_label,
     from_sales: s.from_sales,
-    strategies: s.strategies.map((g) => ({ id: g.id, strategy: g.strategy, projection: g.projection })),
+    strategies: s.strategies.map((g) => ({
+      id: g.id,
+      strategy: g.strategy,
+      projection: g.projection,
+      note: g.note ?? "",
+      realization: g.realization,
+      realization_note: g.realization_note ?? "",
+    })),
   }));
 
 // Ubah target total, sumber (bobot, divisi PIC), dan strategi satu kuartal (admin, CEO).
@@ -92,7 +100,12 @@ export default function TargetEditor({ target, sources }: { target: QuarterTarge
               </label>
               <label className={labelClass}>
                 Divisi PIC
-                <input value={r.division} onChange={(e) => setRow(i, { division: e.target.value })} className={inputClass} />
+                <select value={r.division} onChange={(e) => setRow(i, { division: e.target.value })} className={inputClass}>
+                  {!r.division && <option value="">Pilih divisi</option>}
+                  {TARGET_DIVISIONS.map((d) => (
+                    <option key={d}>{d}</option>
+                  ))}
+                </select>
               </label>
               <label className={labelClass}>
                 Bobot (%)
@@ -106,6 +119,11 @@ export default function TargetEditor({ target, sources }: { target: QuarterTarge
                   onChange={(e) => setRow(i, { weight: e.target.value === "" ? null : Number(e.target.value) })}
                   className={inputClass}
                 />
+              </label>
+              <label className={`${labelClass} col-span-2`}>
+                Target alokasi tetap (opsional)
+                <RupiahInput value={r.target_amount ?? 0} onChange={(n) => setRow(i, { target_amount: n || null })} />
+                <span className="font-normal text-slate-500">Kosongkan agar target = bobot x total.</span>
               </label>
               <label className={`${labelClass} col-span-2`}>
                 Label alokasi pendapatan
@@ -122,29 +140,53 @@ export default function TargetEditor({ target, sources }: { target: QuarterTarge
               </label>
             </div>
             <div className="flex flex-col gap-2 rounded-lg bg-slate-50 p-2">
-              <p className="text-xs font-semibold text-slate-600">Strategi & proyeksi</p>
+              <p className="text-xs font-semibold text-slate-600">Strategi, proyeksi & realisasi</p>
               {r.strategies.map((g, k) => (
-                <div key={g.id ?? `g-${k}`} className="grid grid-cols-[1fr_auto] gap-2 sm:grid-cols-[1fr_12rem_auto]">
-                  <input
-                    value={g.strategy}
-                    placeholder="Nama strategi"
-                    onChange={(e) => setStrategy(i, k, { strategy: e.target.value })}
-                    className={`${inputClass} col-span-2 sm:col-span-1`}
+                <div key={g.id ?? `g-${k}`} className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-2">
+                  <div className="grid grid-cols-[1fr_auto] gap-2 sm:grid-cols-[1fr_12rem_auto]">
+                    <input
+                      value={g.strategy}
+                      placeholder="Nama strategi"
+                      onChange={(e) => setStrategy(i, k, { strategy: e.target.value })}
+                      className={`${inputClass} col-span-2 sm:col-span-1`}
+                    />
+                    <RupiahInput value={g.projection} onChange={(n) => setStrategy(i, k, { projection: n })} />
+                    <button
+                      type="button"
+                      onClick={() => setRow(i, { strategies: r.strategies.filter((_, j) => j !== k) })}
+                      className="rounded-lg px-2 text-sm text-red-600 hover:bg-red-50"
+                      aria-label="Hapus strategi"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <textarea
+                    value={g.note}
+                    rows={1}
+                    placeholder="Catatan / indikator (opsional)"
+                    onChange={(e) => setStrategy(i, k, { note: e.target.value })}
+                    className={inputClass}
                   />
-                  <RupiahInput value={g.projection} onChange={(n) => setStrategy(i, k, { projection: n })} />
-                  <button
-                    type="button"
-                    onClick={() => setRow(i, { strategies: r.strategies.filter((_, j) => j !== k) })}
-                    className="rounded-lg px-2 text-sm text-red-600 hover:bg-red-50"
-                    aria-label="Hapus strategi"
-                  >
-                    ✕
-                  </button>
+                  <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
+                    <label className={labelClass}>
+                      Realisasi
+                      <RupiahInput value={g.realization ?? 0} onChange={(n) => setStrategy(i, k, { realization: n || null })} />
+                    </label>
+                    <label className={labelClass}>
+                      Progres / keterangan
+                      <textarea
+                        value={g.realization_note}
+                        rows={1}
+                        onChange={(e) => setStrategy(i, k, { realization_note: e.target.value })}
+                        className={inputClass}
+                      />
+                    </label>
+                  </div>
                 </div>
               ))}
               <button
                 type="button"
-                onClick={() => setRow(i, { strategies: [...r.strategies, { id: null, strategy: "", projection: 0 }] })}
+                onClick={() => setRow(i, { strategies: [...r.strategies, { id: null, strategy: "", projection: 0, note: "", realization: null, realization_note: "" }] })}
                 className="self-start text-xs font-medium text-brand-700 hover:underline"
               >
                 + Strategi
@@ -163,7 +205,7 @@ export default function TargetEditor({ target, sources }: { target: QuarterTarge
         ))}
         <button
           type="button"
-          onClick={() => setRows((rs) => [...rs, { id: null, name: "", division: "", weight: null, alloc_label: "", from_sales: false, strategies: [] }])}
+          onClick={() => setRows((rs) => [...rs, { id: null, name: "", division: "", weight: null, target_amount: null, alloc_label: "", from_sales: false, strategies: [] }])}
           className="self-start rounded-lg border border-brand-600 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
         >
           + Sumber
