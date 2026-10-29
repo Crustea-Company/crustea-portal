@@ -44,9 +44,9 @@ const rpShort = (n: number) => {
   return rp(n);
 };
 
-const primaryBtn = "rounded-xl bg-brand-800 px-4 py-3 text-center font-semibold text-white shadow-sm hover:bg-brand-900";
+const primaryBtn = "rounded-lg bg-brand-800 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-brand-900";
 const outlineBtn =
-  "flex items-center justify-center gap-2 rounded-xl border border-brand-800 bg-white px-4 py-3 text-center font-semibold text-brand-800 hover:bg-brand-50";
+  "flex items-center justify-center gap-2 rounded-lg border border-brand-800 bg-white px-3 py-2 text-center text-sm font-semibold text-brand-800 hover:bg-brand-50";
 
 // Beranda: profil singkat, pintasan penting, target kuartal berjalan, dan catat log kerja.
 export default async function Home() {
@@ -65,14 +65,14 @@ export default async function Home() {
   const target = targetRow as QuarterTarget | null;
 
   return (
-    <main className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)] lg:items-start">
+    <main className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[15rem_minmax(0,1.3fr)_minmax(0,1fr)] lg:items-start">
       {/* ---------- Profil + pintasan ---------- */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <div>
-          <p className="text-sm font-medium text-brand-700">Selamat datang,</p>
-          <h1 className="text-2xl font-bold text-slate-900">{employee.full_name}</h1>
+          <p className="text-xs font-medium text-brand-700">Selamat datang,</p>
+          <h1 className="text-xl font-bold leading-tight text-slate-900">{employee.full_name}</h1>
         </div>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-sm">
           <dt className="text-slate-500">Jabatan</dt>
           <dd className="text-slate-900">{employee.job_title ?? "-"}</dd>
           <dt className="text-slate-500">Departemen</dt>
@@ -82,12 +82,12 @@ export default async function Home() {
           <dt className="text-slate-500">Status kerja</dt>
           <dd className="text-slate-900">{employee.emp_status}</dd>
         </dl>
-        <nav className="flex flex-col gap-3" aria-label="Pintasan">
+        <nav className="flex flex-col gap-2" aria-label="Pintasan">
           <Link href="/tugas?pic=saya" className={primaryBtn}>
             Lihat tugas saya
           </Link>
           <Link href="/penjualan/baru" className={outlineBtn}>
-            <span aria-hidden>☑</span> Catat lead penjualan
+            Catat lead penjualan
           </Link>
           {canManageStock(employee) && (
             <Link href="/stok#catat-mutasi" className={outlineBtn}>
@@ -103,16 +103,16 @@ export default async function Home() {
             <summary className={`${outlineBtn} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
               Ajukan... <span className="text-sm transition-transform group-open:rotate-180" aria-hidden>▾</span>
             </summary>
-            <ul className="mt-2 flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-sm">
+            <ul className="mt-1.5 flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white text-sm shadow-sm">
               {REQUEST_LINKS.map((l) => (
                 <li key={l.href} className="border-b border-slate-100 last:border-0">
-                  <Link href={l.href} className="block px-4 py-2.5 text-slate-700 hover:bg-brand-50 hover:text-brand-800">
+                  <Link href={l.href} className="block px-3 py-2 text-slate-700 hover:bg-brand-50 hover:text-brand-800">
                     {l.label}
                   </Link>
                 </li>
               ))}
               <li>
-                <Link href="/pengajuan" className="block px-4 py-2.5 text-slate-500 hover:bg-slate-50">
+                <Link href="/pengajuan" className="block px-3 py-2 text-slate-500 hover:bg-slate-50">
                   Lihat pengajuan saya →
                 </Link>
               </li>

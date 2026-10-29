@@ -6,13 +6,18 @@ import { addWorkLog, adminUpdateWorkLog, updateWorkLog, type FormState } from ".
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20";
 
+// Isian jam/menit: lebar tetap supaya tidak terjepit di kolom sempit (mis. Beranda).
+const numberClass = inputClass.replace("w-full", "w-20 shrink-0");
+
 type Defaults = { log_date: string; activity: string; minutes: number; proof: string | null };
 
 // Kolom isian yang sama untuk form catat baru dan form ubah.
 function LogFields({ today, defaults }: { today: string; defaults?: Defaults }) {
   return (
     <>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
+      {/* @container: susunan mengikuti lebar kotak form, bukan lebar layar. */}
+      <div className="@container">
+        <div className="grid grid-cols-1 gap-3 @md:grid-cols-[1fr_auto]">
         <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
           Tanggal
           <input
@@ -36,7 +41,7 @@ function LogFields({ today, defaults }: { today: string; defaults?: Defaults }) 
               placeholder="0"
               aria-label="Jam"
               defaultValue={defaults ? Math.floor(defaults.minutes / 60) : undefined}
-              className={`${inputClass} w-20`}
+              className={numberClass}
             />
             <span className="text-slate-500">jam</span>
             <input
@@ -49,10 +54,11 @@ function LogFields({ today, defaults }: { today: string; defaults?: Defaults }) 
               placeholder="0"
               aria-label="Menit"
               defaultValue={defaults ? defaults.minutes % 60 : undefined}
-              className={`${inputClass} w-20`}
+              className={numberClass}
             />
             <span className="text-slate-500">menit</span>
           </div>
+        </div>
         </div>
       </div>
 
