@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDate, formatNumber } from "@/lib/format";
 import {
@@ -50,6 +51,23 @@ const sliderItem = "w-44 shrink-0 snap-start md:w-auto";
 const control =
   "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20";
 
+// Filter -> query string halaman (?dept=..&sprint=..).
+function toQuery(filters: Filters): URLSearchParams {
+  const qs = new URLSearchParams();
+  if (filters.dept) qs.set("dept", filters.dept);
+  qs.set("sprint", filters.sprint);
+  if (filters.pic) qs.set("pic", filters.pic);
+  if (filters.status) qs.set("status", filters.status);
+  if (filters.overdue) qs.set("terlambat", "1");
+  if (filters.priorityOnly) qs.set("prioritas", "1");
+  if (filters.from) qs.set("dari", filters.from);
+  if (filters.to) qs.set("sampai", filters.to);
+  if (filters.sort !== "deadline") qs.set("urut", filters.sort === "priority" ? "prioritas" : "judul");
+  if (filters.dir === "desc") qs.set("arah", "turun");
+  if (filters.view !== "list") qs.set("tampilan", filters.view);
+  return qs;
+}
+
 export default function TaskBoard(props: Props) {
   const { departments, sprints, me, today, employees } = props;
 
@@ -76,20 +94,15 @@ export default function TaskBoard(props: Props) {
 
   // Simpan pilihan filter di alamat halaman, supaya bisa dibagikan atau di-bookmark.
   useEffect(() => {
-    const qs = new URLSearchParams();
-    if (filters.dept) qs.set("dept", filters.dept);
-    qs.set("sprint", filters.sprint);
-    if (filters.pic) qs.set("pic", filters.pic);
-    if (filters.status) qs.set("status", filters.status);
-    if (filters.overdue) qs.set("terlambat", "1");
-    if (filters.priorityOnly) qs.set("prioritas", "1");
-    if (filters.from) qs.set("dari", filters.from);
-    if (filters.to) qs.set("sampai", filters.to);
-    if (filters.sort !== "deadline") qs.set("urut", filters.sort === "priority" ? "prioritas" : "judul");
-    if (filters.dir === "desc") qs.set("arah", "turun");
-    if (filters.view !== "list") qs.set("tampilan", filters.view);
-    window.history.replaceState(null, "", `/tugas?${qs}${window.location.hash}`);
+    window.history.replaceState(null, "", `/tugas?${toQuery(filters)}${window.location.hash}`);
   }, [filters]);
+
+  // Server hanya memuat tugas sprint yang dilihat: ganti sprint = muat ulang data dari server.
+  const router = useRouter();
+  const changeSprint = (sprint: string) => {
+    set("sprint", sprint);
+    router.replace(`/tugas?${toQuery({ ...filters, sprint })}`, { scroll: false });
+  };
 
   // Pilihan PIC: hanya orang yang memang pernah jadi PIC.
   const picOptions = useMemo(() => {
@@ -196,7 +209,7 @@ export default function TaskBoard(props: Props) {
               </option>
             ))}
           </select>
-          <select aria-label="Sprint" className={`${control} ${sliderItem}`} value={filters.sprint} onChange={(e) => set("sprint", e.target.value)}>
+          <select aria-label="Sprint" className={`${control} ${sliderItem}`} value={filters.sprint} onChange={(e) => changeSprint(e.target.value)}>
             <option value="semua">Semua sprint</option>
             {sprints.map((s) => (
               <option key={s.id} value={String(s.id)}>

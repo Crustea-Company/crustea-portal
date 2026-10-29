@@ -19,8 +19,27 @@ export default async function TugasPage({ searchParams }: { searchParams: Search
     return typeof v === "string" ? v : undefined;
   };
 
+  // Hanya muat tugas sprint yang dilihat (database jauh: 447 tugas ~0,8 detik, satu sprint ~0,3 detik).
+  // Tanpa pilihan sprint: sprint berjalan + mendatang (pilihan bawaan papan ada di dalamnya).
+  // Ganti sprint di papan = muat ulang dari server (lihat TaskBoard).
+  const sprintParam = param("sprint");
+  const today = todayJakarta();
+  const scope = sprintParam === "semua" || sprintParam === "tanpa" || /^\d+$/.test(sprintParam ?? "") ? sprintParam! : "berjalan";
+  const tasksQuery = () => {
+    if (scope === "semua") return supabase.from("tasks").select(TASK_SELECT).order("id");
+    if (scope === "tanpa") return supabase.from("tasks").select(TASK_SELECT).is("sprint_id", null).order("id");
+    if (scope === "berjalan") {
+      return supabase
+        .from("tasks")
+        .select(`${TASK_SELECT}, sprints!inner(end_date)`)
+        .gte("sprints.end_date", today)
+        .order("id");
+    }
+    return supabase.from("tasks").select(TASK_SELECT).eq("sprint_id", Number(scope)).order("id");
+  };
+
   const [tasksRes, employeesRes, departmentsRes, sprintsRes, notesRes, remindersRes] = await Promise.all([
-    fetchAll<Task>(() => supabase.from("tasks").select(TASK_SELECT).order("id")),
+    fetchAll<Task>(tasksQuery),
     supabase.from("employees").select("id, full_name, dept_code, is_active").order("full_name"),
     supabase.from("departments").select("code, name").order("code"),
     supabase.from("sprints").select("id, name, start_date, end_date").order("id"),
@@ -68,6 +87,7 @@ export default async function TugasPage({ searchParams }: { searchParams: Search
 
   return (
     <TaskBoard
+      key={scope}
       tasks={tasksRes.data}
       employees={(employeesRes.data ?? []) as EmployeeLite[]}
       departments={departmentsRes.data ?? []}
@@ -75,7 +95,7 @@ export default async function TugasPage({ searchParams }: { searchParams: Search
       notes={notesRes.data}
       reminders={remindersRes.data ?? []}
       me={{ id: me.id, app_role: me.app_role, dept_code: me.dept_code }}
-      today={todayJakarta()}
+      today={today}
       initial={initial}
     />
   );
