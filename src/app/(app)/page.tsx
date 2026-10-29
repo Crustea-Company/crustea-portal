@@ -52,18 +52,7 @@ const outlineBtn =
 // Beranda: profil singkat, pintasan penting, target kuartal berjalan, dan catat log kerja.
 export default async function Home() {
   const employee = (await getCurrentEmployee())!;
-  const supabase = await createClient();
   const today = todayJakarta();
-  const year = Number(today.slice(0, 4));
-  const quarter = Math.floor((Number(today.slice(5, 7)) - 1) / 3) + 1;
-
-  const { data: targetRow } = await supabase
-    .from("quarter_targets")
-    .select("id, year, quarter, total, notes")
-    .eq("year", year)
-    .eq("quarter", quarter)
-    .maybeSingle();
-  const target = targetRow as QuarterTarget | null;
 
   return (
     <main className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[15rem_minmax(0,1.3fr)_minmax(0,1fr)] lg:items-start">
@@ -123,17 +112,7 @@ export default async function Home() {
       </div>
 
       {/* ---------- Target kuartal berjalan ---------- */}
-      {target ? (
-        <TargetCard target={target} />
-      ) : (
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Target Kuartal & Realisasi (Q{quarter} {year})</h2>
-          <p className="mt-2 text-sm text-slate-500">Target kuartal ini belum dibuat.</p>
-          <Link href="/kpi/target" className="mt-3 inline-block text-sm font-medium text-brand-700 underline">
-            Buka Target kuartal
-          </Link>
-        </section>
-      )}
+      <TargetCard today={today} />
 
       {/* ---------- Catat log kerja ---------- */}
       <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -152,8 +131,31 @@ export default async function Home() {
   );
 }
 
-async function TargetCard({ target }: { target: QuarterTarget }) {
+// Komponen terpisah supaya dimuat bersamaan dengan "Perlu perhatian saya".
+async function TargetCard({ today }: { today: string }) {
   const supabase = await createClient();
+  const year = Number(today.slice(0, 4));
+  const quarter = Math.floor((Number(today.slice(5, 7)) - 1) / 3) + 1;
+  const { data: targetRow } = await supabase
+    .from("quarter_targets")
+    .select("id, year, quarter, total, notes")
+    .eq("year", year)
+    .eq("quarter", quarter)
+    .maybeSingle();
+  const target = targetRow as QuarterTarget | null;
+  if (!target) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-900">
+          Target Kuartal & Realisasi (Q{quarter} {year})
+        </h2>
+        <p className="mt-2 text-sm text-slate-500">Target kuartal ini belum dibuat.</p>
+        <Link href="/kpi/target" className="mt-3 inline-block text-sm font-medium text-brand-700 underline">
+          Buka Target kuartal
+        </Link>
+      </section>
+    );
+  }
   const { sources, real } = await loadQuarter(supabase, target);
   const sum = (a: number[]) => a.reduce((s, n) => s + n, 0);
   const totalReal = sum([...real.values()].map(sum));

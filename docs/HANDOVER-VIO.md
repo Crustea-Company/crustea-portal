@@ -54,12 +54,12 @@ Minta nilainya langsung ke Athar (jangan lewat chat/GitHub).
 
 ## 4. Database
 
-- Urutan menjalankan SQL: `schema.sql` → `migrations/002` … `015`. **Semua sudah dijalankan** di Supabase
+- Urutan menjalankan SQL: `schema.sql` → `migrations/002` … `017`. **Semua sudah dijalankan** di Supabase
   (dicek 27 Okt 2026: semua tabel/kolom ada, dan semua fungsi yang dipanggil aplikasi cocok nama &
   parameternya). Isi tiap migrasi: 002 koreksi admin & buka periode · 003 pending/catatan/delegasi/notifikasi ·
   004 perbaikan kode tugas · 005 riwayat karyawan · 006 prosedur · 007 mesin pengajuan + reimburse ·
   008 permintaan pembayaran · 009 perjalanan dinas · 010 pengadaan · 011 produk/komisi/referral ·
-  012 penjualan/stok/aset · 013 KPI & target kuartal · 014 rincian/progres strategi + riwayat target Q1-Q3 2026 + impor pendapatan Jan-Sep 2026 · 015 Aquaculture Project Management (proyek, paket RAB `aqua_plan`, kontrak, dana masuk; dijalankan 28 Okt 2026). Migrasi baru ditulis berurutan di `migrations/` dan
+  012 penjualan/stok/aset · 013 KPI & target kuartal · 014 rincian/progres strategi + riwayat target Q1-Q3 2026 + impor pendapatan Jan-Sep 2026 · 015 Aquaculture Project Management (proyek, paket RAB `aqua_plan`, kontrak, dana masuk; dijalankan 28 Okt 2026) · 016 pendapatan ↔ lead penjualan · 017 percepat aturan akses RLS (`(select me())`). Database Supabase ada di **Sydney**, server di Jakarta: tiap query ~0,2 detik. Migrasi baru ditulis berurutan di `migrations/` dan
   dijalankan Athar lewat SQL Editor setelah disetujui.
 - Data awal: `seed/*.csv`, diimpor sekali dengan `scripts/import-seed.mjs` (sudah dilakukan).
 - Lampiran pengajuan: **hanya link** (keputusan Athar, agar tetap di paket gratis). Bucket privat

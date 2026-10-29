@@ -50,6 +50,9 @@ export default async function LogKerjaPage({ searchParams }: { searchParams: Sea
   }
   const viewingOther = viewed.id !== me.id;
 
+  // Dimulai bersamaan dengan permintaan log di bawah.
+  const exportEmployeesPromise = exportableEmployees(me);
+
   // Selalu batasi ke satu karyawan: admin, CEO, dan head juga boleh membaca log orang lain.
   const [periodRes, weekRes, listRes, monthsRes, lockedRes, snapshotRes] = await Promise.all([
     supabase.from("work_logs").select("minutes").eq("employee_id", viewed.id).eq("period_month", currentPeriod),
@@ -92,7 +95,7 @@ export default async function LogKerjaPage({ searchParams }: { searchParams: Sea
   for (let d = new Date(`${currentPeriod}T00:00:00Z`); d >= new Date("2025-01-01T00:00:00Z"); d.setUTCMonth(d.getUTCMonth() - 1)) {
     exportPeriods.push(d.toISOString().slice(0, 10));
   }
-  const exportEmployees = await exportableEmployees(me);
+  const exportEmployees = await exportEmployeesPromise;
 
   const lockedPeriods = new Set((lockedRes.data ?? []).map((p) => p.period_month as string));
   const periodOptions = [

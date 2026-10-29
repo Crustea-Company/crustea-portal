@@ -17,17 +17,9 @@ const isFinished = (r: RequestRow) =>
 export default async function PengajuanPage() {
   const me = (await getCurrentEmployee())!;
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("requests")
-    .select(REQUEST_COLUMNS)
-    .eq("requester_id", me.id)
-    .order("created_at", { ascending: false });
-
-  const rows = (data ?? []) as unknown as RequestRow[];
-
   // Penugasan dinas yang menunggu persetujuan saya (penugas) atau nomor surat tugas (Corporate Affairs).
   const isHr = me.dept_code === "CA" || me.app_role === "admin";
-  const { data: todo } = await supabase
+  const todoQuery = supabase
     .from("requests")
     .select(REQUEST_COLUMNS)
     .eq("kind", "travel")
@@ -40,15 +32,22 @@ export default async function PengajuanPage() {
     ...(isTechOps(me) ? ["status.in.(head_approved,po_issued,returned,paid)"] : []),
     ...(isFaHead(me) ? ["status.in.(fa_verified,received)"] : []),
   ];
-  const { data: procTodo } = procStatuses.length
-    ? await supabase
+  const procTodoQuery = procStatuses.length
+    ? supabase
         .from("requests")
         .select(REQUEST_COLUMNS)
         .eq("kind", "procurement")
         .or(procStatuses.join(","))
         .neq("requester_id", me.id)
         .order("status_since")
-    : { data: [] };
+    : Promise.resolve({ data: [] });
+  // Tiga permintaan dijalankan bersamaan (database di luar negeri: tiap permintaan ~0,2 detik).
+  const [{ data, error }, { data: todo }, { data: procTodo }] = await Promise.all([
+    supabase.from("requests").select(REQUEST_COLUMNS).eq("requester_id", me.id).order("created_at", { ascending: false }),
+    todoQuery,
+    procTodoQuery,
+  ]);
+  const rows = (data ?? []) as unknown as RequestRow[];
   const waiting = [...(todo ?? []), ...(procTodo ?? [])] as unknown as RequestRow[];
   const active = rows.filter((r) => !isFinished(r));
   const done = rows.filter(isFinished);

@@ -14,7 +14,7 @@ Pemilik proyek (Athar, Head of Corporate Affairs) **bukan programmer**. Karena i
 ## Stack
 
 - Next.js (App Router, TypeScript), Tailwind CSS, bisa di-install sebagai PWA di Android.
-- Supabase: database Postgres, login, dan Row Level Security (RLS). Region Singapore.
+- Supabase: database Postgres, login, dan Row Level Security (RLS). Region **Sydney (ap-southeast-2)** (dicek 29 Okt 2026; bukan Singapura). Server aplikasi: AWS ECS Jakarta. Tiap permintaan ke database ~0,2 detik, jadi jalankan query halaman bersamaan (`Promise.all`) dan hindari query berurutan. Kebijakan RLS memakai fungsi tanpa argumen dalam bentuk `(select me())` (migrasi 017).
 - Login: magic link email (Supabase Auth). Hanya email yang ada di tabel `employees` dengan `is_active = true` yang boleh memakai aplikasi; email lain ditampilkan halaman "Akses ditolak".
 - Sesi: `src/middleware.ts` memverifikasi JWT Supabase di setiap permintaan (server action/POST tanpa JWT valid = 401) dan cookie sesi aplikasi bertanda tangan `crustea_sesi` (`src/lib/session.ts`, kunci `SESSION_SECRET` di `.env.local`/server): habis bila 7 hari tidak dipakai atau 30 hari sejak login.
 - Saat ini dikembangkan di laptop (localhost). Deployment ke server akan dibantu Vio (TechOps) setelah Fase 1 selesai.
