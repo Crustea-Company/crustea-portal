@@ -7,6 +7,7 @@ import { loadQuarter } from "@/lib/kpi-data";
 import { isAquaEditor } from "@/lib/aquaculture";
 import { canManageStock } from "@/lib/sales";
 import LogForm from "./log-kerja/LogForm";
+import AttentionPanel from "./AttentionPanel";
 
 const ROLE_LABEL = {
   admin: "Admin",
@@ -144,6 +145,9 @@ export default async function Home() {
         </div>
         <LogForm today={today} />
       </section>
+
+      {/* ---------- Perlu perhatian saya ---------- */}
+      <AttentionPanel me={employee} today={today} />
     </main>
   );
 }
