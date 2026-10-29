@@ -3,22 +3,18 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { fetchAll } from "@/lib/supabase/fetch-all";
+import { loadQuarter } from "@/lib/kpi-data";
 import { formatDate, formatNumber, todayJakarta } from "@/lib/format";
 import {
   OTHER_KEY,
-  REVENUE_COLUMNS,
   TARGET_DIVISIONS,
   hasTarget,
   REVENUE_STATUS,
   pct,
   quarterLabel,
-  quarterMonths,
-  realization,
   sourceProjection,
   sourceTarget,
   type QuarterTarget,
-  type Revenue,
   type TargetSource,
 } from "@/lib/kpi";
 import RevenueEditor from "./RevenueEditor";
@@ -76,43 +72,7 @@ export default async function TargetPage({ searchParams }: { searchParams: Searc
     );
   }
 
-  const months = quarterMonths(picked);
-  const from = `${months[0]}-01`;
-  const end = new Date(Date.UTC(picked.year, picked.quarter * 3, 1)).toISOString().slice(0, 10); // awal kuartal berikutnya
-
-  const [{ data: sourceRows }, { data: revRows }, { data: leadRows }] = await Promise.all([
-    supabase
-      .from("target_sources")
-      .select(
-        "id, target_id, name, division, weight, target_amount, alloc_label, from_sales, sort, strategies:target_strategies(id, source_id, strategy, projection, note, realization, realization_note, sort)",
-      )
-      .eq("target_id", picked.id)
-      .order("sort"),
-    fetchAll(() => supabase.from("revenues").select(REVENUE_COLUMNS).gte("revenue_date", from).lt("revenue_date", end).order("revenue_date")),
-    fetchAll(() =>
-      supabase
-        .from("sales_leads")
-        .select("number, customer, value, closed_on, paid_on, revenue_links:revenue_leads(revenue_id)")
-        .gte("paid_on", from).lt("paid_on", end).order("paid_on"),
-    ),
-  ]);
-  const sources = ((sourceRows ?? []) as unknown as TargetSource[]).map((s) => ({
-    ...s,
-    weight: s.weight == null ? null : Number(s.weight),
-    strategies: [...s.strategies].sort((a, b) => a.sort - b.sort),
-  }));
-  const revenues = revRows as unknown as Revenue[];
-  const leads = (
-    leadRows as unknown as {
-      number: string;
-      customer: string;
-      value: number;
-      closed_on: string | null;
-      paid_on: string | null;
-      revenue_links: { revenue_id: string }[];
-    }[]
-  ).map((l) => ({ ...l, linked: l.revenue_links.length > 0 }));
-  const real = realization(picked, sources, revenues, leads);
+  const { months, sources, revenues, leads, real } = await loadQuarter(supabase, picked);
   const sum = (a: number[]) => a.reduce((s, n) => s + n, 0);
   const sourceReal = (s: TargetSource) => sum(real.get(String(s.id)) ?? []);
 

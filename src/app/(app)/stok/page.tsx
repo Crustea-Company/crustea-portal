@@ -111,7 +111,7 @@ export default async function StokPage() {
       )}
 
       {canEdit && active.length > 0 && (
-        <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section id="catat-mutasi" className="scroll-mt-20 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-semibold text-slate-900">Catat mutasi stok</h2>
           <p className="text-sm text-slate-600">
             Masuk: dari penerimaan barang pengadaan (GRN). Keluar: selain work order (work order tercatat otomatis).
