@@ -119,11 +119,12 @@ export const OTHER_KEY = "__other";
 
 // Realisasi per sumber per bulan. Lunas saja: lead penjualan pada bulan paid_on (ke sumber from_sales),
 // pendapatan manual pada bulan tanggalnya (ke sumber dengan label alokasi yang sama; selain itu "lain").
+// Lead yang punya pendapatan tertaut (revenue_leads, migrasi 016) dihitung dari pendapatannya saja, supaya tidak dobel.
 export function realization(
   t: QuarterTarget,
   sources: TargetSource[],
   revenues: Pick<Revenue, "revenue_date" | "amount" | "allocation" | "status">[],
-  sales: { paid_on: string | null; value: number }[],
+  sales: { paid_on: string | null; value: number; linked?: boolean }[],
 ): Map<string, number[]> {
   const months = quarterMonths(t);
   const out = new Map<string, number[]>();
@@ -136,7 +137,7 @@ export function realization(
   };
   const byLabel = new Map(sources.map((s) => [s.alloc_label.trim().toLowerCase(), String(s.id)]));
   const salesSource = sources.find((s) => s.from_sales);
-  for (const l of sales) if (l.paid_on) add(salesSource ? String(salesSource.id) : OTHER_KEY, l.paid_on, l.value);
+  for (const l of sales) if (l.paid_on && !l.linked) add(salesSource ? String(salesSource.id) : OTHER_KEY, l.paid_on, l.value);
   for (const r of revenues) {
     if (r.status !== "paid") continue;
     add(byLabel.get((r.allocation ?? "").trim().toLowerCase()) ?? OTHER_KEY, r.revenue_date, r.amount);

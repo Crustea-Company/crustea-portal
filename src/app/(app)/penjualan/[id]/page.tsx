@@ -28,6 +28,8 @@ export const metadata: Metadata = { title: "Detail Lead - Crustea Portal" };
 
 const rp = (n: number) => `Rp${formatNumber(n)}`;
 
+type Payment = { id: string; revenue_date: string; amount: number; description: string; status: string };
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -54,7 +56,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const me = (await getCurrentEmployee())!;
   const supabase = await createClient();
-  const [leadRes, eventRes, productRes] = await Promise.all([
+  const [leadRes, eventRes, productRes, paymentRes] = await Promise.all([
     supabase.from("sales_leads").select(LEAD_COLUMNS).eq("id", id).maybeSingle(),
     supabase
       .from("sales_lead_events")
@@ -62,12 +64,17 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       .eq("lead_id", id)
       .order("created_at"),
     supabase.from("products").select("code, name, valid_from").order("valid_from"),
+    supabase.from("revenue_leads").select("revenue:revenues(id, revenue_date, amount, description, status)").eq("lead_id", id),
   ]);
   if (!leadRes.data) notFound();
   const lead = toLead(leadRes.data as Record<string, unknown>);
   const events = (eventRes.data ?? []) as unknown as LeadEvent[];
   const productName = new Map(((productRes.data ?? []) as { code: string; name: string }[]).map((p) => [p.code, p.name]));
   const claims = await loadLeadClaims(supabase, [lead.id]);
+  // Uang masuk yang tercatat di Target kuartal (pendapatan) untuk penjualan ini.
+  const payments = ((paymentRes.data ?? []) as unknown as { revenue: Payment | null }[])
+    .flatMap((p) => (p.revenue ? [p.revenue] : []))
+    .sort((a, b) => a.revenue_date.localeCompare(b.revenue_date));
 
   const manager = isSalesManager(me);
   const own = lead.sales_id === me.id || manager;
@@ -154,6 +161,27 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         </dl>
         {lead.notes && <p className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{lead.notes}</p>}
       </section>
+
+      {payments.length > 0 && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="mb-1 font-semibold text-slate-900">Uang masuk (pendapatan tercatat)</h2>
+          <p className="mb-2 text-xs text-slate-500">Realisasi target kuartal untuk penjualan ini dihitung dari pembayaran ini.</p>
+          <ul className="flex flex-col divide-y divide-slate-100 text-sm">
+            {payments.map((p) => (
+              <li key={p.id} className="flex flex-wrap justify-between gap-2 py-1.5">
+                <span>
+                  {formatDate(p.revenue_date)} · {p.description}
+                  {p.status !== "paid" && <span className="text-xs text-orange-800"> · belum lunas</span>}
+                </span>
+                <span className="tabular-nums font-medium">{rp(p.amount)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-right text-sm font-semibold text-slate-900">
+            Total {rp(payments.reduce((sum, p) => sum + Number(p.amount), 0))}
+          </p>
+        </section>
+      )}
 
       {complaints.length > 0 && (
         <section className="rounded-2xl border border-orange-200 bg-orange-50 p-4">

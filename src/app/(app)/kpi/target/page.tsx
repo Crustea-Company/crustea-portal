@@ -90,7 +90,10 @@ export default async function TargetPage({ searchParams }: { searchParams: Searc
       .order("sort"),
     fetchAll(() => supabase.from("revenues").select(REVENUE_COLUMNS).gte("revenue_date", from).lt("revenue_date", end).order("revenue_date")),
     fetchAll(() =>
-      supabase.from("sales_leads").select("number, customer, value, closed_on, paid_on").gte("paid_on", from).lt("paid_on", end).order("paid_on"),
+      supabase
+        .from("sales_leads")
+        .select("number, customer, value, closed_on, paid_on, revenue_links:revenue_leads(revenue_id)")
+        .gte("paid_on", from).lt("paid_on", end).order("paid_on"),
     ),
   ]);
   const sources = ((sourceRows ?? []) as unknown as TargetSource[]).map((s) => ({
@@ -99,7 +102,16 @@ export default async function TargetPage({ searchParams }: { searchParams: Searc
     strategies: [...s.strategies].sort((a, b) => a.sort - b.sort),
   }));
   const revenues = revRows as unknown as Revenue[];
-  const leads = leadRows as { number: string; customer: string; value: number; closed_on: string | null; paid_on: string | null }[];
+  const leads = (
+    leadRows as unknown as {
+      number: string;
+      customer: string;
+      value: number;
+      closed_on: string | null;
+      paid_on: string | null;
+      revenue_links: { revenue_id: string }[];
+    }[]
+  ).map((l) => ({ ...l, linked: l.revenue_links.length > 0 }));
   const real = realization(picked, sources, revenues, leads);
   const sum = (a: number[]) => a.reduce((s, n) => s + n, 0);
   const sourceReal = (s: TargetSource) => sum(real.get(String(s.id)) ?? []);
@@ -366,8 +378,9 @@ export default async function TargetPage({ searchParams }: { searchParams: Searc
                   <span>
                     <span className="font-mono text-xs text-slate-500">{l.number}</span> {l.customer}
                     <span className="text-xs text-slate-500"> · lunas {formatDate(l.paid_on)}</span>
+                    {l.linked && <span className="text-xs text-slate-500"> · dihitung dari pendapatan tertaut</span>}
                   </span>
-                  <span className="tabular-nums">{rp(l.value)}</span>
+                  <span className={`tabular-nums ${l.linked ? "text-slate-400 line-through" : ""}`}>{rp(l.value)}</span>
                 </li>
               ))}
             </ul>
