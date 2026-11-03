@@ -168,6 +168,54 @@ export type LeadEvent = {
 
 export type LeadClaim = { lead_id: string; request_id: string; number: string; status: string; requester_name: string };
 
+// ---------- Jenis teknologi (untuk filter & label di daftar pipeline) ----------
+
+export const TECH_FAMILIES = {
+  brush: "Brush aerator",
+  mini: "Mini aerator",
+  ebii: "EBII",
+  smart_energy: "Smart Energy",
+  solar: "Panel surya / PLTS",
+  bundle: "Paket (Ecoaerator / Full set)",
+  other: "Lainnya / belum dipilih",
+} as const;
+export type TechFamily = keyof typeof TECH_FAMILIES;
+
+const FAMILY_BY_CODE: Record<string, TechFamily> = {
+  "aerator-brush-1f": "brush",
+  "aerator-brush-3f": "brush",
+  "aerator-mini": "mini",
+  "ebii-system": "ebii",
+  "smart-energy": "smart_energy",
+  "panel-surya-on-grid": "solar",
+  "panel-surya-off-grid": "solar",
+  ecoaerator: "bundle",
+  "full-set-technology": "bundle",
+};
+
+// Nama produk dari sheet impor ("Produk di sheet: Brush Aerator (1 Fasa)") untuk lead tanpa produk master.
+export function sheetProduct(notes: string | null): string | null {
+  return notes?.match(/Produk di sheet: ([^.]+)/)?.[1]?.trim() ?? null;
+}
+
+export function techFamily(lead: Pick<Lead, "product_code" | "notes">): TechFamily {
+  if (lead.product_code) return FAMILY_BY_CODE[lead.product_code] ?? "other";
+  const s = (sheetProduct(lead.notes) ?? "").toLowerCase();
+  if (s.includes("brush")) return "brush";
+  if (s.includes("mini")) return "mini";
+  if (s.includes("ebii")) return "ebii";
+  if (s.includes("smart energy")) return "smart_energy";
+  if (s.includes("plts") || s.includes("surya")) return "solar";
+  if (s.includes("full set")) return "bundle";
+  return "other";
+}
+
+// Label teknologi yang tampil di daftar: nama produk master, atau nama di sheet impor.
+export function techLabel(lead: Pick<Lead, "product_code" | "notes">, productName: Map<string, string>): string {
+  if (lead.product_code) return productName.get(lead.product_code) ?? lead.product_code;
+  return sheetProduct(lead.notes) ?? "Produk belum dipilih";
+}
+
 // ---------- Stok ----------
 
 export type StockItem = {
