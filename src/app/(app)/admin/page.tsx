@@ -22,6 +22,7 @@ const ACTION_LABEL: Record<string, string> = {
   employee_deactivate: "Nonaktifkan karyawan",
   employee_activate: "Aktifkan kembali karyawan",
   employee_delete: "Hapus karyawan",
+  org_update: "Ubah struktur organisasi",
 };
 
 // Kolom data karyawan yang ditampilkan di riwayat (lama -> baru).

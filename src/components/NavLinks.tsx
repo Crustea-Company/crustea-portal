@@ -67,6 +67,7 @@ const MENU: Item[] = [
     ],
   },
   { href: "/produk", label: "Produk & Komisi", icon: "box" },
+  { href: "/struktur-organisasi", label: "Struktur Organisasi", icon: "org" },
   { href: "/prosedur", label: "Prosedur", icon: "book" },
   {
     href: "/komunitas",
@@ -99,7 +100,7 @@ const SYSTEM: Item[] = [
   },
 ];
 
-type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron" | "book" | "receipt" | "box" | "chart" | "target" | "fish" | "chat";
+type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron" | "book" | "receipt" | "box" | "chart" | "target" | "fish" | "org" | "chat";
 
 export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout" | "menu"; className?: string }) {
   const p = { viewBox: "0 0 24 24", className, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -122,6 +123,8 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout
       return <svg {...p}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></svg>;
     case "fish":
       return <svg {...p}><path d="M3 12c3-4.5 7-6 11-6 3 0 5.5 2 7 6-1.5 4-4 6-7 6-4 0-8-1.5-11-6z" /><path d="M3 12 1 9M3 12l-2 3" /><circle cx="16" cy="11" r="1" /></svg>;
+    case "org":
+      return <svg {...p}><rect x="9" y="3" width="6" height="5" rx="1" /><rect x="2" y="16" width="6" height="5" rx="1" /><rect x="9" y="16" width="6" height="5" rx="1" /><rect x="16" y="16" width="6" height="5" rx="1" /><path d="M12 8v4M5 16v-4h14v4M12 12v4" /></svg>;
     case "chat":
       return <svg {...p}><path d="M4 5h16v11H9l-5 4z" /><path d="M8 9h8M8 12h5" /></svg>;
     case "book":
