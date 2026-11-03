@@ -17,6 +17,7 @@ import {
   commissionOwner,
   daysSince,
   isSalesManager,
+  itemLabel,
   stageRank,
   toLead,
   type LeadEvent,
@@ -137,8 +138,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <Field label="PIC sales">{lead.sales?.full_name ?? "-"}</Field>
           <Field label="Kontak">{lead.contact || "-"}</Field>
           <Field label="Lokasi">{lead.location || "-"}</Field>
-          <Field label="Produk">{lead.product_code ? productName.get(lead.product_code) ?? lead.product_code : "Belum dipilih"}</Field>
-          <Field label="Jumlah unit">{formatNumber(lead.units)}</Field>
+          <Field label="Total unit">{formatNumber(lead.units)}</Field>
           {lead.so_number && <Field label="No. Sales Order / invoice">{lead.so_number}</Field>}
           {lead.closed_on && <Field label="Tanggal closing">{formatDate(lead.closed_on)}</Field>}
           {closed && (
@@ -159,6 +159,33 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </Field>
           )}
         </dl>
+        <table className="mt-4 w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+              <th className="py-1.5 pr-2 font-medium">Produk</th>
+              <th className="py-1.5 pr-2 text-right font-medium">Unit</th>
+              <th className="py-1.5 text-right font-medium">Nilai</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lead.items.map((it, i) => (
+              <tr key={i} className="border-b border-slate-100">
+                <td className="py-1.5 pr-2">{itemLabel(it, lead.notes, productName)}</td>
+                <td className="py-1.5 pr-2 text-right tabular-nums">{formatNumber(it.units)}</td>
+                <td className="py-1.5 text-right tabular-nums">{it.value ? rp(it.value) : "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+          {lead.items.length > 1 && (
+            <tfoot>
+              <tr className="font-semibold text-slate-900">
+                <td className="py-1.5 pr-2">Total</td>
+                <td className="py-1.5 pr-2 text-right tabular-nums">{formatNumber(lead.units)}</td>
+                <td className="py-1.5 text-right tabular-nums">{rp(lead.value)}</td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
         {lead.notes && <p className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{lead.notes}</p>}
       </section>
 

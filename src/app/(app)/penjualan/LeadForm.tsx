@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import RupiahInput from "@/components/requests/RupiahInput";
 import type { ReferralOwner } from "@/lib/commission";
-import { LEAD_SOURCES, type LeadInput, type LeadSource } from "@/lib/sales";
+import { formatNumber } from "@/lib/format";
+import { LEAD_SOURCES, MAX_LEAD_ITEMS, type LeadInput, type LeadItem, type LeadSource } from "@/lib/sales";
 import { saveLead } from "./actions";
 
 const inputClass =
@@ -31,9 +32,7 @@ export default function LeadForm({ meId, today, products, referrals, people, ini
       customer: "",
       contact: "",
       location: "",
-      product_code: "",
-      units: 1,
-      value: 0,
+      items: [{ product_code: null, units: 1, value: 0 }],
       sales_id: meId,
       notes: "",
     },
@@ -44,6 +43,10 @@ export default function LeadForm({ meId, today, products, referrals, people, ini
   const refName = new Map(referrals.map((r) => [r.code, r.name]));
   const code = form.referral_code.trim().toUpperCase();
   const set = (patch: Partial<LeadInput>) => setForm((f) => ({ ...f, ...patch }));
+  const setItem = (i: number, patch: Partial<LeadItem>) =>
+    setForm((f) => ({ ...f, items: f.items.map((it, j) => (j === i ? { ...it, ...patch } : it)) }));
+  const totalUnits = form.items.reduce((s, it) => s + it.units, 0);
+  const totalValue = form.items.reduce((s, it) => s + it.value, 0);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -134,53 +137,79 @@ export default function LeadForm({ meId, today, products, referrals, people, ini
         </label>
       </div>
 
-      <label className={labelClass}>
-        Produk yang diminati
-        <select
-          disabled={locked}
-          value={form.product_code}
-          onChange={(e) => set({ product_code: e.target.value })}
-          className={inputClass}
-        >
-          <option value="">Belum tahu</option>
-          {products.map((p) => (
-            <option key={p.code} value={p.code}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className={labelClass}>
-          Jumlah unit
-          <input
-            type="number"
-            required
-            min={1}
-            step={1}
-            inputMode="numeric"
-            disabled={locked}
-            value={form.units || ""}
-            onChange={(e) => set({ units: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
-            className={inputClass}
-          />
-        </label>
-        <div className={labelClass}>
-          <label htmlFor="lead-value">
-            Nilai penjualan <span className={hintClass}>(Rp, excl. VAT; perkiraan dulu)</span>
-          </label>
-          {locked ? (
-            <input disabled value={`Rp${form.value.toLocaleString("id-ID")}`} className={inputClass} />
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1 text-sm font-medium text-slate-700">
+          Produk yang diminati <span className={hintClass}>(satu baris per produk; nilai = total baris itu, Rp excl. VAT, perkiraan dulu)</span>
+        </legend>
+        {form.items.map((it, i) => (
+          <div key={i} className="grid grid-cols-[1fr_5rem] gap-2 rounded-xl border border-slate-200 p-2 sm:grid-cols-[minmax(0,1fr)_5.5rem_11rem_auto]">
+            <select
+              disabled={locked}
+              value={it.product_code ?? ""}
+              onChange={(e) => setItem(i, { product_code: e.target.value || null })}
+              aria-label={`Produk ${i + 1}`}
+              className={inputClass}
+            >
+              <option value="">Belum tahu</option>
+              {products.map((p) => (
+                <option key={p.code} value={p.code}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              required
+              min={1}
+              step={1}
+              inputMode="numeric"
+              disabled={locked}
+              value={it.units || ""}
+              onChange={(e) => setItem(i, { units: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+              aria-label={`Jumlah unit produk ${i + 1}`}
+              placeholder="Unit"
+              className={inputClass}
+            />
+            <div className="col-span-2 sm:col-span-1">
+              {locked ? (
+                <input disabled value={`Rp${it.value.toLocaleString("id-ID")}`} aria-label={`Nilai produk ${i + 1}`} className={inputClass} />
+              ) : (
+                <RupiahInput id={`lead-value-${i}`} value={it.value} onChange={(n) => setItem(i, { value: n })} />
+              )}
+            </div>
+            {!locked && form.items.length > 1 && (
+              <button
+                type="button"
+                onClick={() => set({ items: form.items.filter((_, j) => j !== i) })}
+                className="col-span-2 justify-self-start text-sm font-medium text-red-700 hover:underline sm:col-span-1 sm:self-center"
+              >
+                Hapus
+              </button>
+            )}
+          </div>
+        ))}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {!locked && form.items.length < MAX_LEAD_ITEMS ? (
+            <button
+              type="button"
+              onClick={() => set({ items: [...form.items, { product_code: null, units: 1, value: 0 }] })}
+              className="rounded-lg border border-dashed border-brand-600 px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50"
+            >
+              + Tambah produk
+            </button>
           ) : (
-            <RupiahInput id="lead-value" value={form.value} onChange={(n) => set({ value: n })} />
+            <span />
           )}
+          <span className="text-sm text-slate-600">
+            Total {formatNumber(totalUnits)} unit · <span className="font-semibold text-slate-900">Rp{formatNumber(totalValue)}</span>
+          </span>
         </div>
-      </div>
-      {locked && (
-        <p className="-mt-2 text-xs text-slate-500">
-          Produk, unit, nilai, dan kode referral terkunci setelah closing (dasar komisi dan realisasi penjualan).
-        </p>
-      )}
+        {locked && (
+          <p className="text-xs text-slate-500">
+            Produk, unit, nilai, dan kode referral terkunci setelah closing (dasar komisi dan realisasi penjualan).
+          </p>
+        )}
+      </fieldset>
 
       <label className={labelClass}>
         PIC sales

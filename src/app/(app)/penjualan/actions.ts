@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/format";
-import { LEAD_SOURCES, type LeadInput, type LeadStage } from "@/lib/sales";
+import { LEAD_SOURCES, MAX_LEAD_ITEMS, type LeadInput, type LeadStage } from "@/lib/sales";
 
 type Result = { ok: true; id: string } | { ok: false; message: string };
 type SimpleResult = { ok: true } | { ok: false; message: string };
@@ -27,9 +27,8 @@ export async function saveLead(input: LeadInput, id: string | null): Promise<Res
     customer: input.customer.trim(),
     contact: input.contact.trim() || null,
     location: input.location.trim() || null,
-    product_code: input.product_code || null,
-    units: input.units,
-    value: input.value,
+    // Database menghitung ringkasan (produk pertama, total unit, total nilai) dari baris produk.
+    items: input.items.map((it) => ({ product_code: it.product_code || null, units: it.units, value: it.value })),
     sales_id: input.sales_id || me.id,
     notes: input.notes.trim() || null,
   };
@@ -38,8 +37,12 @@ export async function saveLead(input: LeadInput, id: string | null): Promise<Res
   if (row.lead_date > todayJakarta()) return { ok: false, message: "Tanggal lead masuk tidak boleh di masa depan." };
   if (!row.customer) return { ok: false, message: "Nama customer belum diisi." };
   if (row.source === "referral" && !row.referral_code) return { ok: false, message: "Lead dari referral wajib diisi kode referralnya." };
-  if (!Number.isSafeInteger(row.units) || row.units < 1) return { ok: false, message: "Jumlah unit minimal 1." };
-  if (!Number.isSafeInteger(row.value) || row.value < 0) return { ok: false, message: "Nilai penjualan tidak valid." };
+  if (row.items.length === 0) return { ok: false, message: "Isi minimal satu produk." };
+  if (row.items.length > MAX_LEAD_ITEMS) return { ok: false, message: `Maksimal ${MAX_LEAD_ITEMS} produk per lead.` };
+  for (const [i, it] of row.items.entries()) {
+    if (!Number.isSafeInteger(it.units) || it.units < 1) return { ok: false, message: `Produk ${i + 1}: jumlah unit minimal 1.` };
+    if (!Number.isSafeInteger(it.value) || it.value < 0) return { ok: false, message: `Produk ${i + 1}: nilai tidak valid.` };
+  }
 
   const supabase = await createClient();
   if (id) {

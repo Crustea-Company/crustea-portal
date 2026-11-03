@@ -58,23 +58,27 @@ export default function CommissionForm({
     justification: "",
     referral_code: myCode,
   });
-  const fromLead = (lead: Lead, key: number): Line => ({
-    key,
-    lead_id: lead.id,
-    customer: lead.customer,
-    invoice: lead.so_number ?? "",
-    closing_date: lead.closed_on ?? today,
-    product_code: lead.product_code ?? "",
-    units: lead.units,
-    sales_total: lead.value,
-    justification: "",
-    referral_code: lead.referral_code ?? "",
-  });
+  // Satu baris klaim per produk lead (database mengisi ulang semuanya dari lead).
+  const fromLead = (lead: Lead, firstKey: number): Line[] =>
+    lead.items.map((it, i) => ({
+      key: firstKey + i,
+      lead_id: lead.id,
+      customer: lead.customer,
+      invoice: lead.so_number ?? "",
+      closing_date: lead.closed_on ?? today,
+      product_code: it.product_code ?? "",
+      units: it.units,
+      sales_total: it.value,
+      justification: "",
+      referral_code: lead.referral_code ?? "",
+    }));
   const leadById = new Map(leads.map((l) => [l.id, l]));
   const [lines, setLines] = useState<Line[]>(() => {
     if (initial?.lines.length) return initial.lines.map((l, i) => ({ ...l, referral_code: l.referral_code ?? "", key: i }));
     const picked = initialLeadIds.flatMap((id) => (leadById.has(id) ? [leadById.get(id) as Lead] : []));
-    return picked.length ? picked.map((l, i) => fromLead(l, i)) : [blank(0)];
+    const out: Line[] = [];
+    for (const l of picked) out.push(...fromLead(l, out.length));
+    return out.length ? out : [blank(0)];
   });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -91,11 +95,13 @@ export default function CommissionForm({
   const addLead = (lead: Lead) =>
     setLines((list) => {
       const empty = list.length === 1 && !list[0].lead_id && !list[0].customer && !list[0].product_code;
-      return empty ? [fromLead(lead, 0)] : [...list, fromLead(lead, nextKey(list))];
+      return empty ? fromLead(lead, 0) : [...list, ...fromLead(lead, nextKey(list))];
     });
   const usedLeads = new Set(lines.map((l) => l.lead_id).filter(Boolean));
   const availableLeads = leads.filter((l) => !usedLeads.has(l.id));
   const removeLine = (key: number) => setLines((list) => list.filter((l) => l.key !== key));
+  // Baris dari penjualan dihapus bersama semua produk lead itu.
+  const removeLead = (leadId: string) => setLines((list) => list.filter((l) => l.lead_id !== leadId));
 
   const previews = lines.map((l) => previewLine(l, products));
   const total = previews.reduce((sum, p) => sum + (p?.commission ?? 0), 0);
@@ -177,9 +183,9 @@ export default function CommissionForm({
                 <legend className="text-sm font-semibold text-slate-900">
                   Penjualan {i + 1} · <span className="font-mono">{lead?.number ?? "dari modul Penjualan"}</span>
                 </legend>
-                {lines.length > 1 && (
-                  <button type="button" onClick={() => removeLine(l.key)} className="text-sm font-medium text-red-700 hover:underline">
-                    Hapus baris
+                {lines.some((o) => o.lead_id !== l.lead_id) && (
+                  <button type="button" onClick={() => removeLead(l.lead_id as string)} className="text-sm font-medium text-red-700 hover:underline">
+                    {lines.filter((o) => o.lead_id === l.lead_id).length > 1 ? "Hapus penjualan ini" : "Hapus baris"}
                   </button>
                 )}
               </div>

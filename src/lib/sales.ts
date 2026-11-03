@@ -93,6 +93,9 @@ export const LEAD_SOURCES = {
 
 export type LeadSource = keyof typeof LEAD_SOURCES;
 
+// Satu baris produk dalam lead (migrasi 023). product_code kosong = produk belum dipilih.
+export type LeadItem = { product_code: string | null; units: number; value: number };
+
 export type Lead = {
   id: string;
   number: string;
@@ -103,9 +106,10 @@ export type Lead = {
   customer: string;
   contact: string | null;
   location: string | null;
-  product_code: string | null;
-  units: number;
-  value: number;
+  product_code: string | null; // ringkasan: produk pertama
+  units: number; // ringkasan: total unit
+  value: number; // ringkasan: total nilai
+  items: LeadItem[];
   sales_id: string;
   notes: string | null;
   stage: LeadStage;
@@ -122,11 +126,25 @@ export type Lead = {
 };
 
 export const LEAD_COLUMNS =
-  "id, number, lead_date, source, referral_code, referral_id, customer, contact, location, product_code, units, value, sales_id, notes, stage, stage_since, lost_reason, so_number, closed_on, paid_on, installed_on, created_by, created_at, sales:employees!sales_leads_sales_id_fkey(full_name), referral:employees!sales_leads_referral_id_fkey(full_name)";
+  "id, number, lead_date, source, referral_code, referral_id, customer, contact, location, product_code, units, value, items, sales_id, notes, stage, stage_since, lost_reason, so_number, closed_on, paid_on, installed_on, created_by, created_at, sales:employees!sales_leads_sales_id_fkey(full_name), referral:employees!sales_leads_referral_id_fkey(full_name)";
 
 export function toLead(row: Record<string, unknown>): Lead {
-  return { ...(row as unknown as Lead), value: Number(row.value), units: Number(row.units) };
+  const lead = row as unknown as Lead;
+  const items = (Array.isArray(row.items) ? (row.items as LeadItem[]) : []).map((it) => ({
+    product_code: it.product_code || null,
+    units: Number(it.units),
+    value: Number(it.value),
+  }));
+  return {
+    ...lead,
+    value: Number(row.value),
+    units: Number(row.units),
+    // Lead lama tanpa baris produk: pakai kolom ringkasan.
+    items: items.length ? items : [{ product_code: lead.product_code, units: Number(row.units), value: Number(row.value) }],
+  };
 }
+
+export const MAX_LEAD_ITEMS = 20;
 
 export type LeadInput = {
   lead_date: string;
@@ -135,9 +153,7 @@ export type LeadInput = {
   customer: string;
   contact: string;
   location: string;
-  product_code: string;
-  units: number;
-  value: number;
+  items: LeadItem[];
   sales_id: string;
   notes: string;
 };
@@ -198,9 +214,9 @@ export function sheetProduct(notes: string | null): string | null {
   return notes?.match(/Produk di sheet: ([^.]+)/)?.[1]?.trim() ?? null;
 }
 
-export function techFamily(lead: Pick<Lead, "product_code" | "notes">): TechFamily {
-  if (lead.product_code) return FAMILY_BY_CODE[lead.product_code] ?? "other";
-  const s = (sheetProduct(lead.notes) ?? "").toLowerCase();
+function familyOf(code: string | null, notes: string | null): TechFamily {
+  if (code) return FAMILY_BY_CODE[code] ?? "other";
+  const s = (sheetProduct(notes) ?? "").toLowerCase();
   if (s.includes("brush")) return "brush";
   if (s.includes("mini")) return "mini";
   if (s.includes("ebii")) return "ebii";
@@ -210,10 +226,20 @@ export function techFamily(lead: Pick<Lead, "product_code" | "notes">): TechFami
   return "other";
 }
 
-// Label teknologi yang tampil di daftar: nama produk master, atau nama di sheet impor.
-export function techLabel(lead: Pick<Lead, "product_code" | "notes">, productName: Map<string, string>): string {
-  if (lead.product_code) return productName.get(lead.product_code) ?? lead.product_code;
-  return sheetProduct(lead.notes) ?? "Produk belum dipilih";
+// Semua jenis teknologi dalam lead (satu per baris produk).
+export function techFamilies(lead: Pick<Lead, "items" | "notes">): TechFamily[] {
+  return [...new Set(lead.items.map((it) => familyOf(it.product_code, lead.notes)))];
+}
+
+// Nama satu baris produk: produk master, atau nama di sheet impor.
+export function itemLabel(it: LeadItem, notes: string | null, productName: Map<string, string>): string {
+  if (it.product_code) return productName.get(it.product_code) ?? it.product_code;
+  return sheetProduct(notes) ?? "Produk belum dipilih";
+}
+
+// Label teknologi yang tampil di daftar, mis. "Aerator Mini ×4 · EBII System ×1".
+export function techLabel(lead: Pick<Lead, "items" | "notes">, productName: Map<string, string>): string {
+  return lead.items.map((it) => `${itemLabel(it, lead.notes, productName)} ×${it.units}`).join(" · ");
 }
 
 // ---------- Stok ----------

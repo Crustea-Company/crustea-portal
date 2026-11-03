@@ -13,7 +13,8 @@ import {
   WON_RANK,
   daysSince,
   stageRank,
-  techFamily,
+  itemLabel,
+  techFamilies,
   techLabel,
   type Lead,
   type LeadStage,
@@ -106,7 +107,7 @@ export default function LeadBoard({
     const terms = searchTerms(q);
     return leads.filter((l) => {
       if (mine && l.sales_id !== meId && l.referral_id !== meId) return false;
-      if (tech && techFamily(l) !== tech) return false;
+      if (tech && !techFamilies(l).includes(tech as TechFamily)) return false;
       if (pic && l.sales_id !== pic) return false;
       if (terms.length) {
         const hay = normalizeText(
@@ -239,12 +240,12 @@ export default function LeadBoard({
           Tidak ada lead yang cocok.
         </p>
       ) : (
-        <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <ul className="@container divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {list.map((l) => (
             <LeadRow
               key={l.id}
               lead={l}
-              tech={techLabel(l, names)}
+              names={names}
               open={open === l.id}
               onToggle={() => setOpen((o) => (o === l.id ? null : l.id))}
               canEdit={manager || l.sales_id === meId || l.created_by === meId}
@@ -258,27 +259,28 @@ export default function LeadBoard({
 
 function LeadRow({
   lead: l,
-  tech,
+  names,
   open,
   onToggle,
   canEdit,
 }: {
   lead: Lead;
-  tech: string;
+  names: Map<string, string>;
   open: boolean;
   onToggle: () => void;
   canEdit: boolean;
 }) {
   const closed = l.stage !== "lost" && stageRank(l.stage) >= WON_RANK;
+  const items = l.items.map((it) => ({ ...it, label: itemLabel(it, l.notes, names) }));
   return (
     <li className={open ? "bg-brand-50/40" : ""}>
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 px-3 py-2.5 text-left hover:bg-slate-50 sm:grid-cols-[minmax(0,1fr)_13rem_10.5rem_7.5rem_8.5rem]"
+        className="grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 px-3 py-2.5 text-left hover:bg-slate-50 @3xl:grid-cols-[minmax(0,1fr)_13rem_10.5rem_7.5rem_8.5rem]"
       >
-        <span className="col-start-1 row-start-1 min-w-0 sm:col-start-auto sm:row-start-auto">
+        <span className="col-start-1 row-start-1 min-w-0 @3xl:col-start-auto @3xl:row-start-auto">
           <span className="flex items-center gap-1.5">
             <svg
               viewBox="0 0 24 24"
@@ -298,12 +300,16 @@ function LeadRow({
           </span>
         </span>
 
-        <span className="col-span-2 flex min-w-0 items-center gap-1.5 pl-5 sm:col-span-1 sm:pl-0">
-          <span className="truncate rounded-md bg-logo-lime/25 px-2 py-0.5 text-xs font-medium text-slate-800">{tech}</span>
-          <span className="shrink-0 text-xs font-semibold text-slate-700">×{formatNumber(l.units)}</span>
+        <span className="col-span-2 flex min-w-0 flex-wrap items-center gap-1 pl-5 @3xl:col-span-1 @3xl:pl-0">
+          {items.slice(0, 2).map((it, i) => (
+            <span key={i} className="max-w-full truncate rounded-md bg-logo-lime/25 px-2 py-0.5 text-xs font-medium text-slate-800">
+              {it.label} <span className="font-semibold">×{formatNumber(it.units)}</span>
+            </span>
+          ))}
+          {items.length > 2 && <span className="text-xs font-semibold text-slate-600">+{items.length - 2} produk</span>}
         </span>
 
-        <span className="col-span-2 flex flex-wrap items-center gap-1 pl-5 sm:col-span-1 sm:pl-0">
+        <span className="col-span-2 flex flex-wrap items-center gap-1 pl-5 @3xl:col-span-1 @3xl:pl-0">
           <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${STAGE_STYLE[l.stage]}`}>
             {STAGE_LABEL[l.stage]}
           </span>
@@ -312,21 +318,37 @@ function LeadRow({
           )}
         </span>
 
-        <span className="hidden truncate text-sm text-slate-600 sm:block">{l.sales?.full_name ?? "-"}</span>
+        <span className="hidden truncate text-sm text-slate-600 @3xl:block">{l.sales?.full_name ?? "-"}</span>
 
-        <span className="col-start-2 row-start-1 text-right sm:col-start-auto sm:row-start-auto">
+        <span className="col-start-2 row-start-1 text-right @3xl:col-start-auto @3xl:row-start-auto">
           <span className="block font-bold tabular-nums text-slate-900">{l.value ? rp(l.value) : "-"}</span>
-          <span className="block text-xs text-slate-500 sm:hidden">{l.sales?.full_name ?? "-"}</span>
+          <span className="block text-xs text-slate-500 @3xl:hidden">{l.sales?.full_name ?? "-"}</span>
         </span>
       </button>
 
       {open && (
         <div className="flex flex-col gap-3 border-t border-slate-100 px-3 pb-3 pt-2 sm:pl-8">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-slate-500">
+                <th className="py-1 pr-2 font-medium">Produk</th>
+                <th className="py-1 pr-2 text-right font-medium">Unit</th>
+                <th className="py-1 text-right font-medium">Nilai</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it, i) => (
+                <tr key={i} className="border-t border-slate-100">
+                  <td className="py-1 pr-2 text-slate-900">{it.label}</td>
+                  <td className="py-1 pr-2 text-right tabular-nums">{formatNumber(it.units)}</td>
+                  <td className="py-1 text-right tabular-nums">{it.value ? rp(it.value) : "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
-            <Item label="Teknologi">
-              {tech} · {formatNumber(l.units)} unit
-            </Item>
-            <Item label="Nilai">{l.value ? rp(l.value) : "Belum diisi"}</Item>
+            <Item label="Total nilai">{l.value ? rp(l.value) : "Belum diisi"}</Item>
+            <Item label="Total unit">{formatNumber(l.units)} unit</Item>
             <Item label="Sumber">
               {LEAD_SOURCES[l.source]}
               {l.referral_code ? ` · ${l.referral_code}` : ""}
