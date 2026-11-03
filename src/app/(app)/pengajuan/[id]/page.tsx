@@ -9,6 +9,7 @@ import {
   KIND_LABEL,
   PAYMENT_CONTRACT,
   PAYMENT_PRIORITIES,
+  REIMBURSE_TITLE_MAX,
   REQUEST_COLUMNS,
   canApproveAsCeo,
   canReviewRequests,
@@ -54,6 +55,25 @@ function ReimburseDetails({ data }: { data: ReimburseData }) {
       <Field label="Tanggal transaksi">{formatDate(data.transaction_date)}</Field>
       <Field label="Kategori transaksi">{categories.join(", ") || "-"}</Field>
     </>
+  );
+}
+
+// Rincian panjang (Detail transaksi, atau uraian lama yang terlalu panjang): bisa dibuka-tutup.
+function LongDetails({ text }: { text: string }) {
+  const lines = text.split("\n").filter((l) => l.trim()).length;
+  return (
+    <details className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold text-slate-900">
+        <span>
+          Detail transaksi <span className="font-normal text-slate-500">({lines} baris)</span>
+        </span>
+        <span className="text-sm font-medium text-brand-700 group-open:hidden">Buka</span>
+        <span className="hidden text-sm font-medium text-brand-700 group-open:inline">Tutup</span>
+      </summary>
+      <div className="max-h-[70vh] overflow-y-auto border-t border-slate-200 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap text-slate-900">
+        {text}
+      </div>
+    </details>
   );
 }
 
@@ -383,6 +403,9 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
     (procurement !== null && !isOwner && (isTo || isProcHead));
   const editable = isOwner && (req.status === "draft" || req.status === "needs_revision");
   const data = req.data as unknown as ReimburseData;
+  // Pengajuan lama menaruh seluruh rincian di uraian: tampilkan lengkap di Detail transaksi.
+  const reimburseDetails =
+    data.details?.trim() || (req.title.length > REIMBURSE_TITLE_MAX || req.title.includes("\n") ? req.title : "");
   const payment = req.data as unknown as PaymentData;
   const commission = req.kind === "commission" ? (req.data as unknown as CommissionData) : null;
   // Paket RAB Aquaculture: diubah di editor RAB oleh tim AQ; tim AQ, TechOps, DM boleh memberi catatan (review lintas tim).
@@ -422,7 +445,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
           {isUrgent(req) && <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">Segera</span>}
           <SlaLabel slaDue={req.sla_due} />
         </div>
-        <h1 className="text-xl font-bold text-slate-900">{req.title}</h1>
+        <h1 className="line-clamp-3 text-xl font-bold break-words text-slate-900">{req.title}</h1>
         <p className="text-2xl font-bold text-brand-800">Rp{formatNumber(req.amount)}</p>
       </div>
 
@@ -484,6 +507,7 @@ export default async function PengajuanDetailPage({ params, searchParams }: { pa
         )}
       </section>
 
+      {req.kind === "reimburse" && reimburseDetails && <LongDetails text={reimburseDetails} />}
       {req.kind === "reimburse" && <MissionDetails data={data} />}
       {commission && <CommissionLines data={commission} leadPaid={leadPaid} />}
       {aquaPlan && <AquaPlanDetails data={aquaPlan} editable={aquaEditable} />}

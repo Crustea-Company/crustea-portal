@@ -4,7 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import FileOrLinkInput, { resolveAttachments, type AttachmentItem } from "@/components/requests/FileOrLinkInput";
 import RupiahInput from "@/components/requests/RupiahInput";
-import { REIMBURSE_CATEGORIES, type MissionReport, type ReimburseInput } from "@/lib/requests";
+import {
+  REIMBURSE_CATEGORIES,
+  REIMBURSE_DETAILS_MAX,
+  REIMBURSE_TITLE_MAX,
+  type MissionReport,
+  type ReimburseInput,
+} from "@/lib/requests";
 import { submitReimburse } from "../actions";
 
 const inputClass =
@@ -37,7 +43,11 @@ export default function ReimburseForm({
   const router = useRouter();
   const start = initial?.input;
   const [date, setDate] = useState(start?.transaction_date ?? "");
-  const [description, setDescription] = useState(start?.description ?? "");
+  // Pengajuan lama menaruh seluruh rincian di uraian: pindahkan ke Detail transaksi.
+  const startText = start?.description ?? "";
+  const oldLong = !start?.details && (startText.length > REIMBURSE_TITLE_MAX || startText.includes("\n"));
+  const [description, setDescription] = useState(oldLong ? "" : startText);
+  const [details, setDetails] = useState(oldLong ? startText : (start?.details ?? ""));
   const [categories, setCategories] = useState<string[]>(start?.categories ?? []);
   const [otherOn, setOtherOn] = useState(Boolean(start?.category_other));
   const [other, setOther] = useState(start?.category_other ?? "");
@@ -79,6 +89,7 @@ export default function ReimburseForm({
       {
         transaction_date: date,
         description,
+        details,
         categories,
         category_other: otherOn ? other : "",
         amount,
@@ -113,12 +124,30 @@ export default function ReimburseForm({
 
       <label className={labelClass}>
         Uraian transaksi
-        <textarea
+        <span className={hintClass}>Ringkasan satu kalimat. Rincian per item tulis di kolom berikutnya.</span>
+        <input
+          type="text"
           required
-          rows={2}
+          maxLength={REIMBURSE_TITLE_MAX}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Contoh: Pembelian meterai 10 lembar untuk kontrak vendor"
+          placeholder="Contoh: Transport & konsumsi pameran ISEF 2026, 17-19 Okt"
+          className={inputClass}
+        />
+      </label>
+
+      <label className={labelClass}>
+        Detail transaksi <span className={hintClass}>(boleh kosong)</span>
+        <span className={hintClass}>
+          Untuk banyak nota: tulis satu item per baris (tanggal, keperluan, jumlah, nama file, rute). Baris baru tetap
+          tersimpan.
+        </span>
+        <textarea
+          rows={6}
+          maxLength={REIMBURSE_DETAILS_MAX}
+          value={details}
+          onChange={(e) => setDetails(e.target.value)}
+          placeholder={"1. GoRide 17 Okt - Kuningan ke JCC: Rp12.000 (Perjalanan ke JCC.pdf)\n2. Makan 18 Okt: Rp35.000 (Makan 18 Okt.jpg)"}
           className={inputClass}
         />
       </label>

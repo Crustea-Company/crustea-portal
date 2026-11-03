@@ -202,7 +202,12 @@ export type ReimburseData = {
   category_other: string; // "Lainnya" diisi sendiri, kosong kalau tidak ada
   mission: MissionReport | null;
   no_mission_reason: string; // wajib kalau mission = null
+  details?: string; // rincian per item (boleh banyak baris); kosong di pengajuan lama
 };
+
+// Uraian = judul singkat; rincian panjang masuk "Detail transaksi".
+export const REIMBURSE_TITLE_MAX = 150;
+export const REIMBURSE_DETAILS_MAX = 5000;
 
 export type ReimburseInput = ReimburseData & { description: string; amount: number };
 

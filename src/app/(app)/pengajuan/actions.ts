@@ -14,6 +14,8 @@ import {
   PAYMENT_CONTRACT,
   PAYMENT_PRIORITIES,
   REIMBURSE_CATEGORIES,
+  REIMBURSE_DETAILS_MAX,
+  REIMBURSE_TITLE_MAX,
   type AttachmentInput,
   type PaymentData,
   type PaymentInput,
@@ -85,13 +87,18 @@ async function syncAttachments(
 }
 
 function parseReimburse(input: ReimburseInput): { error: string } | { title: string; amount: number; data: ReimburseData } {
-  const description = input.description.trim();
+  const description = input.description.replace(/\s+/g, " ").trim();
+  const details = (input.details ?? "").trim();
   const categories = input.categories.filter((c) => (REIMBURSE_CATEGORIES as readonly string[]).includes(c));
   const other = input.category_other.trim();
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.transaction_date)) return { error: "Tanggal transaksi belum diisi." };
   if (input.transaction_date > todayJakarta()) return { error: "Tanggal transaksi tidak boleh di masa depan." };
   if (!description) return { error: "Uraian transaksi belum diisi." };
+  if (description.length > REIMBURSE_TITLE_MAX) {
+    return { error: `Uraian maksimal ${REIMBURSE_TITLE_MAX} huruf. Pindahkan rinciannya ke Detail transaksi.` };
+  }
+  if (details.length > REIMBURSE_DETAILS_MAX) return { error: `Detail transaksi maksimal ${REIMBURSE_DETAILS_MAX} huruf.` };
   if (categories.length === 0 && !other) return { error: "Pilih minimal satu kategori transaksi." };
   if (!Number.isSafeInteger(input.amount) || input.amount <= 0) return { error: "Jumlah (Rp) harus lebih dari 0." };
 
@@ -120,6 +127,7 @@ function parseReimburse(input: ReimburseInput): { error: string } | { title: str
       category_other: other,
       mission,
       no_mission_reason: mission ? "" : reason,
+      details,
     },
   };
 }
