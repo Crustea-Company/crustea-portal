@@ -80,7 +80,11 @@ export default async function TugasPage({ searchParams }: { searchParams: Search
     priorityOnly: param("prioritas") === "1",
     from: param("dari"),
     to: param("sampai"),
-    sort: param("urut") === "prioritas" ? "priority" : param("urut") === "judul" ? "title" : "deadline",
+    sort:
+      param("urut") === "prioritas" ? "priority"
+      : param("urut") === "judul" ? "title"
+      : param("urut") === "terbaru" ? "newest"
+      : "deadline",
     dir: param("arah") === "turun" ? "desc" : "asc",
     view: (["grid", "kanban", "pic"] as const).find((v) => v === param("tampilan")) ?? "list",
   };

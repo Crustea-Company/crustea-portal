@@ -37,7 +37,7 @@ export type TaskNote = {
 
 // Kolom yang diambil untuk setiap tugas (dipakai halaman dan server action).
 export const TASK_SELECT =
-  "id, code, dept_code, title, workstream, output, status, start_date, deadline, is_priority, sprint_id, notes, sop_codes, task_people(employee_id, role)";
+  "id, code, dept_code, title, workstream, output, status, start_date, deadline, is_priority, sprint_id, notes, sop_codes, created_at, task_people(employee_id, role)";
 
 export type TaskPerson = { employee_id: string; role: "pic" | "support" };
 
@@ -55,6 +55,7 @@ export type Task = {
   sprint_id: number | null;
   notes: string | null;
   sop_codes?: string[] | null;
+  created_at: string;
   task_people: TaskPerson[];
 };
 
@@ -65,13 +66,14 @@ export type Sprint = {
   end_date: string | null;
 };
 
-export type TaskSort = "deadline" | "priority" | "title";
+export type TaskSort = "deadline" | "priority" | "title" | "newest";
 export type SortDir = "asc" | "desc";
 
 export const SORT_DIR_LABEL: Record<TaskSort, [string, string]> = {
   deadline: ["Terdekat dulu", "Terjauh dulu"],
   priority: ["Prioritas di atas", "Prioritas di bawah"],
   title: ["A-Z", "Z-A"],
+  newest: ["Terbaru dulu", "Terlama dulu"],
 };
 
 const byDeadline = (a: Task, b: Task, dir: 1 | -1) => {
@@ -83,6 +85,7 @@ const byDeadline = (a: Task, b: Task, dir: 1 | -1) => {
 export function compareTasks(a: Task, b: Task, sort: TaskSort, dir: SortDir): number {
   const d = dir === "asc" ? 1 : -1;
   const byCode = (a.code ?? "").localeCompare(b.code ?? "", "id", { numeric: true });
+  if (sort === "newest") return d * b.created_at.localeCompare(a.created_at) || -d * byCode;
   if (sort === "title") return d * a.title.localeCompare(b.title, "id", { sensitivity: "base" }) || byCode;
   if (sort === "priority") {
     return d * (Number(b.is_priority) - Number(a.is_priority)) || byDeadline(a, b, 1) || byCode;

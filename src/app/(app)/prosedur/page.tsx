@@ -34,7 +34,7 @@ export default async function ProsedurPage({ searchParams }: { searchParams: Sea
     );
   }
 
-  const rows = (procRes.data ?? []) as (ProcedureRow & { body: string })[];
+  const rows = (procRes.data ?? []) as ProcedureRow[];
 
   // Link dari kode SOP di kartu tugas: langsung buka prosedurnya kalau ada.
   if (sop) {
@@ -66,6 +66,11 @@ export default async function ProsedurPage({ searchParams }: { searchParams: Sea
         </p>
       )}
 
+      <ProcedureList
+        rows={rows.map((r) => ({ ...r, excerpt: r.body.replace(/[#*|>`_\-[\]()]/g, " ").replace(/\s+/g, " ").trim().slice(0, 160) }))}
+        departments={deptRes.data ?? []}
+      />
+
       <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
         Klaim cuti & lembur:{" "}
         <Link href="/cuti-lembur" className="font-medium text-brand-700 hover:underline">
@@ -73,11 +78,6 @@ export default async function ProsedurPage({ searchParams }: { searchParams: Sea
         </Link>{" "}
         (sedang dalam pengembangan).
       </p>
-
-      <ProcedureList
-        rows={rows.map((r) => ({ ...r, excerpt: r.body.replace(/[#*|>`_\-[\]()]/g, " ").replace(/\s+/g, " ").trim().slice(0, 160) }))}
-        departments={deptRes.data ?? []}
-      />
     </main>
   );
 }

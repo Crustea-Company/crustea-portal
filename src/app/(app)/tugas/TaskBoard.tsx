@@ -62,7 +62,7 @@ function toQuery(filters: Filters): URLSearchParams {
   if (filters.priorityOnly) qs.set("prioritas", "1");
   if (filters.from) qs.set("dari", filters.from);
   if (filters.to) qs.set("sampai", filters.to);
-  if (filters.sort !== "deadline") qs.set("urut", filters.sort === "priority" ? "prioritas" : "judul");
+  if (filters.sort !== "deadline") qs.set("urut", { priority: "prioritas", title: "judul", newest: "terbaru" }[filters.sort]);
   if (filters.dir === "desc") qs.set("arah", "turun");
   if (filters.view !== "list") qs.set("tampilan", filters.view);
   return qs;
@@ -262,6 +262,7 @@ export default function TaskBoard(props: Props) {
             <option value="deadline">Urutkan: Deadline</option>
             <option value="priority">Urutkan: Prioritas</option>
             <option value="title">Urutkan: Judul A-Z</option>
+            <option value="newest">Urutkan: Terbaru dibuat</option>
           </select>
           <select
             aria-label="Arah urutan"

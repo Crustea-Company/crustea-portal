@@ -1,12 +1,49 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { findRanges } from "@/lib/search";
+
+type HastNode = {
+  type: string;
+  value?: string;
+  tagName?: string;
+  properties?: Record<string, unknown>;
+  children?: HastNode[];
+};
+
+// Bungkus kata yang dicari dengan <mark> (dipakai pencarian di halaman Prosedur).
+function rehypeMark(terms: string[]) {
+  const split = (text: string): HastNode[] => {
+    const ranges = findRanges(text, terms);
+    if (ranges.length === 0) return [{ type: "text", value: text }];
+    const out: HastNode[] = [];
+    let pos = 0;
+    for (const [a, b] of ranges) {
+      if (a > pos) out.push({ type: "text", value: text.slice(pos, a) });
+      out.push({ type: "element", tagName: "mark", properties: {}, children: [{ type: "text", value: text.slice(a, b) }] });
+      pos = b;
+    }
+    if (pos < text.length) out.push({ type: "text", value: text.slice(pos) });
+    return out;
+  };
+  const walk = (node: HastNode) => {
+    if (!node.children) return;
+    node.children = node.children.flatMap((c) => {
+      if (c.type === "text") return split(c.value ?? "");
+      walk(c);
+      return [c];
+    });
+  };
+  return () => (tree: HastNode) => walk(tree);
+}
 
 // Menampilkan teks berformat (judul, tebal, daftar, tabel, link) untuk isi prosedur.
-export default function Markdown({ children }: { children: string }) {
+// highlight: kata (sudah dinormalkan, lihat searchTerms) yang diberi warna.
+export default function Markdown({ children, highlight }: { children: string; highlight?: string[] }) {
   return (
     <div className="text-sm leading-relaxed text-slate-800">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={highlight?.length ? [rehypeMark(highlight)] : []}
         components={{
           h1: (p) => <h2 className="mb-3 mt-6 text-xl font-bold text-brand-900 first:mt-0" {...p} />,
           h2: (p) => <h2 className="mb-3 mt-6 text-lg font-bold text-brand-900 first:mt-0" {...p} />,
@@ -33,6 +70,7 @@ export default function Markdown({ children }: { children: string }) {
           thead: (p) => <thead className="bg-slate-50 text-slate-600" {...p} />,
           th: (p) => <th className="px-3 py-2 font-semibold" {...p} />,
           td: (p) => <td className="border-t border-slate-100 px-3 py-2 align-top" {...p} />,
+          mark: (p) => <mark className="rounded bg-amber-200/70 px-0.5 text-inherit" {...p} />,
           code: (p) => <code className="rounded bg-slate-100 px-1 py-0.5 text-[0.85em]" {...p} />,
         }}
       >
