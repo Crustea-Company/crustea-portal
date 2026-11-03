@@ -3,6 +3,7 @@
 // Butuh SUPABASE_SECRET_KEY. Dicocokkan berdasarkan kode SOP; prosedur dengan judul di `replaces`
 // (mis. "To-do list" lama) diganti isinya supaya tidak dobel. Boleh dijalankan ulang.
 // Pola setiap SOP: link ke menu > Tujuan > Siapa > Langkah > Aturan penting > Kalau ada masalah > Kata kunci.
+// Gambar: baris "![keterangan](/prosedur/gambar/<nama>)", file <nama>.png di panduan-gambar/ (lihat README di sana).
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -27,10 +28,14 @@ const PROCEDURES = [
 2. Tekan **Simpan log**. Log langsung muncul di daftar **Log saya**. Kolom aktivitas, durasi, dan bukti dikosongkan lagi; tanggal tetap, jadi Anda bisa langsung mencatat pekerjaan berikutnya di hari yang sama.
 3. Satu hari boleh berisi beberapa log. Catat sebaiknya setiap hari, jangan ditumpuk di akhir periode.
 
+![Kotak Catat pekerjaan](/prosedur/gambar/app01-catat)
+
 ### Membaca kartu ringkasan
 
 - **Sisa jam minggu ini** = jam mingguan Anda dikurangi jam yang sudah dicatat minggu ini (Senin–Minggu). Bila sudah terpenuhi, kartu menampilkan **Target tercapai**.
 - **Ketercapaian periode berjalan** = total jam periode ini ÷ ekspektasi bulanan, lengkap dengan garis progres.
+
+![Kartu Sisa jam minggu ini dan Ketercapaian periode berjalan](/prosedur/gambar/app01-kartu)
 
 | Status kerja | Jam mingguan | Ekspektasi bulanan (× 4) |
 |---|---|---|
@@ -87,6 +92,8 @@ Kata kunci: ATS, log harian, jam kerja, timesheet, catat pekerjaan, ketercapaian
 4. Bila perlu, isi **Workstream**, **Output** (hasil yang diharapkan), dan **Keterangan**.
 5. Tekan **Tambah tugas**. Kode tugas (mis. *CA-102*) dibuat otomatis.
 
+![Form Tambah tugas](/prosedur/gambar/app02-tambah)
+
 ### Mengelola tugas
 
 1. **Ubah status** lewat pilihan status di kartu: **Belum Mulai → Berjalan → Pending → Selesai**.
@@ -96,12 +103,16 @@ Kata kunci: ATS, log harian, jam kerja, timesheet, catat pekerjaan, ketercapaian
 5. **Ubah**: mengganti judul, deadline, PIC/support, dll., lalu **Simpan perubahan**. **Hapus** hanya untuk head (departemennya) dan admin.
 6. **Pilih banyak**: centang beberapa tugas sekaligus untuk mengubah status, sprint, prioritas, deadline, atau menambah PIC, lalu **Terapkan ke … tugas**.
 
+![Kartu tugas dengan tombol Catatan, Delegasikan, dan Ubah](/prosedur/gambar/app02-kartu)
+
 ### Mencari dan mengurutkan
 
 - **Filter**: departemen, sprint, PIC (*Saya sebagai PIC* untuk tugas Anda), status, rentang deadline, **Hanya yang terlambat**, **Hanya prioritas**.
 - **Urutkan**: Deadline, Prioritas, Judul A-Z, atau **Terbaru dibuat**; pilih arahnya di sebelahnya.
 - **Tampilan**: Daftar, Grid, Kanban, atau Per PIC.
 - Bawaan halaman memuat sprint berjalan + mendatang; pilih sprint lain di filter **Sprint** bila perlu.
+
+![Baris filter dan pilihan Urutkan](/prosedur/gambar/app02-filter)
 
 ### Aturan penting
 
@@ -136,6 +147,8 @@ Kata kunci: to-do, todo list, tugas, sprint, kanban, PIC, support, delegasi, pen
 2. Isi formnya (lihat panduan per jenis), lalu tekan tombol kirim di bagian bawah.
 3. Nomor pengajuan dibuat otomatis, mis. *RB-…* (reimburse), *PP-…* (pembayaran), *PD-…* (dinas). Peninjau langsung mendapat notifikasi.
 
+![Halaman Pengajuan](/prosedur/gambar/app03-daftar)
+
 ### Lampiran = link
 
 Bukti nota, invoice, dan dokumen lain **hanya berupa link** (mis. Google Drive). Pastikan link bisa dibuka oleh Finance (atur berbagi: *siapa saja yang memiliki link*).
@@ -158,6 +171,8 @@ Bukti nota, invoice, dan dokumen lain **hanya berupa link** (mis. Google Drive).
 2. Bila status **Perlu perbaikan**: baca catatan peninjau, tekan **Perbaiki & kirim ulang**, ubah isinya, lalu **Simpan & kirim ulang**.
 3. Bila status **Ditolak**: alasan penolakan ada di riwayat. Ajukan baru bila memang perlu.
 4. Selama berstatus *Belum di-review* atau sesudahnya, isi pengajuan tidak bisa diubah sendiri. Kirim catatan bila ada yang salah.
+
+![Rincian pengajuan: status, Batas SLA, riwayat, dan kolom catatan](/prosedur/gambar/app03-rincian)
 
 ### Aturan penting
 
@@ -195,6 +210,10 @@ Kata kunci: pengajuan, status, SLA, 2 hari kerja, perlu perbaikan, ditolak, cata
    - **Mission report**: isi **Kegiatan**, **Deskripsi kegiatan**, **Hasil kegiatan**, **Evaluasi dan rekomendasi**. Bila tidak ada, centang **Tidak ada mission report** dan isi **Alasan** (mis. *one-time purchase, pembelian meterai*).
 3. Tekan **Kirim pengajuan**.
 4. Pantau statusnya: **Belum di-review → Sedang di-review → Diterima → Ditransfer**. Saat ditransfer, F&A mencatat tanggal transfer (dan bisa melampirkan bukti transfer).
+
+![Form reimburse](/prosedur/gambar/app04-form)
+
+![Bagian Mission report](/prosedur/gambar/app04-mission)
 
 ### Aturan penting
 
@@ -234,6 +253,8 @@ Kata kunci: reimburse, reimbursement, ganti uang, nota, kuitansi, bukti pembayar
    - **Invoice atau dokumen pendukung**: link.
    - **Terkait kontrak**: *Sesuai kontrak yang sudah ada dengan vendor* dan/atau *Pembayaran sekali*.
 3. Tekan **Kirim permintaan**.
+
+![Form permintaan pembayaran](/prosedur/gambar/app05-form)
 
 ### Alur status
 
@@ -280,6 +301,10 @@ Kata kunci: permintaan pembayaran, bayar vendor, invoice, transfer, rekening, vi
 5. Tekan **Kirim penugasan**.
 6. Setelah kembali, buka pengajuan dan tempel link FPTD & laporan misi di bagian **FPTD & laporan misi**, lalu tekan **Kirim FPTD & laporan misi**. Batasnya **3 hari kerja** setelah kembali (tertulis di rincian).
 
+![Form perjalanan dinas](/prosedur/gambar/app06-form)
+
+![Kotak Perhitungan estimasi](/prosedur/gambar/app06-hitung)
+
 ### Alur status
 
 1. **Diajukan** → penugas menekan **Setujui penugasan** → **Disetujui penugas**.
@@ -324,6 +349,8 @@ Kata kunci: dinas, perjalanan dinas, surat tugas, ST, uang muka, uang harian, ho
 3. Tekan **Kirim permohonan**. Head departemen Anda meninjau maksimal 1×24 jam.
 4. Saat barang/jasa datang (status **PO terbit**), cek jumlah, spesifikasi, dan kondisi, lalu tekan **Diterima sesuai (GRN/BAST)**, atau **Retur ke vendor** (wajib catatan) bila tidak sesuai.
 
+![Form pengadaan](/prosedur/gambar/app07-form)
+
 ### Alur status & siapa yang menekan
 
 | Tahap | Siapa | Tombol | Status sesudahnya |
@@ -338,6 +365,8 @@ Kata kunci: dinas, perjalanan dinas, surat tugas, ST, uang muka, uang harian, ho
 | 8 | Head F&A | **Setujui pembayaran (PO, GRN, invoice cocok)** | Pembayaran disetujui |
 | 9 | Finance | **Tandai dibayar ke vendor** | Dibayar ke vendor |
 | 10 | Finance / TechOps | **Selesai: aset/stok dicatat** (catatan wajib) | Selesai |
+
+![Perbandingan vendor oleh TechOps](/prosedur/gambar/app07-vendor)
 
 ### Aturan penting
 
@@ -376,6 +405,10 @@ Kata kunci: pengadaan, PR, purchase request, PO, purchase order, vendor, perband
    - **Tolak**: wajib alasan.
    - **Kirim catatan saja**: bertanya tanpa mengubah status.
 5. Setelah uang dikirim, tekan **Tandai ditransfer** dan isi **Tanggal transfer** (bukti transfer boleh dilampirkan).
+
+![Halaman Review F&A](/prosedur/gambar/app08-antrian)
+
+![Panel Tindakan peninjau](/prosedur/gambar/app08-panel)
 
 ### Tahap khusus
 
@@ -419,6 +452,8 @@ Kata kunci: review, review F&A, peninjau, finance, approval, persetujuan, CEO, m
 2. Isi **Tanggal lead masuk**, **Sumber lead** (Digital marketing, Referral, Event, Kunjungan, Lainnya), **Kode referral** (format *CRU-NAMA*, boleh kosong), **Nama customer**, kontak (no. HP/WA), lokasi (tambak/kota), **Produk yang diminati**, **Jumlah unit**, perkiraan nilai (Rp, excl. VAT), **PIC sales**, dan catatan kebutuhan.
 3. Tekan **Simpan lead**. Nomor lead dibuat otomatis.
 
+![Form Catat lead](/prosedur/gambar/app09-lead)
+
 ### Menggerakkan tahap
 
 Buka lead, lalu gunakan panel **Ubah tahap**: pilih **Pindah ke tahap** lalu **Simpan tahap**.
@@ -433,6 +468,8 @@ Buka lead, lalu gunakan panel **Ubah tahap**: pilih **Pindah ke tahap** lalu **S
 | Work order | PIC sales / TechOps | **Terbitkan work order instalasi** (stok keluar otomatis) |
 | Terpasang (BAST) | PIC sales / TechOps | **Tandai terpasang** + tanggal instalasi & BAST |
 | Feedback customer | PIC sales | Tulis hasil follow-up H+7 di catatan, lalu **Simpan feedback customer** |
+
+![Panel Ubah tahap di halaman lead](/prosedur/gambar/app09-tahap)
 
 ### Catatan & keluhan
 
@@ -470,6 +507,8 @@ Kata kunci: penjualan, sales, lead, pipeline, quotation, CMO, closing, sales ord
 4. Work order instalasi di Penjualan mengurangi stok **otomatis**; jangan dicatat dua kali.
 5. Koreksi dilakukan lewat **Penyesuaian (opname)**, bukan menghapus mutasi.
 
+![Halaman Stok](/prosedur/gambar/app10-stok)
+
 ### Aset
 
 1. **Serah terima (TechOps):** tekan **+ Serah terima aset**, isi **Nama aset**, **Kategori**, **Tanggal serah terima (BAST)**, **Lokasi**, nilai perolehan, umur manfaat (bulan), referensi (No. PO/GRN/link BAST), lalu **Simpan serah terima**. Status: *Diterima (belum terdaftar)*.
@@ -478,6 +517,8 @@ Kata kunci: penjualan, sales, lead, pipeline, quotation, CMO, closing, sales ord
 4. **Pemeliharaan & stock opname:** catat di riwayat aset dengan **Jenis catatan** *Pemeliharaan* atau *Stock opname*, lalu **Simpan**.
 5. **Rusak/hilang (siapa saja, ≤ 1 hari kerja):** tulis keterangan, tekan **Lapor rusak** atau **Lapor hilang**. Setelah diperbaiki, TechOps menekan **Sudah beres, kembali terdaftar**.
 6. **Penghapusan:** tulis alasan, tekan **Usulkan penghapusan**. Aset baru *Dihapus* setelah **CEO dan Head F&A** sama-sama menekan **Setujui penghapusan**; salah satu boleh **Tolak penghapusan**.
+
+![Panel status di halaman aset](/prosedur/gambar/app10-aset)
 
 ### Aturan penting
 
@@ -530,6 +571,8 @@ Gunakan panel **Ubah tahap** di halaman proyek:
 5. Aquagrowth & Mini RAS: **Masuk tahap panen & penjualan hasil**.
 6. **Tandai selesai** (tulis ringkasan hasil di catatan).
 
+![Halaman proyek Aquaculture](/prosedur/gambar/app11-proyek)
+
 ### 4. Dana masuk (F&A / admin / CEO)
 
 Setelah kontrak ditandatangani, catat setiap uang yang sudah masuk rekening di **Catat dana masuk**: **Nominal**, **Tanggal diterima**, keterangan, dan **Label alokasi target** (bawaan *Aquagrowth*; panen yang dijual lewat Busdev bisa *Trading Ikan*), lalu **Simpan dana masuk**. Dana ini langsung terhitung di **[Target kuartal](/kpi/target)**.
@@ -570,6 +613,8 @@ Kata kunci: aquaculture, akuakultur, aquagrowth, mini RAS, workshop, pelatihan, 
 3. **Penjualan di luar modul Penjualan**: tekan **+ Tambah baris penjualan**, isi **Nama customer**, **No. Invoice / PO / Kontrak**, **Tanggal closing**, **Produk**, **Jumlah unit**, total penjualan (Rp, excl. VAT), justifikasi (link bukti leads), dan kode referral.
 4. Satu klaim boleh berisi beberapa baris penjualan. Periksa **Total komisi (perkiraan)**, lalu tekan **Kirim klaim komisi**.
 5. Pantau statusnya: **Belum di-review → Sedang di-review → Diterima → Ditransfer**.
+
+![Form klaim komisi](/prosedur/gambar/app12-form)
 
 ### Cara hitung (per baris)
 

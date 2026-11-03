@@ -3,6 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { guideImageNames, stripGuideImages } from "@/lib/procedure-images";
+import { availableGuideImages } from "@/lib/procedure-images-server";
 import ProcedureList, { type ProcedureRow } from "./ProcedureList";
 
 export const metadata: Metadata = { title: "Prosedur - Crustea Portal" };
@@ -15,13 +17,14 @@ export default async function ProsedurPage({ searchParams }: { searchParams: Sea
   const params = await searchParams;
   const sop = typeof params.sop === "string" ? params.sop.toUpperCase() : "";
 
-  const [procRes, deptRes] = await Promise.all([
+  const [procRes, deptRes, images] = await Promise.all([
     supabase
       .from("procedures")
       .select("id, sop_code, title, dept_code, sort_order, body, updated_at")
       .order("sort_order")
       .order("title"),
     supabase.from("departments").select("code, name").order("code"),
+    availableGuideImages(),
   ]);
 
   if (procRes.error || deptRes.error) {
@@ -67,7 +70,16 @@ export default async function ProsedurPage({ searchParams }: { searchParams: Sea
       )}
 
       <ProcedureList
-        rows={rows.map((r) => ({ ...r, excerpt: r.body.replace(/\]\([^)]*\)/g, " ").replace(/[#*|>`_\-[\]()]/g, " ").replace(/\s+/g, " ").trim().slice(0, 160) }))}
+        rows={rows.map((r) => ({
+          ...r,
+          has_images: guideImageNames(r.body).some((n) => images.has(n)),
+          excerpt: stripGuideImages(r.body)
+            .replace(/\]\([^)]*\)/g, " ")
+            .replace(/[#*|>`_\-[\]()]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 160),
+        }))}
         departments={deptRes.data ?? []}
       />
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import Markdown from "@/components/Markdown";
+import { stripGuideImages } from "@/lib/procedure-images";
 import { findRanges, normalizeText, searchTerms } from "@/lib/search";
 
 export type ProcedureRow = {
@@ -14,6 +15,7 @@ export type ProcedureRow = {
   updated_at: string;
   body: string;
   excerpt?: string;
+  has_images?: boolean; // ada gambar ilustrasi (hanya tampil di halaman detail)
 };
 
 // Beri warna pada kata yang dicari di teks pendek (judul, kode SOP).
@@ -139,7 +141,7 @@ export default function ProcedureList({
                   {open && (
                     <div className="border-t border-slate-100 px-4 pb-4 pt-3 sm:px-5">
                       {r.body.trim() ? (
-                        <Markdown highlight={terms}>{r.body}</Markdown>
+                        <Markdown highlight={terms}>{stripGuideImages(r.body)}</Markdown>
                       ) : (
                         <p className="text-sm text-slate-500">Isi prosedur ini belum ditulis.</p>
                       )}
@@ -147,7 +149,7 @@ export default function ProcedureList({
                         href={`/prosedur/${r.id}`}
                         className="mt-2 inline-block text-sm font-medium text-brand-700 hover:underline"
                       >
-                        Lihat detail →
+                        Lihat detail{r.has_images ? " (dengan gambar)" : ""} →
                       </Link>
                     </div>
                   )}

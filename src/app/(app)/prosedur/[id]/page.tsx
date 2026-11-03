@@ -5,6 +5,8 @@ import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/format";
 import Markdown from "@/components/Markdown";
+import { stripGuideImages } from "@/lib/procedure-images";
+import { availableGuideImages } from "@/lib/procedure-images-server";
 import DeleteProcedureButton from "./DeleteProcedureButton";
 
 export const metadata: Metadata = { title: "Prosedur - Crustea Portal" };
@@ -14,11 +16,14 @@ export default async function ProsedurDetail({ params }: { params: Promise<{ id:
   const me = (await getCurrentEmployee())!;
   const supabase = await createClient();
 
-  const { data: p } = await supabase
-    .from("procedures")
-    .select("id, sop_code, title, dept_code, body, updated_at, updated_by")
-    .eq("id", id)
-    .maybeSingle();
+  const [{ data: p }, images] = await Promise.all([
+    supabase
+      .from("procedures")
+      .select("id, sop_code, title, dept_code, body, updated_at, updated_by")
+      .eq("id", id)
+      .maybeSingle(),
+    availableGuideImages(),
+  ]);
   if (!p) notFound();
 
   const { data: editor } = p.updated_by
@@ -58,7 +63,8 @@ export default async function ProsedurDetail({ params }: { params: Promise<{ id:
 
       <article className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
         {p.body.trim() ? (
-          <Markdown>{p.body}</Markdown>
+          // Gambar yang file-nya belum ada di panduan-gambar/ dilewati.
+          <Markdown>{stripGuideImages(p.body, images)}</Markdown>
         ) : (
           <p className="text-sm text-slate-500">Isi prosedur ini belum ditulis.</p>
         )}

@@ -70,6 +70,14 @@ export default function Markdown({ children, highlight }: { children: string; hi
           thead: (p) => <thead className="bg-slate-50 text-slate-600" {...p} />,
           th: (p) => <th className="px-3 py-2 font-semibold" {...p} />,
           td: (p) => <td className="border-t border-slate-100 px-3 py-2 align-top" {...p} />,
+          // Gambar ilustrasi (lihat procedure-images.ts): selebar layar, klik untuk memperbesar.
+          img: ({ src, alt }) => (
+            <a href={typeof src === "string" ? src : undefined} target="_blank" rel="noopener noreferrer" className="my-3 block">
+              {/* eslint-disable-next-line @next/next/no-img-element -- gambar di balik login, bukan aset statis */}
+              <img src={typeof src === "string" ? src : undefined} alt={alt ?? ""} loading="lazy" className="mx-auto block max-h-[32rem] w-auto max-w-full rounded-xl border border-slate-200 shadow-sm" />
+              {alt && <span className="mt-1.5 block text-center text-xs text-slate-500">{alt}</span>}
+            </a>
+          ),
           mark: (p) => <mark className="rounded bg-amber-200/70 px-0.5 text-inherit" {...p} />,
           code: (p) => <code className="rounded bg-slate-100 px-1 py-0.5 text-[0.85em]" {...p} />,
         }}
