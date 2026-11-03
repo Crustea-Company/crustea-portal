@@ -401,6 +401,203 @@ Kata kunci: pengadaan, PR, purchase request, PO, purchase order, vendor, perband
 
 Kata kunci: review, review F&A, peninjau, finance, approval, persetujuan, CEO, menunggu CEO, terima, tolak, perlu perbaikan, tandai ditransfer, SLA, antrian`,
   },
+
+  // ---------- Bagian C: penjualan & aset, aquaculture, komisi ----------
+  {
+    code: "APP-09",
+    title: "Panduan: Pipeline penjualan (lead sampai purna jual)",
+    sort: 109,
+    body: `> Buka menu **Penjualan & Aset > [Pipeline penjualan](/penjualan)**. Aturan lengkap: prosedur *Stock, supply, & demand teknologi*.
+
+**Tujuan:** mencatat setiap lead penjualan teknologi (aerator, EBII, Smart Energy, panel surya) dan memantaunya sampai lunas, terpasang, dan mendapat feedback.
+
+**Siapa:** semua karyawan boleh mencatat lead (mis. dari referral). Sales (BDS) mengelola tahapnya; head BDS (CMO) menyetujui quotation; Finance menandai lunas; TechOps memasang.
+
+### Mencatat lead
+
+1. Tekan **+ Catat lead** (atau menu **Catat lead**). Catat paling lambat **1×24 jam** setelah lead masuk.
+2. Isi **Tanggal lead masuk**, **Sumber lead** (Digital marketing, Referral, Event, Kunjungan, Lainnya), **Kode referral** (format *CRU-NAMA*, boleh kosong), **Nama customer**, kontak (no. HP/WA), lokasi (tambak/kota), **Produk yang diminati**, **Jumlah unit**, perkiraan nilai (Rp, excl. VAT), **PIC sales**, dan catatan kebutuhan.
+3. Tekan **Simpan lead**. Nomor lead dibuat otomatis.
+
+### Menggerakkan tahap
+
+Buka lead, lalu gunakan panel **Ubah tahap**: pilih **Pindah ke tahap** lalu **Simpan tahap**.
+
+| Tahap | Siapa | Catatan |
+|---|---|---|
+| Lead masuk → Kontak awal → Site visit → Stok dicek → Quotation | PIC sales | Site visit report ≤ 2 hari kerja; cek stok ke TechOps ≤ 1 hari kerja |
+| Disetujui CMO | Head BDS | Bila ada diskon, quotation custom, atau nilai besar: **Setujui quotation (CMO)** |
+| Negosiasi → Kontrak | PIC sales | Follow-up ≤ 2×24 jam; kontrak lewat Corporate Affairs bila perlu |
+| Closing (Sales Order) | PIC sales | **Closing: buat Sales Order**: isi no. SO/invoice/kontrak + tanggal closing, lalu **Tandai closing** |
+| Lunas | Finance | **Tandai lunas** + tanggal pelunasan |
+| Work order | PIC sales / TechOps | **Terbitkan work order instalasi** (stok keluar otomatis) |
+| Terpasang (BAST) | PIC sales / TechOps | **Tandai terpasang** + tanggal instalasi & BAST |
+| Feedback customer | PIC sales | Tulis hasil follow-up H+7 di catatan, lalu **Simpan feedback customer** |
+
+### Catatan & keluhan
+
+- Tulis di kolom **Catatan** lalu **Kirim catatan**.
+- Untuk keluhan customer, centang **Ini keluhan customer** lalu **Catat keluhan**. Keluhan diteruskan ke TechOps (tangani ≤ 1×24 jam).
+
+### Aturan penting
+
+- Pastikan produk, unit, dan nilai sudah final sebelum closing: setelah closing data terkunci.
+- **Tandai gagal** wajib alasan dan hanya bisa sebelum lunas. Head BDS/CEO/admin bisa **Buka lagi lead ini** atau memundurkan tahap (wajib alasan).
+- Penjualan lunas masuk realisasi **Target kuartal** dan bisa diklaim komisinya (lihat *Panduan: Klaim komisi*).
+
+### Kalau ada masalah
+
+- **"Kode tidak dikenal"**: periksa kode referral di halaman **Profil** pemiliknya, atau kosongkan.
+- **"Tahap tidak bisa diubah …"**: tahap itu bukan wewenang Anda (mis. Lunas hanya Finance) atau urutannya belum sampai.
+
+Kata kunci: penjualan, sales, lead, pipeline, quotation, CMO, closing, sales order, SO, lunas, work order, instalasi, BAST, feedback, keluhan, referral`,
+  },
+  {
+    code: "APP-10",
+    title: "Panduan: Stok & Aset",
+    sort: 110,
+    body: `> Buka menu **Penjualan & Aset > [Stok](/stok)** dan **[Aset](/aset)**. Aturan lengkap: prosedur *Manajemen aset*.
+
+**Tujuan:** tahu stok yang tersedia dibanding kebutuhan penjualan, dan mencatat setiap aset dari serah terima sampai penghapusan.
+
+**Siapa:** semua karyawan bisa melihat. Stok dikelola TechOps, Finance, dan admin. Aset: TechOps (serah terima, penempatan, pemeliharaan), Finance (registrasi), siapa saja (lapor rusak/hilang, usul hapus), CEO + Head F&A (setujui penghapusan).
+
+### Stok
+
+1. Halaman **Stok** menampilkan per barang: **Tersedia**, **Kebutuhan** (dari lead di tahap quotation sampai lunas), dan **Selisih**. Stok di bawah batas minimal diberi tanda.
+2. Barang baru: tekan **+ Barang stok**, isi nama barang/komponen, kode, produk terkait, **Satuan**, **Stok minimal**, lalu **Simpan**.
+3. Mencatat barang masuk/keluar: di **Catat mutasi stok**, pilih **Barang**, **Jenis** (Masuk, Keluar, Penyesuaian (opname)), jumlah, **Tanggal**, dan **Catatan** (no. PR/PO/GRN, no. lead), lalu **Simpan mutasi stok**.
+4. Work order instalasi di Penjualan mengurangi stok **otomatis**; jangan dicatat dua kali.
+5. Koreksi dilakukan lewat **Penyesuaian (opname)**, bukan menghapus mutasi.
+
+### Aset
+
+1. **Serah terima (TechOps):** tekan **+ Serah terima aset**, isi **Nama aset**, **Kategori**, **Tanggal serah terima (BAST)**, **Lokasi**, nilai perolehan, umur manfaat (bulan), referensi (No. PO/GRN/link BAST), lalu **Simpan serah terima**. Status: *Diterima (belum terdaftar)*.
+2. **Registrasi (Finance, ≤ 5 hari kerja setelah BAST):** buka aset, isi bagian **Registrasi aset**, tekan **Registrasi & beri kode**. Kode unik dibuat otomatis. Status: *Terdaftar*.
+3. **Penempatan (TechOps):** isi **Penerima** dan **Lokasi penempatan**, tekan **Tandai ditempatkan**. Untuk menarik kembali: **Tarik kembali ke gudang**.
+4. **Pemeliharaan & stock opname:** catat di riwayat aset dengan **Jenis catatan** *Pemeliharaan* atau *Stock opname*, lalu **Simpan**.
+5. **Rusak/hilang (siapa saja, ≤ 1 hari kerja):** tulis keterangan, tekan **Lapor rusak** atau **Lapor hilang**. Setelah diperbaiki, TechOps menekan **Sudah beres, kembali terdaftar**.
+6. **Penghapusan:** tulis alasan, tekan **Usulkan penghapusan**. Aset baru *Dihapus* setelah **CEO dan Head F&A** sama-sama menekan **Setujui penghapusan**; salah satu boleh **Tolak penghapusan**.
+
+### Aturan penting
+
+- Lapor rusak/hilang, usul hapus, tolak, dan kembali terdaftar **wajib** keterangan di kolom catatan.
+- Barang dari pengadaan yang sudah diterima dicatat ke Aset atau Stok (tahap terakhir pengadaan).
+
+### Kalau ada masalah
+
+- **"Tulis keterangan/alasan dulu di kolom catatan"**: isi keterangan sebelum menekan tombol.
+- **Tidak bisa mencatat mutasi stok**: hanya TechOps, Finance, dan admin; minta mereka mencatatnya.
+
+Kata kunci: stok, inventaris, gudang, mutasi stok, opname, supply demand, aset, BAST, registrasi aset, kode aset, penempatan, pemeliharaan, rusak, hilang, penghapusan aset`,
+  },
+  {
+    code: "APP-11",
+    title: "Panduan: Pipeline peluang proyek Aquaculture",
+    sort: 111,
+    dept: "AQ",
+    body: `> Buka menu **Aquaculture > [Project Management](/aquaculture)**.
+
+**Tujuan:** mengelola proyek Aquagrowth, Mini RAS, Workshop, dan Pelatihan dari identifikasi peluang, kelayakan finansial & RAB, kontrak, sampai eksekusi dan panen; dana masuknya otomatis menjadi realisasi target kuartal.
+
+**Siapa:** semua karyawan bisa melihat dan memberi catatan. Tim Aquaculture (AQ), admin, dan CEO mengubah data & tahap. F&A meninjau paket RAB; CEO menyetujui. Corporate Affairs membantu kontrak. F&A/admin/CEO mencatat dana masuk.
+
+### 1. Catat peluang
+
+1. Tekan **+ Catat peluang** (atau menu **Catat peluang proyek**).
+2. Isi **Jenis proyek**, **Nama proyek**, **Lokasi**, calon mitra/investor/peserta, kontak, asal peluang, deskripsi (latar belakang, potensi, skala), perkiraan nilai (Rp), **Perkiraan mulai**, dan **PIC proyek**.
+3. Tekan **Simpan peluang**. Nomor *AQ-…* dibuat otomatis. Tahap: *Identifikasi peluang*.
+
+### 2. Kelayakan finansial & RAB
+
+1. Di halaman proyek, tekan **Susun kelayakan & RAB**.
+2. Isi data umum, info komoditas (bila budidaya), baris biaya **A. CAPEX**, **B. Working capital**, **C. OPEX**, proyeksi pendapatan, asumsi bagi hasil & BEP, timeline, dan **Ringkasan kelayakan & asumsi**. Bisa mulai dari **Isi dari contoh template (RAB Aquagrowth Serang)**.
+3. Angka laba, margin, ROI, payback, dan BEP dihitung otomatis. Tekan **Simpan draf** kapan saja.
+4. Bila siap, tekan **Kirim ke F&A**. Isi terkunci sampai ada permintaan perbaikan.
+5. Alur paket (nomor *RA-…*): **Review F&A → Menunggu CEO → Disetujui CEO**. Tahap proyek ikut bergerak otomatis. Bila **Perlu perbaikan**, buka lagi RAB, perbaiki, lalu **Kirim ulang ke F&A**.
+6. Review lintas tim (Finance, TechOps, DM): beri catatan di paket atau di proyek (≤ 3 hari kerja).
+
+### 3. Negosiasi, kontrak, eksekusi
+
+Gunakan panel **Ubah tahap** di halaman proyek:
+
+1. **Mulai presentasi & negosiasi** (setelah Disetujui CEO).
+2. **Ajukan kontrak ke CA** → isi form kontrak, **Simpan form kontrak** (tahap *Proses kontrak*).
+3. **Tandai kontrak ditandatangani** dengan **Tanggal tanda tangan**:
+   - **Aquagrowth**: daftar investor (**+ Investor**: nama, modal, persentase; total persentase harus **100%**);
+   - **Mini RAS, Workshop, Pelatihan**: cukup nomor kontrak.
+4. **Mulai eksekusi**. Setiap akhir bulan kirim laporan: tulis ringkasan, pilih **Bulan**, tempel **Link laporan**, centang **Ini laporan bulanan (dikirim ke Management)**, lalu **Kirim laporan bulanan**.
+5. Aquagrowth & Mini RAS: **Masuk tahap panen & penjualan hasil**.
+6. **Tandai selesai** (tulis ringkasan hasil di catatan).
+
+### 4. Dana masuk (F&A / admin / CEO)
+
+Setelah kontrak ditandatangani, catat setiap uang yang sudah masuk rekening di **Catat dana masuk**: **Nominal**, **Tanggal diterima**, keterangan, dan **Label alokasi target** (bawaan *Aquagrowth*; panen yang dijual lewat Busdev bisa *Trading Ikan*), lalu **Simpan dana masuk**. Dana ini langsung terhitung di **[Target kuartal](/kpi/target)**.
+
+### Aturan penting
+
+- Batal, mundur tahap, buka lagi, dan selesai **wajib** catatan/alasan. Proyek tidak bisa dibatalkan saat paket sedang di F&A/CEO.
+- Jenis proyek terkunci setelah paket RAB dibuat.
+- Lampiran hanya berupa link. Pengadaan barang untuk proyek tetap lewat *Panduan: Pengadaan barang & jasa*.
+- Centang KPI departemen tetap dilakukan manual di **Monitoring KPI**.
+
+### Kalau ada masalah
+
+- **Tombol tahap tidak muncul**: hanya tim AQ, admin, dan CEO yang bisa mengubah tahap.
+- **Total persentase investor bukan 100%**: periksa kembali persentase setiap investor.
+
+Kata kunci: aquaculture, akuakultur, aquagrowth, mini RAS, workshop, pelatihan, peluang proyek, RAB, kelayakan finansial, investor, kontrak, laporan bulanan, panen, dana masuk, target kuartal`,
+  },
+  {
+    code: "APP-12",
+    title: "Panduan: Klaim komisi (cara klaim & cara hitung)",
+    sort: 112,
+    body: `> Ajukan lewat **[Pengajuan > + Klaim komisi](/pengajuan/komisi/baru)**. Master produk: **[Produk & Komisi](/produk)**. Kode referral Anda: **[Profil](/profil)**.
+
+**Tujuan:** mengklaim komisi atas penjualan yang sudah **lunas**, dengan perhitungan yang sama untuk semua orang.
+
+**Siapa:** pemilik kode referral pada penjualan tersebut, atau PIC sales bila penjualan tanpa kode referral. Ditinjau Finance & Accounting.
+
+### Kode referral
+
+- Setiap karyawan punya kode unik, mis. **CRU-NAMA**, di halaman **Profil** (bagian *Kode referral saya*).
+- Bagikan kode ini dan pastikan dicantumkan saat lead dicatat di **Pipeline penjualan**. Kode inilah yang menentukan siapa yang berhak mengklaim.
+
+### Langkah klaim
+
+1. Buka **Pengajuan**, tekan **+ Klaim komisi**. (Dari halaman lead yang sudah closing juga ada tombol **Buat klaim komisi**.)
+2. **Penjualan dari Pipeline penjualan** (disarankan): di bagian **Ambil dari modul Penjualan** muncul penjualan yang sudah closing dengan kode referral Anda (atau Anda PIC sales-nya). Tekan **+ Tambahkan**. Isinya terisi otomatis.
+3. **Penjualan di luar modul Penjualan**: tekan **+ Tambah baris penjualan**, isi **Nama customer**, **No. Invoice / PO / Kontrak**, **Tanggal closing**, **Produk**, **Jumlah unit**, total penjualan (Rp, excl. VAT), justifikasi (link bukti leads), dan kode referral.
+4. Satu klaim boleh berisi beberapa baris penjualan. Periksa **Total komisi (perkiraan)**, lalu tekan **Kirim klaim komisi**.
+5. Pantau statusnya: **Belum di-review → Sedang di-review → Diterima → Ditransfer**.
+
+### Cara hitung (per baris)
+
+| Langkah | Rumus |
+|---|---|
+| HPP/unit dan % komisi | Dari master produk yang **berlaku pada tanggal closing** |
+| HPP penjualan | Jumlah unit × HPP/unit |
+| Profit | Total penjualan − HPP penjualan |
+| **Komisi** | **Profit × % komisi** (bila profit ≤ 0, komisi = 0) |
+
+Contoh: 2 unit Aerator Mini terjual Rp7.000.000, HPP/unit Rp2.750.000, komisi 5% (angka contoh; selalu cek master produk). HPP penjualan = 2 × 2.750.000 = Rp5.500.000 · Profit = 7.000.000 − 5.500.000 = Rp1.500.000 · Komisi = 1.500.000 × 5% = **Rp75.000**.
+
+Angka di form adalah perkiraan; angka final dihitung sistem saat klaim disimpan.
+
+### Aturan penting
+
+- Komisi **diterima hanya bila penjualan sudah lunas**: untuk baris dari Pipeline penjualan, Finance sudah menandai *Lunas*; untuk baris manual, F&A mencentang **Penjualan sudah lunas** setelah mengecek pembayaran customer.
+- Satu penjualan hanya bisa diklaim **sekali**.
+- Harga jual di bawah harga minimal (melewati diskon maksimal) menurunkan profit, sehingga komisinya ikut turun.
+
+### Kalau ada masalah
+
+- **Penjualan tidak muncul di "Ambil dari modul Penjualan"**: lead belum closing, kode referral di lead bukan milik Anda, atau sudah pernah diklaim.
+- **"Produk ini belum/tidak berlaku pada tanggal closing tersebut"**: periksa tanggal closing, atau hubungi F&A untuk master produk.
+- **"Profit ≤ 0: komisi baris ini 0"**: harga jual tidak di atas HPP.
+
+Kata kunci: komisi, klaim komisi, referral, kode referral, CRU, HPP, profit, persen komisi, master produk, lunas, insentif penjualan`,
+  },
 ];
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
