@@ -67,7 +67,7 @@ export default async function ProsedurPage({ searchParams }: { searchParams: Sea
       )}
 
       <ProcedureList
-        rows={rows.map((r) => ({ ...r, excerpt: r.body.replace(/[#*|>`_\-[\]()]/g, " ").replace(/\s+/g, " ").trim().slice(0, 160) }))}
+        rows={rows.map((r) => ({ ...r, excerpt: r.body.replace(/\]\([^)]*\)/g, " ").replace(/[#*|>`_\-[\]()]/g, " ").replace(/\s+/g, " ").trim().slice(0, 160) }))}
         departments={deptRes.data ?? []}
       />
 
