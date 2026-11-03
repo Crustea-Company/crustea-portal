@@ -68,10 +68,22 @@ const MENU: Item[] = [
   },
   { href: "/produk", label: "Produk & Komisi", icon: "box" },
   { href: "/prosedur", label: "Prosedur", icon: "book" },
+  {
+    href: "/komunitas",
+    label: "Masukan & Komunitas",
+    icon: "chat",
+    children: [
+      { href: "/komunitas", label: "Papan komunitas" },
+      { href: "/komunitas/kirim", label: "Kirim masukan" },
+      { href: "/komunitas/masukan", label: "Masukan saya" },
+    ],
+  },
 ];
 
 // Ditambahkan ke sub-menu Pengajuan untuk F&A, admin, dan CEO.
 const REVIEW_CHILD: Child = { href: "/pengajuan/review", label: "Review F&A" };
+// Ditambahkan ke sub-menu Masukan & Komunitas untuk Corporate Affairs dan admin.
+const FEEDBACK_REVIEW_CHILD: Child = { href: "/komunitas/tinjau", label: "Tinjauan CA" };
 
 const SYSTEM: Item[] = [
   {
@@ -87,7 +99,7 @@ const SYSTEM: Item[] = [
   },
 ];
 
-type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron" | "book" | "receipt" | "box" | "chart" | "target" | "fish";
+type IconName = "home" | "grid" | "clipboard" | "clock" | "shield" | "chevron" | "book" | "receipt" | "box" | "chart" | "target" | "fish" | "chat";
 
 export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout" | "menu"; className?: string }) {
   const p = { viewBox: "0 0 24 24", className, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -110,6 +122,8 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout
       return <svg {...p}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></svg>;
     case "fish":
       return <svg {...p}><path d="M3 12c3-4.5 7-6 11-6 3 0 5.5 2 7 6-1.5 4-4 6-7 6-4 0-8-1.5-11-6z" /><path d="M3 12 1 9M3 12l-2 3" /><circle cx="16" cy="11" r="1" /></svg>;
+    case "chat":
+      return <svg {...p}><path d="M4 5h16v11H9l-5 4z" /><path d="M8 9h8M8 12h5" /></svg>;
     case "book":
       return <svg {...p}><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" /><path d="M4 19V5" /><path d="M8 7h7M8 11h7" /></svg>;
     case "shield":
@@ -123,10 +137,23 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName | "logout
   }
 }
 
-export default function NavLinks({ isAdmin, canSeeReview }: { isAdmin: boolean; canSeeReview: boolean }) {
-  const menu = canSeeReview
-    ? MENU.map((m) => (m.href === "/pengajuan" ? { ...m, children: [...(m.children ?? []), REVIEW_CHILD] } : m))
-    : MENU;
+export default function NavLinks({
+  isAdmin,
+  canSeeReview,
+  canReviewFeedback,
+}: {
+  isAdmin: boolean;
+  canSeeReview: boolean;
+  canReviewFeedback: boolean;
+}) {
+  const extra: Record<string, Child | null> = {
+    "/pengajuan": canSeeReview ? REVIEW_CHILD : null,
+    "/komunitas": canReviewFeedback ? FEEDBACK_REVIEW_CHILD : null,
+  };
+  const menu = MENU.map((m) => {
+    const child = extra[m.href];
+    return child ? { ...m, children: [...(m.children ?? []), child] } : m;
+  });
   return (
     <nav className="flex flex-col gap-6">
       <Section title="Menu" items={menu} />

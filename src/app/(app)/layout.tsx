@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentEmployee } from "@/lib/auth";
 import AppShell from "@/components/AppShell";
 import { canSeeAllRequests } from "@/lib/requests";
+import { isFeedbackReviewer } from "@/lib/feedback";
 
 // Semua halaman di dalam folder (app) hanya untuk karyawan aktif.
 export default async function AppLayout({
@@ -18,6 +19,7 @@ export default async function AppLayout({
       role={employee.app_role}
       isAdmin={employee.app_role === "admin"}
       canSeeReview={canSeeAllRequests(employee)}
+      canReviewFeedback={isFeedbackReviewer(employee)}
     >
       {children}
     </AppShell>

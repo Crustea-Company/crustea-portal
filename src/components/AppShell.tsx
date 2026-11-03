@@ -27,6 +27,10 @@ const TITLES: [string, string][] = [
   ["/cuti-lembur", "Cuti & Lembur"],
   ["/kpi/target", "Target kuartal"],
   ["/kpi", "Monitoring KPI"],
+  ["/komunitas/kirim", "Kirim Masukan"],
+  ["/komunitas/masukan", "Masukan Saya"],
+  ["/komunitas/tinjau", "Tinjauan Masukan"],
+  ["/komunitas", "Masukan & Komunitas"],
 ];
 
 const ROLE_LABEL: Record<string, string> = { admin: "Admin", ceo: "CEO", head: "Kepala Departemen", staff: "Staf" };
@@ -38,12 +42,14 @@ export default function AppShell({
   role,
   isAdmin,
   canSeeReview,
+  canReviewFeedback,
   children,
 }: {
   fullName: string;
   role: string;
   isAdmin: boolean;
   canSeeReview: boolean;
+  canReviewFeedback: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -72,7 +78,7 @@ export default function AppShell({
 
       <div className="flex-1 overflow-y-auto px-3">
         <Suspense>
-          <NavLinks isAdmin={isAdmin} canSeeReview={canSeeReview} />
+          <NavLinks isAdmin={isAdmin} canSeeReview={canSeeReview} canReviewFeedback={canReviewFeedback} />
         </Suspense>
       </div>
 
