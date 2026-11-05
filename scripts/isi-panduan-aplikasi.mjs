@@ -106,7 +106,7 @@ Kata kunci: ATS, log harian, jam kerja, timesheet, catat pekerjaan, ketercapaian
 
 1. **Ubah status** lewat pilihan status di kartu: **Belum Mulai → Berjalan → Pending → Selesai**.
 2. **Pending**: saat status diubah ke Pending, panel **Pengingat** terbuka. Isi **Ingatkan saya pada** (tanggal & jam) lalu **Simpan pengingat**. Pengingat bersifat **pribadi**: hanya Anda yang menerimanya (di lonceng notifikasi).
-3. **Catatan**: tekan **Catatan**, tulis, lalu **Tambahkan catatan**. Catatan terlihat oleh semua karyawan.
+3. **Catatan**: tekan **Catatan**, tulis, lalu **Tambahkan catatan**. Catatan terlihat oleh semua karyawan, dan semua **PIC** tugas itu (selain penulisnya) mendapat notifikasi **Komentar** di lonceng.
 4. **Delegasikan**: tekan **Delegasikan**, pilih orang di **Delegasikan kepada**. Orang itu ditambahkan sebagai PIC (PIC lama tetap) dan mendapat notifikasi.
 5. **Ubah**: mengganti judul, deadline, PIC/support, dll., lalu **Simpan perubahan**. **Hapus** hanya untuk head (departemennya) dan admin.
 6. **Pilih banyak**: centang beberapa tugas sekaligus untuk mengubah status, sprint, prioritas, deadline, atau menambah PIC, lalu **Terapkan ke … tugas**.
@@ -136,7 +136,7 @@ Kata kunci: ATS, log harian, jam kerja, timesheet, catat pekerjaan, ketercapaian
 - **Tugas tidak terlihat**: periksa filter (terutama **Sprint** dan **Status**), atau pilih *Semua sprint*.
 - **Tidak bisa menambah tugas di departemen lain**: hanya admin/CEO yang bisa; minta head departemen tersebut.
 
-Kata kunci: to-do, todo list, tugas, sprint, kanban, PIC, support, delegasi, pengingat, pending, terlambat, deadline, catatan tugas, riwayat tugas`,
+Kata kunci: to-do, todo list, tugas, sprint, kanban, PIC, support, delegasi, pengingat, pending, terlambat, deadline, catatan tugas, komentar, notifikasi, riwayat tugas`,
   },
 
   // ---------- Bagian B: pengajuan & persetujuan ----------

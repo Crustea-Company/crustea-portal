@@ -31,6 +31,9 @@ function describe(n: NotificationItem): { label: string; text: string } {
       text: `${n.actor?.full_name ?? "Seseorang"} mendelegasikan tugas kepada Anda: ${code}${n.title}`,
     };
   }
+  if (n.kind === "comment") {
+    return { label: "Komentar", text: `${n.actor?.full_name ?? "Seseorang"} berkomentar di tugas Anda: ${code}${n.title}` };
+  }
   if (n.kind === "deadline" && n.task?.deadline) {
     return {
       label: `Deadline H-${daysBefore(n.task.deadline, n.created_at)}`,
@@ -50,6 +53,7 @@ const LABEL_STYLE: Record<NotificationItem["kind"], string> = {
   asset: "bg-slate-200 text-slate-800",
   aqua: "bg-brand-100 text-brand-800",
   feedback: "bg-violet-100 text-violet-800",
+  comment: "bg-amber-100 text-amber-800",
 };
 
 export default function NotificationBell() {
