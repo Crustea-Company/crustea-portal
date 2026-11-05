@@ -33,6 +33,11 @@ export function canEditKpi(me: Me, k: Pick<KpiItem, "dept_code" | "pic_type" | "
   return k.pic_type === "person" ? k.pic_id === me.id : me.dept_code === k.dept_code;
 }
 
+// Tambah/ubah/hapus item KPI: admin, CEO, head departemen item (sama dengan aturan write_kpi di database).
+export function canManageKpi(me: Me, dept: string): boolean {
+  return me.app_role === "admin" || me.app_role === "ceo" || (me.app_role === "head" && me.dept_code === dept);
+}
+
 export function isMyKpi(me: Me, k: Pick<KpiItem, "dept_code" | "pic_type" | "pic_id">): boolean {
   return k.pic_type === "person" ? k.pic_id === me.id : me.dept_code === k.dept_code;
 }

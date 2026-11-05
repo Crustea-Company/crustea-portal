@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import RupiahInput from "@/components/requests/RupiahInput";
-import { PROJECT_TYPES, TYPE_LABEL, type ProjectType } from "@/lib/aquaculture";
+import { PROJECT_TYPES, TYPE_LABEL, isSimpleType, type ProjectType } from "@/lib/aquaculture";
+import { downloadProjectTemplate, readProjectFile } from "@/lib/project-xlsx";
 import { saveProject, type ProjectInput } from "./actions";
+import XlsxButtons from "./XlsxButtons";
 
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 disabled:bg-slate-100 disabled:text-slate-500";
@@ -16,6 +18,8 @@ const PARTNER_HINT: Record<ProjectType, string> = {
   mini_ras: "calon mitra / investor",
   workshop: "partner / penyelenggara",
   training: "instansi / peserta",
+  grant: "pemberi dana / donor",
+  csr: "perusahaan / mitra / penerima manfaat",
 };
 
 // Form data peluang proyek (SOP Aquaculture langkah 1).
@@ -25,7 +29,7 @@ export default function ProjectForm({
   initial,
 }: {
   meId: string;
-  people: { id: string; full_name: string }[];
+  people: { id: string; full_name: string; email: string | null }[];
   initial: { id: string | null; input: Partial<ProjectInput>; typeLocked: boolean };
 }) {
   const router = useRouter();
@@ -56,15 +60,28 @@ export default function ProjectForm({
       setPending(false);
       return;
     }
-    router.push(`/aquaculture/${res.id}`);
+    router.push(`/projects/${res.id}`);
     router.refresh();
   }
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <XlsxButtons
+        hint="Bisa juga isi lewat Excel: unduh template (ikut berisi isian form saat ini), isi, lalu pilih Isi dari Excel."
+        onDownload={() => downloadProjectTemplate(form, people)}
+        onFile={async (file) => {
+          const { input, warnings } = await readProjectFile(file, people);
+          if (initial.typeLocked && input.type && input.type !== form.type) {
+            delete input.type;
+            warnings.push("Jenis proyek terkunci; jenis dari file diabaikan.");
+          }
+          set(input);
+          return warnings;
+        }}
+      />
       <fieldset className="flex flex-col gap-1.5">
         <legend className="mb-1 text-sm font-medium text-slate-700">Jenis proyek</legend>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {PROJECT_TYPES.map((t) => (
             <label
               key={t}
@@ -85,7 +102,10 @@ export default function ProjectForm({
             </label>
           ))}
         </div>
-        {initial.typeLocked && <p className="text-xs text-slate-500">Jenis terkunci setelah paket RAB dibuat.</p>}
+        {isSimpleType(form.type) && (
+          <p className="text-xs text-slate-500">Grant & CSR tanpa kelayakan finansial/RAB: cukup catatan, update status, dan PIC.</p>
+        )}
+        {initial.typeLocked && <p className="text-xs text-slate-500">Jenis hanya bisa diganti di tahap Identifikasi peluang.</p>}
       </fieldset>
 
       <label className={labelClass}>

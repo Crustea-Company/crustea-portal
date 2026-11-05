@@ -22,8 +22,8 @@ export type ProjectInput = {
 };
 
 function revalidateProject(id?: string) {
-  revalidatePath("/aquaculture");
-  if (id) revalidatePath(`/aquaculture/${id}`, "layout");
+  revalidatePath("/projects");
+  if (id) revalidatePath(`/projects/${id}`, "layout");
 }
 
 // Simpan peluang baru (id = null) atau ubah data peluang. Tahap tidak diubah di sini.
@@ -51,6 +51,9 @@ export async function saveProject(input: ProjectInput, id: string | null): Promi
   const supabase = await createClient();
   if (id) {
     const { data, error } = await supabase.from("aqua_projects").update(row).eq("id", id).select("id");
+    if (error?.message.includes("aqua_projects_stage_check")) {
+      return { ok: false, message: "Jenis Grant/CSR dan jenis lain hanya bisa saling diganti di tahap Identifikasi peluang." };
+    }
     if (error) return { ok: false, message: `Gagal menyimpan: ${error.message}` };
     if (!data?.length) return { ok: false, message: "Anda tidak boleh mengubah proyek ini." };
     revalidateProject(id);

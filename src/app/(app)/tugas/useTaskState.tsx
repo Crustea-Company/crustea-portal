@@ -112,7 +112,7 @@ export function useTaskState(
 
   const card = (
     t: Task,
-    extra: { compact?: boolean; href?: string; selected?: boolean; onToggleSelect?: () => void } = {},
+    extra: { compact?: boolean; href?: string; selected?: boolean; onToggleSelect?: () => void; highlight?: string[] } = {},
   ) => (
     <TaskCard
       key={t.id}
@@ -124,6 +124,7 @@ export function useTaskState(
       href={extra.href}
       selected={extra.selected}
       onToggleSelect={extra.onToggleSelect}
+      highlight={extra.highlight}
     />
   );
 

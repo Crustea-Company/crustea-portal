@@ -62,7 +62,7 @@ export default async function RabPage({ params, searchParams }: { params: Promis
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">
           Proyek ini belum punya paket kelayakan & RAB.
         </p>
-        <Link href={`/aquaculture/${p.id}`} className="text-sm font-medium text-brand-700 hover:underline">
+        <Link href={`/projects/${p.id}`} className="text-sm font-medium text-brand-700 hover:underline">
           ← Kembali ke proyek
         </Link>
       </main>
@@ -73,7 +73,7 @@ export default async function RabPage({ params, searchParams }: { params: Promis
     <main className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-6">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-logo-leaf">
-          Aquaculture · {p.number} · {TYPE_LABEL[p.type]}
+          Project Management · {p.number} · {TYPE_LABEL[p.type]}
         </p>
         <h1 className="text-2xl font-bold text-slate-900">Kelayakan finansial & RAB</h1>
         <p className="mt-1 text-sm text-slate-600">{p.name}</p>
@@ -105,7 +105,7 @@ export default async function RabPage({ params, searchParams }: { params: Promis
         isAquagrowth={p.type === "aquagrowth"}
         submitLabel={!useNew && plan?.status === "needs_revision" ? "Kirim ulang ke F&A" : "Kirim ke F&A"}
       />
-      <Link href={`/aquaculture/${p.id}`} className="text-sm font-medium text-brand-700 hover:underline">
+      <Link href={`/projects/${p.id}`} className="text-sm font-medium text-brand-700 hover:underline">
         ← Kembali ke proyek
       </Link>
     </main>

@@ -6,6 +6,7 @@ import RupiahInput from "@/components/requests/RupiahInput";
 import { formatNumber } from "@/lib/format";
 import {
   AQUA_STAGES,
+  GRANT_STAGES,
   STAGE_LABEL,
   investorPercentTotal,
   stageRank,
@@ -55,7 +56,7 @@ export function StagePanel({
   const [number, setNumber] = useState(contractNumber ?? "");
   const [value, setValue] = useState(0);
   const backOptions = rank > stageRank("negotiation") && stage !== "cancelled"
-    ? AQUA_STAGES.filter((s, i) => i >= stageRank("negotiation") && i < rank && (s !== "harvest" || type === "aquagrowth" || type === "mini_ras"))
+    ? AQUA_STAGES.filter((s) => stageRank(s) >= stageRank("negotiation") && stageRank(s) < rank && (s !== "harvest" || type === "aquagrowth" || type === "mini_ras"))
     : [];
   const [back, setBack] = useState<AquaStage | "">(backOptions[backOptions.length - 1] ?? "");
   const aquagrowth = type === "aquagrowth";
@@ -277,6 +278,77 @@ export function StagePanel({
   );
 }
 
+// Grant & CSR (migrasi 024): maju satu tahap (tim AQ/admin/CEO atau PIC), mundur & buka lagi (head AQ/admin/CEO).
+// Setiap perubahan wajib catatan.
+export function GrantStagePanel({ id, stage, canMove, manager }: { id: string; stage: AquaStage; canMove: boolean; manager: boolean }) {
+  const router = useRouter();
+  const [note, setNote] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const i = (GRANT_STAGES as readonly AquaStage[]).indexOf(stage);
+  const next = i >= 0 && i < GRANT_STAGES.length - 1 ? GRANT_STAGES[i + 1] : null;
+  const backOptions = manager && i > 0 ? GRANT_STAGES.slice(0, i) : [];
+  const [back, setBack] = useState<AquaStage | "">(backOptions[backOptions.length - 1] ?? "");
+  const canCancel = canMove && stage !== "completed" && stage !== "cancelled";
+  if (!(canMove && next) && backOptions.length === 0 && !canCancel && !(manager && stage === "cancelled")) return null;
+
+  async function run(to: AquaStage | "reopen") {
+    setError("");
+    if (!note.trim()) return setError("Tulis catatan perubahan status dulu.");
+    setPending(true);
+    const res = await changeAquaStage(id, to, note, null);
+    setPending(false);
+    if (!res.ok) return setError(res.message);
+    setNote("");
+    router.refresh();
+  }
+
+  return (
+    <section className="flex flex-col gap-3 rounded-2xl border-2 border-brand-600/40 bg-white p-4">
+      <h2 className="font-semibold text-slate-900">Update status</h2>
+      <label className={labelClass}>
+        <span>
+          Catatan <span className="font-normal text-slate-500">(wajib; mis. hasil, keputusan, link dokumen)</span>
+        </span>
+        <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} className={inputClass} />
+      </label>
+      {canMove && next && (
+        <button type="button" disabled={pending} onClick={() => run(next)} className={btn(PRIMARY)}>
+          Lanjut ke: {STAGE_LABEL[next]}
+        </button>
+      )}
+      {backOptions.length > 0 && stage !== "cancelled" && (
+        <div className="flex flex-wrap items-end gap-2 rounded-xl bg-slate-50 p-3">
+          <label className={labelClass}>
+            Mundurkan ke tahap
+            <select value={back} onChange={(e) => setBack(e.target.value as AquaStage)} className={inputClass}>
+              {backOptions.map((s) => (
+                <option key={s} value={s}>
+                  {STAGE_LABEL[s]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="button" disabled={pending || !back} onClick={() => back && run(back)} className={btn(NEUTRAL)}>
+            Mundurkan
+          </button>
+        </div>
+      )}
+      {manager && stage === "cancelled" && (
+        <button type="button" disabled={pending} onClick={() => run("reopen")} className={btn(NEUTRAL)}>
+          Buka lagi proyek ini
+        </button>
+      )}
+      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {canCancel && (
+        <button type="button" disabled={pending} onClick={() => run("cancelled")} className={btn(DANGER)}>
+          Tandai batal
+        </button>
+      )}
+    </section>
+  );
+}
+
 const TYPE_HINT = "Mini RAS, Workshop, dan Pelatihan cukup nomor kontrak.";
 
 // Catatan (siapa saja) dan laporan bulanan (tim AQ, mulai tahap eksekusi).
@@ -427,7 +499,7 @@ export function DeleteProjectButton({ id }: { id: string }) {
           const res = await deleteProject(id);
           setPending(false);
           if (!res.ok) return setError(res.message);
-          router.push("/aquaculture");
+          router.push("/projects");
           router.refresh();
         }}
         className="rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"

@@ -85,7 +85,7 @@ export default async function Home() {
             </Link>
           )}
           {isAquaEditor(employee) && (
-            <Link href="/aquaculture/baru" className={outlineBtn}>
+            <Link href="/projects/baru" className={outlineBtn}>
               Catat peluang proyek
             </Link>
           )}

@@ -5,20 +5,21 @@ import { createClient } from "@/lib/supabase/server";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import { formatDate, formatNumber } from "@/lib/format";
 import {
-  AQUA_STAGES,
+  STAGE_ORDER,
   PROJECT_COLUMNS,
   PROJECT_TYPES,
   STAGE_LABEL,
   STAGE_STYLE,
   TYPE_LABEL,
   isAquaEditor,
+  isSimpleType,
   stageRank,
   type AquaProject,
   type AquaStage,
   type ProjectType,
 } from "@/lib/aquaculture";
 
-export const metadata: Metadata = { title: "Aquaculture - Crustea Portal" };
+export const metadata: Metadata = { title: "Project berjalan - Crustea Portal" };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -36,8 +37,8 @@ function inView(p: AquaProject, view: View): boolean {
 
 const daysSince = (ts: string) => Math.max(0, Math.floor((Date.now() - Date.parse(ts)) / 86_400_000));
 
-// Pipeline proyek Aquaculture per jenis (Aquagrowth, Mini RAS, Workshop, Pelatihan), dikelompokkan per tahap.
-export default async function AquaculturePage({ searchParams }: { searchParams: SearchParams }) {
+// Daftar proyek per jenis (Aquagrowth, Mini RAS, Workshop, Pelatihan, Grant, CSR), dikelompokkan per tahap.
+export default async function ProjectsPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const type = typeof sp.jenis === "string" && (PROJECT_TYPES as readonly string[]).includes(sp.jenis) ? (sp.jenis as ProjectType) : null;
   const view: View = typeof sp.lihat === "string" && sp.lihat in VIEWS ? (sp.lihat as View) : "aktif";
@@ -75,7 +76,7 @@ export default async function AquaculturePage({ searchParams }: { searchParams: 
     };
   });
 
-  const stages: AquaStage[] = view === "batal" ? ["cancelled"] : [...AQUA_STAGES];
+  const stages: AquaStage[] = view === "batal" ? ["cancelled"] : [...STAGE_ORDER];
   const groups = stages.map((s) => ({ stage: s, rows: list.filter((p) => p.stage === s) })).filter((g) => g.rows.length > 0);
 
   const href = (patch: Record<string, string | null>) => {
@@ -83,7 +84,7 @@ export default async function AquaculturePage({ searchParams }: { searchParams: 
     const cur: Record<string, string | null> = { jenis: type, lihat: view === "aktif" ? null : view, q: q || null, ...patch };
     for (const [k, v] of Object.entries(cur)) if (v) p.set(k, v);
     const s = p.toString();
-    return s ? `/aquaculture?${s}` : "/aquaculture";
+    return s ? `/projects?${s}` : "/projects";
   };
   const chip = (active: boolean) =>
     `shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${
@@ -94,15 +95,15 @@ export default async function AquaculturePage({ searchParams }: { searchParams: 
     <main className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-logo-leaf">Aquaculture</p>
-          <h1 className="text-2xl font-bold text-slate-900">Project Management</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-logo-leaf">Project Management</p>
+          <h1 className="text-2xl font-bold text-slate-900">Project berjalan</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Dari identifikasi peluang, kelayakan finansial & RAB, kontrak, sampai eksekusi dan panen.
+            Dari identifikasi peluang, kelayakan finansial & RAB, kontrak, sampai eksekusi dan panen. Grant & CSR: proposal sampai laporan.
           </p>
         </div>
         {isAquaEditor(me) && (
           <Link
-            href={type ? `/aquaculture/baru?jenis=${type}` : "/aquaculture/baru"}
+            href={type ? `/projects/baru?jenis=${type}` : "/projects/baru"}
             className="rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800"
           >
             + Catat peluang
@@ -110,7 +111,7 @@ export default async function AquaculturePage({ searchParams }: { searchParams: 
         )}
       </div>
 
-      <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2 lg:grid-cols-3">
         {summary.map((s) => (
           <Link
             key={s.type}
@@ -121,11 +122,11 @@ export default async function AquaculturePage({ searchParams }: { searchParams: 
           >
             <p className="font-semibold text-slate-900">{TYPE_LABEL[s.type]}</p>
             <p className="text-xs text-slate-600">
-              {formatNumber(s.active)} berjalan · {formatNumber(s.contracted)} berkontrak
+              {formatNumber(s.active)} berjalan · {formatNumber(s.contracted)} {isSimpleType(s.type) ? "dieksekusi" : "berkontrak"}
             </p>
             <p className="mt-1 text-xs text-slate-500">Pipeline (perkiraan)</p>
             <p className="font-bold tabular-nums text-slate-900">{rp(s.pipeline)}</p>
-            <p className="text-xs text-slate-500">
+            <p className={`text-xs text-slate-500 ${isSimpleType(s.type) ? "hidden" : ""}`}>
               Kontrak <span className="tabular-nums text-slate-700">{rp(s.contractValue)}</span> · dana masuk{" "}
               <span className="tabular-nums font-semibold text-brand-800">{rp(s.income)}</span>
             </p>
@@ -156,7 +157,7 @@ export default async function AquaculturePage({ searchParams }: { searchParams: 
             {VIEWS[v]} ({ofType.filter((p) => inView(p, v)).length})
           </Link>
         ))}
-        <form action="/aquaculture" className="ml-auto flex gap-1">
+        <form action="/projects" className="ml-auto flex gap-1">
           {type && <input type="hidden" name="jenis" value={type} />}
           {view !== "aktif" && <input type="hidden" name="lihat" value={view} />}
           <input
@@ -184,7 +185,7 @@ export default async function AquaculturePage({ searchParams }: { searchParams: 
               {g.rows.map((p) => (
                 <li key={p.id}>
                   <Link
-                    href={`/aquaculture/${p.id}`}
+                    href={`/projects/${p.id}`}
                     className="flex flex-col gap-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm hover:border-brand-300 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">

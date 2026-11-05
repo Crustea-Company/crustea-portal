@@ -5,10 +5,22 @@ import { useState } from "react";
 import { formatDateTime, formatNumber } from "@/lib/format";
 import { formatWeeks, type KpiItem } from "@/lib/kpi";
 import { updateKpiItem } from "./actions";
+import KpiItemForm, { type KpiFormOptions } from "./KpiItemForm";
 
-// Satu item KPI: centang selesai + catatan realisasi (bagi yang berhak).
-export default function KpiItemRow({ item, canEdit, deptName }: { item: KpiItem; canEdit: boolean; deptName: string }) {
+// Satu item KPI: centang selesai + catatan realisasi (bagi yang berhak); ubah isi item (admin, CEO, head dept).
+export default function KpiItemRow({
+  item,
+  canEdit,
+  deptName,
+  manage,
+}: {
+  item: KpiItem;
+  canEdit: boolean;
+  deptName: string;
+  manage: KpiFormOptions | null;
+}) {
   const router = useRouter();
+  const [form, setForm] = useState(false);
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState(item.realization_note ?? "");
   const [pending, setPending] = useState(false);
@@ -29,6 +41,14 @@ export default function KpiItemRow({ item, canEdit, deptName }: { item: KpiItem;
     item.target_period === "quarter" ? "per kuartal" : null,
     formatWeeks(item.target_weeks) || null,
   ].filter(Boolean);
+
+  if (form && manage) {
+    return (
+      <li className="p-3">
+        <KpiItemForm item={item} defaultDept={item.dept_code} options={manage} onDone={() => setForm(false)} />
+      </li>
+    );
+  }
 
   return (
     <li className="flex flex-col gap-2 p-3">
@@ -56,6 +76,15 @@ export default function KpiItemRow({ item, canEdit, deptName }: { item: KpiItem;
             </p>
           )}
         </div>
+        {manage && !editing && (
+          <button
+            type="button"
+            onClick={() => setForm(true)}
+            className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+          >
+            Ubah item
+          </button>
+        )}
         {canEdit && !editing && (
           <button
             type="button"

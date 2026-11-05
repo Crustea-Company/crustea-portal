@@ -48,7 +48,7 @@ export default function AquaPlanDetails({ data, editable }: { data: RabData; edi
       {data.summary && <p className="whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{data.summary}</p>}
       <div className="flex flex-wrap gap-2">
         <Link
-          href={`/aquaculture/${data.project_id}/rab`}
+          href={`/projects/${data.project_id}/rab`}
           className={`rounded-lg px-4 py-2.5 text-sm font-semibold ${
             editable ? "bg-brand-700 text-white hover:bg-brand-800" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
           }`}
@@ -56,7 +56,7 @@ export default function AquaPlanDetails({ data, editable }: { data: RabData; edi
           {editable ? "Ubah RAB & kirim" : "Lihat RAB lengkap (semua baris)"}
         </Link>
         <Link
-          href={`/aquaculture/${data.project_id}`}
+          href={`/projects/${data.project_id}`}
           className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
         >
           Halaman proyek

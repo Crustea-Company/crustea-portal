@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Highlight from "@/components/Highlight";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Employee } from "@/lib/auth";
@@ -51,6 +52,7 @@ export default function TaskCard({
   href,
   selected,
   onToggleSelect,
+  highlight = [],
 }: {
   task: Task;
   notes: TaskNote[];
@@ -60,6 +62,7 @@ export default function TaskCard({
   href?: string; // kalau diisi, kartu bisa diklik untuk membuka tugas (quick link di Dashboard)
   selected?: boolean; // mode "pilih banyak": undefined = tidak bisa dipilih
   onToggleSelect?: () => void;
+  highlight?: string[]; // kata pencarian yang diberi warna
 }) {
   const { today, me, nameOf } = ctx;
   const router = useRouter();
@@ -105,7 +108,7 @@ export default function TaskCard({
             className="h-4 w-4 accent-brand-700"
           />
         )}
-        {task.code && <span className="font-mono text-slate-500">{task.code}</span>}
+        {task.code && <span className="font-mono text-slate-500"><Highlight text={task.code} terms={highlight} /></span>}
         {task.is_priority && (
           <span className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800">Prioritas</span>
         )}
@@ -117,10 +120,10 @@ export default function TaskCard({
 
       {href ? (
         <Link href={href} className="font-medium text-slate-900 hover:text-brand-800 hover:underline">
-          {task.title}
+          <Highlight text={task.title} terms={highlight} />
         </Link>
       ) : (
-        <p className="font-medium text-slate-900">{task.title}</p>
+        <p className="font-medium text-slate-900"><Highlight text={task.title} terms={highlight} /></p>
       )}
 
       <div className="mt-2 space-y-0.5 text-xs text-slate-600">

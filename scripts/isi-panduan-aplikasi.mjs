@@ -51,6 +51,13 @@ const PROCEDURES = [
 4. **Unduh Excel** (bagian bawah halaman) untuk mengunduh log per periode.
 5. Bagian **Riwayat ketercapaian (periode ditutup)** menampilkan nilai yang sudah dikunci per periode.
 
+### 5. Grant & CSR
+
+1. Pilih jenis **Grant** atau **CSR** saat mencatat peluang. Tidak ada kelayakan finansial, RAB, atau kontrak.
+2. Alur: **Identifikasi peluang → Penyusunan proposal → Proposal diajukan → Eksekusi & monitoring → Laporan & pertanggungjawaban → Selesai**.
+3. Di panel **Update status**, tulis catatan (wajib; mis. keputusan, link dokumen), lalu tekan **Lanjut ke: …**. Bisa dilakukan tim AQ, admin, CEO, atau **PIC proyek**.
+4. Laporan bulanan bisa dikirim mulai tahap Eksekusi.
+
 ### Aturan penting
 
 - **Periode bulanan** berjalan dari **tanggal 29 bulan lalu sampai tanggal 28 bulan ini**. Log tanggal 29–31 masuk periode bulan berikutnya (otomatis).
@@ -107,6 +114,7 @@ Kata kunci: ATS, log harian, jam kerja, timesheet, catat pekerjaan, ketercapaian
 
 ### Mencari dan mengurutkan
 
+- **Cari tugas**: ketik di kotak pencarian; daftar langsung tersaring (judul, kode, output, catatan, nama PIC/support). Huruf besar/kecil diabaikan, semua kata harus ada, kata yang cocok diberi warna.
 - **Filter**: departemen, sprint, PIC (*Saya sebagai PIC* untuk tugas Anda), status, rentang deadline, **Hanya yang terlambat**, **Hanya prioritas**.
 - **Urutkan**: Deadline, Prioritas, Judul A-Z, atau **Terbaru dibuat**; pilih arahnya di sebelahnya.
 - **Tampilan**: Daftar, Grid, Kanban, atau Per PIC.
@@ -534,26 +542,28 @@ Kata kunci: stok, inventaris, gudang, mutasi stok, opname, supply demand, aset, 
   },
   {
     code: "APP-11",
-    title: "Panduan: Pipeline peluang proyek Aquaculture",
+    title: "Panduan: Project Management (Aquaculture, Grant, CSR)",
     sort: 111,
     dept: "AQ",
-    body: `> Buka menu **Aquaculture > [Project Management](/aquaculture)**.
+    body: `> Buka menu **Project Management > [Project berjalan](/projects)**.
 
-**Tujuan:** mengelola proyek Aquagrowth, Mini RAS, Workshop, dan Pelatihan dari identifikasi peluang, kelayakan finansial & RAB, kontrak, sampai eksekusi dan panen; dana masuknya otomatis menjadi realisasi target kuartal.
+**Tujuan:** mengelola proyek Aquagrowth, Mini RAS, Workshop, dan Pelatihan dari identifikasi peluang, kelayakan finansial & RAB, kontrak, sampai eksekusi dan panen; dana masuknya otomatis menjadi realisasi target kuartal. Proyek **Grant** dan **CSR** memakai alur yang lebih sederhana (bagian 5).
 
-**Siapa:** semua karyawan bisa melihat dan memberi catatan. Tim Aquaculture (AQ), admin, dan CEO mengubah data & tahap. F&A meninjau paket RAB; CEO menyetujui. Corporate Affairs membantu kontrak. F&A/admin/CEO mencatat dana masuk.
+**Siapa:** semua karyawan bisa melihat dan memberi catatan. Tim Aquaculture (AQ), admin, dan CEO mengubah data & tahap (Grant/CSR: PIC proyek juga boleh update status). F&A meninjau paket RAB; CEO menyetujui. Corporate Affairs membantu kontrak. F&A/admin/CEO mencatat dana masuk.
 
 ### 1. Catat peluang
 
 1. Tekan **+ Catat peluang** (atau menu **Catat peluang proyek**).
 2. Isi **Jenis proyek**, **Nama proyek**, **Lokasi**, calon mitra/investor/peserta, kontak, asal peluang, deskripsi (latar belakang, potensi, skala), perkiraan nilai (Rp), **Perkiraan mulai**, dan **PIC proyek**.
 3. Tekan **Simpan peluang**. Nomor *AQ-…* dibuat otomatis. Tahap: *Identifikasi peluang*.
+4. Lewat Excel: tekan **Unduh template Excel**, isi kolom *Isi*, lalu **Isi dari Excel**. Form terisi otomatis; periksa lalu simpan. File hanya dibaca di browser, tidak disimpan.
 
 ### 2. Kelayakan finansial & RAB
 
 1. Di halaman proyek, tekan **Susun kelayakan & RAB**.
 2. Isi data umum, info komoditas (bila budidaya), baris biaya **A. CAPEX**, **B. Working capital**, **C. OPEX**, proyeksi pendapatan, asumsi bagi hasil & BEP, timeline, dan **Ringkasan kelayakan & asumsi**. Bisa mulai dari **Isi dari contoh template (RAB Aquagrowth Serang)**.
 3. Angka laba, margin, ROI, payback, dan BEP dihitung otomatis. Tekan **Simpan draf** kapan saja.
+   Bisa juga lewat Excel: **Unduh template Excel** (sheet Umum, Capex, Modal kerja, Opex, Pendapatan, Jadwal), isi, lalu **Isi dari Excel**. Semua baris di form diganti isi file.
 4. Bila siap, tekan **Kirim ke F&A**. Isi terkunci sampai ada permintaan perbaikan.
 5. Alur paket (nomor *RA-…*): **Review F&A → Menunggu CEO → Disetujui CEO**. Tahap proyek ikut bergerak otomatis. Bila **Perlu perbaikan**, buka lagi RAB, perbaiki, lalu **Kirim ulang ke F&A**.
 6. Review lintas tim (Finance, TechOps, DM): beri catatan di paket atau di proyek (≤ 3 hari kerja).
@@ -580,16 +590,17 @@ Setelah kontrak ditandatangani, catat setiap uang yang sudah masuk rekening di *
 ### Aturan penting
 
 - Batal, mundur tahap, buka lagi, dan selesai **wajib** catatan/alasan. Proyek tidak bisa dibatalkan saat paket sedang di F&A/CEO.
-- Jenis proyek terkunci setelah paket RAB dibuat.
+- Jenis proyek hanya bisa diganti di tahap *Identifikasi peluang* (dan sebelum ada paket RAB).
 - Lampiran hanya berupa link. Pengadaan barang untuk proyek tetap lewat *Panduan: Pengadaan barang & jasa*.
 - Centang KPI departemen tetap dilakukan manual di **Monitoring KPI**.
 
 ### Kalau ada masalah
 
-- **Tombol tahap tidak muncul**: hanya tim AQ, admin, dan CEO yang bisa mengubah tahap.
+- **Tombol tahap tidak muncul**: hanya tim AQ, admin, dan CEO (Grant/CSR: juga PIC proyek) yang bisa mengubah tahap.
+- **Isi dari Excel gagal**: pakai file dari tombol **Unduh template Excel** dan simpan sebagai *.xlsx*.
 - **Total persentase investor bukan 100%**: periksa kembali persentase setiap investor.
 
-Kata kunci: aquaculture, akuakultur, aquagrowth, mini RAS, workshop, pelatihan, peluang proyek, RAB, kelayakan finansial, investor, kontrak, laporan bulanan, panen, dana masuk, target kuartal`,
+Kata kunci: project management, proyek, aquaculture, akuakultur, grant, hibah, CSR, proposal, excel, template, aquagrowth, mini RAS, workshop, pelatihan, peluang proyek, RAB, kelayakan finansial, investor, kontrak, laporan bulanan, panen, dana masuk, target kuartal`,
   },
   {
     code: "APP-12",

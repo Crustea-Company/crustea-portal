@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime, formatNumber, todayJakarta } from "@/lib/format";
 import { canReviewRequests, statusLabel, STATUS_STYLE, type RequestStatus } from "@/lib/requests";
 import {
-  AQUA_STAGES,
   DEFAULT_ALLOCATION,
   PROJECT_COLUMNS,
   STAGE_HINT,
@@ -16,14 +15,16 @@ import {
   computeRab,
   isAquaEditor,
   isAquaManager,
+  isSimpleType,
+  stagesOf,
   stageRank,
   type AquaProject,
   type AquaStage,
   type RabData,
 } from "@/lib/aquaculture";
-import { DeleteProjectButton, IncomeForm, NoteForm, StagePanel } from "./ProjectPanels";
+import { DeleteProjectButton, GrantStagePanel, IncomeForm, NoteForm, StagePanel } from "./ProjectPanels";
 
-export const metadata: Metadata = { title: "Proyek Aquaculture - Crustea Portal" };
+export const metadata: Metadata = { title: "Proyek - Crustea Portal" };
 
 const rp = (n: number) => `Rp${formatNumber(Math.round(n))}`;
 const pct = (n: number | null) => (n === null ? "-" : `${formatNumber(Math.round(n * 1000) / 10)}%`);
@@ -127,11 +128,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const editor = isAquaEditor(me);
   const manager = isAquaManager(me);
   const rank = stageRank(p.stage);
-  const steps = AQUA_STAGES.filter((s) => s !== "harvest" || p.type === "aquagrowth" || p.type === "mini_ras");
+  const simple = isSimpleType(p.type); // Grant/CSR: tanpa RAB & kontrak
+  const steps = stagesOf(p.type);
   const canMakePlan = editor && (p.stage === "opportunity" || p.stage === "plan") && (!plan || plan.status === "rejected");
   const planEditable = editor && plan !== null && (plan.status === "draft" || plan.status === "needs_revision");
   const today = todayJakarta();
-  const contracted = rank >= stageRank("signed") && p.stage !== "cancelled";
+  const contracted = !simple && rank >= stageRank("signed") && p.stage !== "cancelled";
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6">
@@ -145,7 +147,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <h1 className="text-xl font-bold text-slate-900">{p.name}</h1>
         <p className="text-2xl font-bold text-brand-800">{rp(p.contract_value ?? p.estimated_value)}</p>
         <p className="-mt-1 text-xs text-slate-500">{p.contract_value !== null ? "Nilai kontrak" : "Perkiraan nilai"}</p>
-        {STAGE_HINT[p.stage] && <p className="text-sm text-slate-600">{STAGE_HINT[p.stage]}</p>}
+        {STAGE_HINT[p.stage] && (
+          <p className="text-sm text-slate-600">
+            {simple && p.stage === "opportunity" ? "Lengkapi data peluang, lalu mulai susun proposal." : STAGE_HINT[p.stage]}
+          </p>
+        )}
       </div>
 
       {p.stage === "cancelled" && p.cancel_reason && (
@@ -168,7 +174,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       {editor && (
         <div className="flex flex-wrap gap-2">
           <Link
-            href={`/aquaculture/${p.id}/ubah`}
+            href={`/projects/${p.id}/ubah`}
             className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Ubah data peluang
@@ -192,6 +198,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         {p.description && <p className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{p.description}</p>}
       </section>
 
+      {!simple && (
       <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-semibold text-slate-900">Kelayakan finansial & RAB</h2>
@@ -219,7 +226,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
-                href={`/aquaculture/${p.id}/rab`}
+                href={`/projects/${p.id}/rab`}
                 className={`rounded-lg px-4 py-2.5 text-sm font-semibold ${
                   planEditable ? "bg-brand-700 text-white hover:bg-brand-800" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                 }`}
@@ -234,7 +241,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               </Link>
               {canMakePlan && (
                 <Link
-                  href={`/aquaculture/${p.id}/rab?baru=1`}
+                  href={`/projects/${p.id}/rab?baru=1`}
                   className="rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800"
                 >
                   Susun paket baru
@@ -250,7 +257,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </p>
             {canMakePlan && (
               <Link
-                href={`/aquaculture/${p.id}/rab?baru=1`}
+                href={`/projects/${p.id}/rab?baru=1`}
                 className="self-start rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800"
               >
                 Susun kelayakan & RAB
@@ -259,8 +266,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </>
         )}
       </section>
+      )}
 
-      {(rank >= stageRank("contract") || p.investors.length > 0) && p.stage !== "cancelled" && (
+      {!simple && (rank >= stageRank("contract") || p.investors.length > 0) && p.stage !== "cancelled" && (
         <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-semibold text-slate-900">Kontrak</h2>
           <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -329,6 +337,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </section>
       )}
 
+      {simple ? (
+        <GrantStagePanel key={p.stage} id={p.id} stage={p.stage} canMove={editor || p.pic_id === me.id} manager={manager} />
+      ) : (
       <StagePanel
         key={p.stage}
         id={p.id}
@@ -341,6 +352,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         investors={p.investors}
         contractNumber={p.contract_number}
       />
+      )}
 
       <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="font-semibold text-slate-900">Riwayat & laporan</h2>
@@ -367,13 +379,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </ol>
         <NoteForm
           id={p.id}
-          canReport={editor && ["execution", "harvest", "completed"].includes(p.stage)}
+          canReport={editor && ["execution", "harvest", "reporting", "completed"].includes(p.stage)}
           thisMonth={today.slice(0, 7)}
         />
       </section>
 
-      <Link href={`/aquaculture?jenis=${p.type}`} className="text-sm font-medium text-brand-700 hover:underline">
-        ← Project Management
+      <Link href={`/projects?jenis=${p.type}`} className="text-sm font-medium text-brand-700 hover:underline">
+        ← Project berjalan
       </Link>
     </main>
   );

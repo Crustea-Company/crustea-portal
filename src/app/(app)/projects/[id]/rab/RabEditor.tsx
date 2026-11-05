@@ -15,7 +15,9 @@ import {
   type RevenueLine,
 } from "@/lib/aquaculture";
 import { AQUAGROWTH_TEMPLATE } from "@/lib/aquaculture-template";
+import { downloadRabTemplate, readRabFile } from "@/lib/project-xlsx";
 import { saveAquaPlan } from "../../actions";
+import XlsxButtons from "../../XlsxButtons";
 
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-base outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 disabled:bg-slate-50 disabled:text-slate-700";
@@ -129,12 +131,12 @@ export default function RabEditor({
     setPending(false);
     if (!res.ok) return setError(res.message);
     if (submit) {
-      router.push(`/aquaculture/${projectId}`);
+      router.push(`/projects/${projectId}`);
       router.refresh();
       return;
     }
     setSaved("Draf tersimpan.");
-    if (!planId) router.replace(`/aquaculture/${projectId}/rab`);
+    if (!planId) router.replace(`/projects/${projectId}/rab`);
     router.refresh();
   }
 
@@ -238,6 +240,19 @@ export default function RabEditor({
           <button type="button" onClick={useTemplate} className="self-start rounded-lg border border-brand-300 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-800 hover:bg-brand-100">
             Isi dari contoh template (RAB Aquagrowth Serang)
           </button>
+        )}
+        {!ro && (
+          <XlsxButtons
+            hint="Bisa juga isi lewat Excel: unduh template (ikut berisi isi paket saat ini), isi semua sheet, lalu pilih Isi dari Excel. Semua baris di form diganti isi file."
+            onDownload={() => downloadRabTemplate(title, d)}
+            onFile={async (file) => {
+              const res = await readRabFile(file, d, title);
+              const filled = d.capex.length + d.workcap.length + d.opex.length + d.revenue.length > 0;
+              if (filled && !confirm("Ganti semua isi paket dengan isi file Excel?")) throw new Error("Dibatalkan.");
+              setTitle(res.title);
+              setD(res.data);
+            }}
+          />
         )}
       </section>
 

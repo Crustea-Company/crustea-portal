@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isIsoDate } from "@/lib/travel";
-import { TARGET_DIVISIONS } from "@/lib/kpi";
+import { getCurrentEmployee } from "@/lib/auth";
+import { DEPT_ORDER, TARGET_DIVISIONS, canManageKpi } from "@/lib/kpi";
 
 type Result = { ok: true } | { ok: false; message: string };
 
@@ -14,6 +15,67 @@ export async function updateKpiItem(id: number, isDone: boolean, note: string): 
   const supabase = await createClient();
   const { error } = await supabase.rpc("update_kpi_item", { p_id: id, p_is_done: isDone, p_note: note });
   if (error) return { ok: false, message: error.message };
+  revalidatePath("/kpi");
+  return { ok: true };
+}
+
+// ---------- Tambah / ubah / hapus item KPI (admin, CEO, head departemen item; aturan database write_kpi) ----------
+
+export type KpiInput = {
+  objective_code: string;
+  objective: string;
+  dept_code: string;
+  item: string;
+  pic_type: "person" | "department";
+  pic_id: string;
+  target_value: number | null;
+  target_unit: string;
+  target_period: "" | "quarter";
+  target_weeks: string;
+};
+
+export async function saveKpiItem(input: KpiInput, id: number | null): Promise<Result> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+  if (!DEPT_ORDER.includes(input.dept_code)) return { ok: false, message: "Pilih departemen." };
+  if (!canManageKpi(me, input.dept_code)) return { ok: false, message: "Hanya admin, CEO, dan head departemen ini yang boleh mengatur item KPI." };
+  if (!input.objective_code.trim() || !input.objective.trim()) return { ok: false, message: "Kode dan nama objective wajib diisi." };
+  if (!input.item.trim()) return { ok: false, message: "Item KPI belum diisi." };
+  if (input.pic_type === "person" && !input.pic_id) return { ok: false, message: "Pilih PIC." };
+  if (input.target_value != null && (!Number.isFinite(input.target_value) || input.target_value < 0)) {
+    return { ok: false, message: "Target tidak valid." };
+  }
+  const weeks = input.target_weeks.replace(/\s+/g, "");
+  if (weeks && !/^\d{1,2}-W\d(;\d{1,2}-W\d)*$/i.test(weeks)) return { ok: false, message: "Format minggu target: 9-W1;9-W2 (bulan-minggu)." };
+  const row = {
+    objective_code: input.objective_code.trim(),
+    objective: input.objective.trim(),
+    dept_code: input.dept_code,
+    item: input.item.trim(),
+    pic_type: input.pic_type,
+    pic_id: input.pic_type === "person" ? input.pic_id : null,
+    target_value: input.target_value,
+    target_unit: input.target_unit.trim() || null,
+    target_period: input.target_period || null,
+    target_weeks: weeks.toUpperCase() || null,
+    updated_at: new Date().toISOString(),
+    updated_by: me.id,
+  };
+  const supabase = await createClient();
+  const { data, error } = id
+    ? await supabase.from("kpi_items").update(row).eq("id", id).select("id")
+    : await supabase.from("kpi_items").insert(row).select("id");
+  if (error) return { ok: false, message: denied(error.message) };
+  if (!data?.length) return { ok: false, message: "Anda tidak berhak mengubah item KPI ini." };
+  revalidatePath("/kpi");
+  return { ok: true };
+}
+
+export async function deleteKpiItem(id: number): Promise<Result> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("kpi_items").delete().eq("id", id).select("id");
+  if (error) return { ok: false, message: denied(error.message) };
+  if (!data?.length) return { ok: false, message: "Anda tidak berhak menghapus item KPI ini." };
   revalidatePath("/kpi");
   return { ok: true };
 }

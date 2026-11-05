@@ -59,7 +59,7 @@ Minta nilainya langsung ke Athar (jangan lewat chat/GitHub).
   parameternya). Isi tiap migrasi: 002 koreksi admin & buka periode · 003 pending/catatan/delegasi/notifikasi ·
   004 perbaikan kode tugas · 005 riwayat karyawan · 006 prosedur · 007 mesin pengajuan + reimburse ·
   008 permintaan pembayaran · 009 perjalanan dinas · 010 pengadaan · 011 produk/komisi/referral ·
-  012 penjualan/stok/aset · 013 KPI & target kuartal · 014 rincian/progres strategi + riwayat target Q1-Q3 2026 + impor pendapatan Jan-Sep 2026 · 015 Aquaculture Project Management (proyek, paket RAB `aqua_plan`, kontrak, dana masuk; dijalankan 28 Okt 2026) · 016 pendapatan ↔ lead penjualan · 017 percepat aturan akses RLS (`(select me())`) · 018 perbaiki rekursi aturan tugas (`is_task_pic`, `task_dept`) · 019 Struktur Organisasi (`org_pillars`, `org_units`, `org_people`, RPC `save_org_structure`) · 020 warna kartu (`org_units.colors`) + judul kolom boleh kosong (019-020 dijalankan 2 Nov 2026). Database Supabase ada di **Sydney**, server di Jakarta: tiap query ~0,2 detik. Migrasi baru ditulis berurutan di `migrations/` dan
+  012 penjualan/stok/aset · 013 KPI & target kuartal · 014 rincian/progres strategi + riwayat target Q1-Q3 2026 + impor pendapatan Jan-Sep 2026 · 015 Aquaculture Project Management (proyek, paket RAB `aqua_plan`, kontrak, dana masuk; dijalankan 28 Okt 2026) · 016 pendapatan ↔ lead penjualan · 017 percepat aturan akses RLS (`(select me())`) · 018 perbaiki rekursi aturan tugas (`is_task_pic`, `task_dept`) · 019 Struktur Organisasi (`org_pillars`, `org_units`, `org_people`, RPC `save_org_structure`) · 020 warna kartu (`org_units.colors`) + judul kolom boleh kosong (019-020 dijalankan 2 Nov 2026) · 021 Masukan & Komunitas · 022 `tasks.created_at` · 023 lead banyak produk · 024 Project Management: jenis proyek Grant & CSR (alur tanpa RAB, `grant_stage_rank`; fungsi alur lama diganti nama `change_aqua_stage_flow` dan dipanggil dari `change_aqua_stage`) + link notifikasi `/aquaculture` → `/projects` (dijalankan 5 Nov 2026). Database Supabase ada di **Sydney**, server di Jakarta: tiap query ~0,2 detik. Migrasi baru ditulis berurutan di `migrations/` dan
   dijalankan Athar lewat SQL Editor setelah disetujui.
 - Data awal: `seed/*.csv`, diimpor sekali dengan `scripts/import-seed.mjs` (sudah dilakukan).
 - Lampiran pengajuan: **hanya link** (keputusan Athar, agar tetap di paket gratis). Bucket privat
@@ -107,10 +107,12 @@ Minta nilainya langsung ke Athar (jangan lewat chat/GitHub).
 ```
 src/app/(app)/        halaman yang butuh login: dashboard, tugas, log-kerja, admin, prosedur, profil,
                       pengajuan (reimburse, pembayaran, dinas, pengadaan, komisi, review F&A),
-                      penjualan, stok, aset, produk, kpi (+ target), cuti-lembur (placeholder)
+                      penjualan, stok, aset, produk, kpi (+ target), projects (Project Management,
+                      dulu /aquaculture; alamat lama dialihkan di next.config.ts), cuti-lembur (placeholder)
 src/app/login, auth/  magic link, callback, logout;  src/middleware.ts = penyegaran sesi
 src/lib/              auth, format (tanggal/angka Indonesia), ats, tasks, requests, upload, travel,
-                      commission, sales, kpi, request-origin, supabase/
+                      commission, sales, kpi, aquaculture (proyek + RAB), project-xlsx (template Excel
+                      peluang/RAB, dibaca di browser saja), search, request-origin, supabase/
 src/components/       AppShell (sidebar + judul), NavLinks (menu), NotificationBell, requests/*
 scripts/              generate-icons, import-seed, isi-prosedur, perbarui-link-prosedur
                       (tiga terakhir butuh SUPABASE_SECRET_KEY; sudah dijalankan, tidak perlu diulang)

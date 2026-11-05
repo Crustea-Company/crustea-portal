@@ -12,21 +12,21 @@ export default async function ProjectUbahPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const me = (await getCurrentEmployee())!;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  if (!isAquaEditor(me)) redirect(`/aquaculture/${id}`);
+  if (!isAquaEditor(me)) redirect(`/projects/${id}`);
   const supabase = await createClient();
   const [projectRes, peopleRes] = await Promise.all([
     supabase.from("aqua_projects").select(PROJECT_COLUMNS).eq("id", id).maybeSingle(),
-    supabase.from("employees").select("id, full_name").eq("is_active", true).order("full_name"),
+    supabase.from("employees").select("id, full_name, email").eq("is_active", true).order("full_name"),
   ]);
   const p = projectRes.data as unknown as AquaProject | null;
   if (!p) notFound();
-  const people = (peopleRes.data ?? []) as { id: string; full_name: string }[];
-  if (!people.some((x) => x.id === p.pic_id)) people.push({ id: p.pic_id, full_name: p.pic?.full_name ?? "PIC lama" });
+  const people = (peopleRes.data ?? []) as { id: string; full_name: string; email: string | null }[];
+  if (!people.some((x) => x.id === p.pic_id)) people.push({ id: p.pic_id, full_name: p.pic?.full_name ?? "PIC lama", email: null });
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-logo-leaf">Aquaculture · {p.number}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-logo-leaf">Project Management · {p.number}</p>
         <h1 className="text-2xl font-bold text-slate-900">Ubah data peluang</h1>
       </div>
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -35,7 +35,7 @@ export default async function ProjectUbahPage({ params }: { params: Promise<{ id
           people={people}
           initial={{
             id: p.id,
-            typeLocked: p.plan_id !== null,
+            typeLocked: p.plan_id !== null || p.stage !== "opportunity",
             input: {
               type: p.type,
               name: p.name,
@@ -51,7 +51,7 @@ export default async function ProjectUbahPage({ params }: { params: Promise<{ id
           }}
         />
       </div>
-      <Link href={`/aquaculture/${p.id}`} className="text-sm font-medium text-brand-700 hover:underline">
+      <Link href={`/projects/${p.id}`} className="text-sm font-medium text-brand-700 hover:underline">
         ← Kembali ke proyek
       </Link>
     </main>

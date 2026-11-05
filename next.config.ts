@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/prosedur/**": ["./panduan-gambar/*.png"],
   },
+  // Menu Aquaculture pindah ke Project Management (migrasi 024): link lama tetap berfungsi.
+  async redirects() {
+    return [{ source: "/aquaculture/:path*", destination: "/projects/:path*", permanent: true }];
+  },
 };
 
 export default nextConfig;

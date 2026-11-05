@@ -4,8 +4,9 @@ import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import { formatNumber } from "@/lib/format";
-import { DEPT_ORDER, KPI_COLUMNS, canEditKpi, isMyKpi, pct, type KpiItem } from "@/lib/kpi";
+import { DEPT_ORDER, KPI_COLUMNS, canEditKpi, canManageKpi, isMyKpi, pct, type KpiItem } from "@/lib/kpi";
 import KpiItemRow from "./KpiItemRow";
+import { NewKpiItem, type KpiFormOptions } from "./KpiItemForm";
 
 export const metadata: Metadata = { title: "Monitoring KPI - Crustea Portal" };
 
@@ -22,12 +23,25 @@ export default async function KpiPage({ searchParams }: { searchParams: SearchPa
 
   const me = (await getCurrentEmployee())!;
   const supabase = await createClient();
-  const [{ data: rows }, { data: depts }] = await Promise.all([
+  const manageDepts = DEPT_ORDER.filter((d) => canManageKpi(me, d));
+  const [{ data: rows }, { data: depts }, { data: people }] = await Promise.all([
     fetchAll(() => supabase.from("kpi_items").select(KPI_COLUMNS).order("objective_code").order("id")),
     supabase.from("departments").select("code, name"),
+    manageDepts.length
+      ? supabase.from("employees").select("id, full_name, dept_code").eq("is_active", true).order("full_name")
+      : Promise.resolve({ data: [] }),
   ]);
   const all = rows as unknown as KpiItem[];
   const deptName = new Map((depts ?? []).map((d) => [d.code as string, d.name as string]));
+
+  // Pilihan untuk form tambah/ubah item (admin, CEO, head departemen).
+  const options: KpiFormOptions | null = manageDepts.length
+    ? {
+        depts: manageDepts,
+        people: (people ?? []) as KpiFormOptions["people"],
+        objectives: [...new Map(all.map((k) => [`${k.dept_code}|${k.objective_code}`, { code: k.objective_code, objective: k.objective, dept_code: k.dept_code }])).values()],
+      }
+    : null;
 
   // Pilihan PIC: orang yang menjadi PIC item mana pun.
   const picOptions = [...new Map(all.flatMap((k) => (k.pic_id && k.pic ? [[k.pic_id, k.pic.full_name] as const] : []))).entries()].sort(
@@ -75,6 +89,8 @@ export default async function KpiPage({ searchParams }: { searchParams: SearchPa
           Target kuartal →
         </Link>
       </div>
+
+      {options && <NewKpiItem defaultDept={dept || me.dept_code || ""} options={options} />}
 
       <div className="flex flex-wrap gap-2">
         <Link href={href({ dept: null })} className={chip(!dept)}>
@@ -153,7 +169,13 @@ export default async function KpiPage({ searchParams }: { searchParams: SearchPa
                     </summary>
                     <ul className="flex flex-col divide-y divide-slate-100 border-t border-slate-100">
                       {items.map((k) => (
-                        <KpiItemRow key={k.id} item={k} canEdit={canEditKpi(me, k)} deptName={deptName.get(k.dept_code) ?? k.dept_code} />
+                        <KpiItemRow
+                          key={k.id}
+                          item={k}
+                          canEdit={canEditKpi(me, k)}
+                          deptName={deptName.get(k.dept_code) ?? k.dept_code}
+                          manage={options && canManageKpi(me, k.dept_code) ? options : null}
+                        />
                       ))}
                     </ul>
                   </details>

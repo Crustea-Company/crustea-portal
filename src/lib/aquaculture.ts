@@ -6,7 +6,7 @@ type Me = { id: string; dept_code: string | null; app_role: string };
 
 // ---------- Proyek ----------
 
-export const PROJECT_TYPES = ["aquagrowth", "mini_ras", "workshop", "training"] as const;
+export const PROJECT_TYPES = ["aquagrowth", "mini_ras", "workshop", "training", "grant", "csr"] as const;
 export type ProjectType = (typeof PROJECT_TYPES)[number];
 
 export const TYPE_LABEL: Record<ProjectType, string> = {
@@ -14,7 +14,12 @@ export const TYPE_LABEL: Record<ProjectType, string> = {
   mini_ras: "Mini RAS",
   workshop: "Workshop",
   training: "Pelatihan",
+  grant: "Grant",
+  csr: "CSR",
 };
+
+// Grant & CSR (migrasi 024): tanpa kelayakan finansial/RAB dan kontrak; alur sendiri (GRANT_STAGES).
+export const isSimpleType = (t: ProjectType) => t === "grant" || t === "csr";
 
 export const AQUA_STAGES = [
   "opportunity",
@@ -30,7 +35,12 @@ export const AQUA_STAGES = [
   "completed",
 ] as const;
 
-export type AquaStage = (typeof AQUA_STAGES)[number] | "cancelled";
+export const GRANT_STAGES = ["opportunity", "proposal", "submitted", "execution", "reporting", "completed"] as const;
+
+export type AquaStage = (typeof AQUA_STAGES)[number] | (typeof GRANT_STAGES)[number] | "cancelled";
+
+export const stagesOf = (t: ProjectType): readonly AquaStage[] =>
+  isSimpleType(t) ? GRANT_STAGES : AQUA_STAGES.filter((s) => s !== "harvest" || t === "aquagrowth" || t === "mini_ras");
 
 export const STAGE_LABEL: Record<AquaStage, string> = {
   opportunity: "Identifikasi peluang",
@@ -45,6 +55,9 @@ export const STAGE_LABEL: Record<AquaStage, string> = {
   harvest: "Panen & penjualan hasil",
   completed: "Selesai",
   cancelled: "Batal",
+  proposal: "Penyusunan proposal",
+  submitted: "Proposal diajukan",
+  reporting: "Laporan & pertanggungjawaban",
 };
 
 // Penjelasan singkat tiap tahap dari SOP Aquaculture.
@@ -59,6 +72,9 @@ export const STAGE_HINT: Partial<Record<AquaStage, string>> = {
   signed: "Mulai eksekusi sesuai rencana.",
   execution: "Isi laporan bulanan di akhir bulan (ke MGT).",
   harvest: "Jual langsung atau lewat Busdev (Trading/Krasty Food).",
+  proposal: "Susun proposal; simpan link dokumennya di catatan.",
+  submitted: "Menunggu keputusan pemberi dana / mitra.",
+  reporting: "Susun laporan & pertanggungjawaban penggunaan dana.",
 };
 
 export const STAGE_STYLE: Record<AquaStage, string> = {
@@ -74,12 +90,20 @@ export const STAGE_STYLE: Record<AquaStage, string> = {
   harvest: "bg-brand-700 text-white",
   completed: "bg-brand-800 text-white",
   cancelled: "bg-red-100 text-red-700",
+  proposal: "bg-amber-100 text-amber-800",
+  submitted: "bg-sky-100 text-sky-800",
+  reporting: "bg-indigo-100 text-indigo-800",
 };
 
 // Tahap yang hanya digerakkan status paket RAB (bukan tombol tahap).
 export const PLAN_STAGES: AquaStage[] = ["plan", "fa_review", "ceo_review"];
 
-export const stageRank = (s: AquaStage) => (AQUA_STAGES as readonly string[]).indexOf(s);
+// Urutan gabungan semua alur (untuk perbandingan "sudah melewati tahap X").
+export const STAGE_ORDER: readonly AquaStage[] = [
+  "opportunity", "proposal", "submitted", "plan", "fa_review", "ceo_review", "approved", "negotiation",
+  "contract", "signed", "execution", "reporting", "harvest", "completed",
+];
+export const stageRank = (s: AquaStage) => STAGE_ORDER.indexOf(s);
 
 export type Investor = { name: string; capital: number; percent: number };
 

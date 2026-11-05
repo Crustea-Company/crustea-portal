@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import Markdown from "@/components/Markdown";
 import { stripGuideImages } from "@/lib/procedure-images";
-import { findRanges, normalizeText, searchTerms } from "@/lib/search";
+import Highlight from "@/components/Highlight";
+import { normalizeText, searchTerms } from "@/lib/search";
 
 export type ProcedureRow = {
   id: string;
@@ -17,25 +18,6 @@ export type ProcedureRow = {
   excerpt?: string;
   has_images?: boolean; // ada gambar ilustrasi (hanya tampil di halaman detail)
 };
-
-// Beri warna pada kata yang dicari di teks pendek (judul, kode SOP).
-function Highlight({ text, terms }: { text: string; terms: string[] }) {
-  const ranges = findRanges(text, terms);
-  if (ranges.length === 0) return <>{text}</>;
-  const parts: React.ReactNode[] = [];
-  let pos = 0;
-  for (const [a, b] of ranges) {
-    if (a > pos) parts.push(text.slice(pos, a));
-    parts.push(
-      <mark key={a} className="rounded bg-amber-200/70 px-0.5 text-inherit">
-        {text.slice(a, b)}
-      </mark>,
-    );
-    pos = b;
-  }
-  parts.push(text.slice(pos));
-  return <>{parts}</>;
-}
 
 // Daftar prosedur: "Umum" lalu per departemen. Klik judul untuk membaca isinya di tempat
 // (buka-tutup); halaman khusus hanya lewat "Lihat detail". Pencarian langsung saat mengetik

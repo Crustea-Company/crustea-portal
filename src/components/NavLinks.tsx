@@ -49,12 +49,12 @@ const MENU: Item[] = [
     ],
   },
   {
-    href: "/aquaculture",
-    label: "Aquaculture",
+    href: "/projects",
+    label: "Project Management",
     icon: "fish",
     children: [
-      { href: "/aquaculture", label: "Project Management" },
-      { href: "/aquaculture/baru", label: "Catat peluang proyek" },
+      { href: "/projects", label: "Project berjalan" },
+      { href: "/projects/baru", label: "Catat peluang proyek" },
     ],
   },
   {

@@ -8,7 +8,8 @@ halaman Review F&A), lalu disetujui CEO. Sisanya mengikuti SOP: ada status progr
 berbeda per proyek (Aquagrowth: modal investor + persentase; Mini RAS, Workshop, Pelatihan: nomor kontrak).
 
 Migrasi: `migrations/015_aquaculture.sql`. Kode bersama: `src/lib/aquaculture.ts` (rumus RAB).
-Halaman: `/aquaculture` (pipeline), `/aquaculture/baru`, `/aquaculture/[id]`, `/aquaculture/[id]/rab`.
+Halaman: `/projects` (pipeline; dulu `/aquaculture`, dialihkan otomatis), `/projects/baru`, `/projects/[id]`, `/projects/[id]/rab`.
+Tambahan migrasi 024: jenis Grant & CSR (alur sendiri, tanpa RAB/kontrak) dan template Excel peluang/RAB (`src/lib/project-xlsx.ts`).
 
 ## Sumber: SOP Aquaculture (Pengembangan Usaha Akuakultur)
 
@@ -62,7 +63,7 @@ Q2 juga memuat RAS, pendampingan mitra, workshop & pelatihan) dan **Trading Ikan
    `record_aqua_income`) → baris `revenues` berstatus Lunas + `aqua_project_id`, label alokasi bawaan
    `Aquagrowth` (bisa dipilih lain, mis. `Trading Ikan` untuk panen yang dijual lewat Busdev). `/kpi/target`
    tidak berubah: realisasi masuk otomatis per bulan dana masuk. Proyeksi pipeline (perkiraan nilai) tampil di
-   `/aquaculture`, tidak mengubah target. Hanya setelah kontrak ditandatangani.
+   `/projects`, tidak mengubah target. Hanya setelah kontrak ditandatangani.
 6. **Hak akses**: semua karyawan melihat proyek & paket. Tambah/ubah data peluang & tahap: departemen AQ, admin,
    CEO. Tanda tangan kontrak: AQ atau CA. F&A meninjau paket; CEO/admin menyetujui. Catatan: semua karyawan.
    Laporan bulanan (bulan + link): tim AQ, mulai tahap eksekusi, notifikasi ke MGT.

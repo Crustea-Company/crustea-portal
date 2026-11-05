@@ -22,7 +22,7 @@ function describe(n: NotificationItem): { label: string; text: string } {
   if (n.kind === "sla") return { label: "Lewat SLA", text: n.title };
   if (n.kind === "sales") return { label: "Penjualan", text: n.title };
   if (n.kind === "asset") return { label: "Aset", text: n.title };
-  if (n.kind === "aqua") return { label: "Aquaculture", text: n.title };
+  if (n.kind === "aqua") return { label: "Project", text: n.title };
   if (n.kind === "feedback") return { label: "Masukan", text: n.title };
   const code = n.task?.code ? `${n.task.code} ` : "";
   if (n.kind === "delegation") {

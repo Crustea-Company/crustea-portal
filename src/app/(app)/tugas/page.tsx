@@ -87,6 +87,7 @@ export default async function TugasPage({ searchParams }: { searchParams: Search
       : "deadline",
     dir: param("arah") === "turun" ? "desc" : "asc",
     view: (["grid", "kanban", "pic"] as const).find((v) => v === param("tampilan")) ?? "list",
+    q: param("cari"),
   };
 
   return (

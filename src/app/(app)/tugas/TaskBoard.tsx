@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDate, formatNumber } from "@/lib/format";
+import { normalizeText, searchTerms } from "@/lib/search";
 import {
   SORT_DIR_LABEL,
   STATUS_LABEL,
@@ -33,6 +34,7 @@ export type Filters = {
   sort: TaskSort;
   dir: SortDir;
   view: "list" | "grid" | "kanban" | "pic";
+  q: string; // pencarian teks (judul, kode, output, catatan, nama PIC/support)
 };
 
 const VIEWS: { key: Filters["view"]; label: string }[] = [
@@ -65,6 +67,7 @@ function toQuery(filters: Filters): URLSearchParams {
   if (filters.sort !== "deadline") qs.set("urut", { priority: "prioritas", title: "judul", newest: "terbaru" }[filters.sort]);
   if (filters.dir === "desc") qs.set("arah", "turun");
   if (filters.view !== "list") qs.set("tampilan", filters.view);
+  if (filters.q.trim()) qs.set("cari", filters.q.trim());
   return qs;
 }
 
@@ -83,6 +86,7 @@ export default function TaskBoard(props: Props) {
     sort: props.initial.sort ?? "deadline",
     dir: props.initial.dir ?? "asc",
     view: props.initial.view ?? "list",
+    q: props.initial.q ?? "",
   }));
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) => setFilters((f) => ({ ...f, [key]: value }));
 
@@ -112,9 +116,18 @@ export default function TaskBoard(props: Props) {
     return employees.filter((e) => ids.has(e.id));
   }, [props.tasks, employees]);
 
+  // Pencarian langsung saat mengetik: huruf besar/aksen diabaikan, semua kata harus ada (src/lib/search.ts).
+  const terms = useMemo(() => searchTerms(filters.q), [filters.q]);
   const visible = useMemo(() => {
     const picId = filters.pic === "saya" ? me.id : filters.pic;
+    const matches = (t: Task) => {
+      if (terms.length === 0) return true;
+      const people = t.task_people.map((p) => nameOf(p.employee_id)).join(" ");
+      const hay = normalizeText([t.code, t.title, t.workstream, t.output, t.notes, people].filter(Boolean).join(" "));
+      return terms.every((w) => hay.includes(w));
+    };
     return tasks
+      .filter(matches)
       .filter((t) => !filters.dept || t.dept_code === filters.dept)
       .filter((t) =>
         filters.sprint === "semua"
@@ -130,7 +143,7 @@ export default function TaskBoard(props: Props) {
       .filter((t) => !filters.from || (!!t.deadline && t.deadline >= filters.from))
       .filter((t) => !filters.to || (!!t.deadline && t.deadline <= filters.to))
       .sort((a, b) => compareTasks(a, b, filters.sort, filters.dir));
-  }, [tasks, filters, me.id, today]);
+  }, [tasks, filters, me.id, today, terms, nameOf]);
 
   const overdueCount = visible.filter((t) => isOverdue(t, today)).length;
   const byDept = departments
@@ -156,6 +169,7 @@ export default function TaskBoard(props: Props) {
       ...(selectMode && canEditTask(t, me)
         ? { selected: selected.has(t.id), onToggleSelect: () => toggleSelect(t.id) }
         : {}),
+      highlight: terms,
     });
 
   return (
@@ -200,6 +214,14 @@ export default function TaskBoard(props: Props) {
       {/* Filter dan sortir menempel tepat di bawah header aplikasi saat halaman digulir. */}
       <div className="sticky top-[var(--app-header-h,0px)] z-30 -mx-4 mb-4 flex flex-col gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2">
 
+        <input
+          type="search"
+          value={filters.q}
+          onChange={(e) => set("q", e.target.value)}
+          placeholder="Cari tugas: judul, kode, output, catatan, nama PIC..."
+          aria-label="Cari tugas"
+          className={control}
+        />
         <div className={sliderRow} aria-label="Filter">
           <select aria-label="Departemen" className={`${control} ${sliderItem}`} value={filters.dept} onChange={(e) => set("dept", e.target.value)}>
             <option value="">Semua departemen</option>
