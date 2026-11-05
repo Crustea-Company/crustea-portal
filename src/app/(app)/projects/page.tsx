@@ -126,8 +126,13 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Sea
             </p>
             <p className="mt-1 text-xs text-slate-500">Pipeline (perkiraan)</p>
             <p className="font-bold tabular-nums text-slate-900">{rp(s.pipeline)}</p>
-            <p className={`text-xs text-slate-500 ${isSimpleType(s.type) ? "hidden" : ""}`}>
-              Kontrak <span className="tabular-nums text-slate-700">{rp(s.contractValue)}</span> · dana masuk{" "}
+            <p className="text-xs text-slate-500">
+              {!isSimpleType(s.type) && (
+                <>
+                  Kontrak <span className="tabular-nums text-slate-700">{rp(s.contractValue)}</span> ·{" "}
+                </>
+              )}
+              Dana masuk{" "}
               <span className="tabular-nums font-semibold text-brand-800">{rp(s.income)}</span>
             </p>
           </Link>

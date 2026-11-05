@@ -133,7 +133,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const canMakePlan = editor && (p.stage === "opportunity" || p.stage === "plan") && (!plan || plan.status === "rejected");
   const planEditable = editor && plan !== null && (plan.status === "draft" || plan.status === "needs_revision");
   const today = todayJakarta();
-  const contracted = !simple && rank >= stageRank("signed") && p.stage !== "cancelled";
+  // Dana masuk: setelah kontrak ditandatangani; Grant/CSR mulai Eksekusi (migrasi 025).
+  const hasIncome = p.stage !== "cancelled" && rank >= stageRank(simple ? "execution" : "signed");
+  // Baru masuk Eksekusi & belum ada dana masuk: F&A sudah dikabari otomatis, bagian ini disorot.
+  const incomeDue = p.stage === "execution" && incomes.length === 0;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6">
@@ -301,14 +304,22 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </section>
       )}
 
-      {contracted && (
-        <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      {hasIncome && (
+        <section
+          id="dana-masuk"
+          className={`flex scroll-mt-24 flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm ${incomeDue ? "border-2 border-brand-600/60" : "border-slate-200"}`}
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold text-slate-900">Dana masuk</h2>
             <p className="text-sm">
               Total <span className="font-bold tabular-nums text-brand-800">{rp(incomeTotal)}</span>
             </p>
           </div>
+          {incomeDue && (
+            <p className="rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-800">
+              Proyek sudah masuk Eksekusi & monitoring. F&A sudah dikabari untuk mencatat dana masuk di sini.
+            </p>
+          )}
           {incomes.length > 0 ? (
             <ul className="flex flex-col divide-y divide-slate-100 text-sm">
               {incomes.map((r) => (

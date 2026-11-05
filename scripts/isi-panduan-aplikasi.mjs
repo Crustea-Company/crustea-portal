@@ -57,6 +57,7 @@ const PROCEDURES = [
 2. Alur: **Identifikasi peluang → Penyusunan proposal → Proposal diajukan → Eksekusi & monitoring → Laporan & pertanggungjawaban → Selesai**.
 3. Di panel **Update status**, tulis catatan (wajib; mis. keputusan, link dokumen), lalu tekan **Lanjut ke: …**. Bisa dilakukan tim AQ, admin, CEO, atau **PIC proyek**.
 4. Laporan bulanan bisa dikirim mulai tahap Eksekusi.
+5. Nomor proyek: Grant *GR-…*, CSR *CSR-…* (jenis lain *AQ-…*). Dana masuk Grant/CSR dicatat mulai tahap Eksekusi.
 
 ### Aturan penting
 
@@ -565,8 +566,9 @@ Kata kunci: stok, inventaris, gudang, mutasi stok, opname, supply demand, aset, 
 3. Angka laba, margin, ROI, payback, dan BEP dihitung otomatis. Tekan **Simpan draf** kapan saja.
    Bisa juga lewat Excel: **Unduh template Excel** (sheet Umum, Capex, Modal kerja, Opex, Pendapatan, Jadwal), isi, lalu **Isi dari Excel**. Semua baris di form diganti isi file.
 4. Bila siap, tekan **Kirim ke F&A**. Isi terkunci sampai ada permintaan perbaikan.
-5. Alur paket (nomor *RA-…*): **Review F&A → Menunggu CEO → Disetujui CEO**. Tahap proyek ikut bergerak otomatis. Bila **Perlu perbaikan**, buka lagi RAB, perbaiki, lalu **Kirim ulang ke F&A**.
-6. Review lintas tim (Finance, TechOps, DM): beri catatan di paket atau di proyek (≤ 3 hari kerja).
+5. F&A/CEO yang membuka **Lihat RAB lengkap (semua baris)** melihat baris dalam tabel ringkas dan bisa menekan **Export ke Excel**.
+6. Alur paket (nomor *RA-…*): **Review F&A → Menunggu CEO → Disetujui CEO**. Tahap proyek ikut bergerak otomatis. Bila **Perlu perbaikan**, buka lagi RAB, perbaiki, lalu **Kirim ulang ke F&A**.
+7. Review lintas tim (Finance, TechOps, DM): beri catatan di paket atau di proyek (≤ 3 hari kerja).
 
 ### 3. Negosiasi, kontrak, eksekusi
 
@@ -585,7 +587,7 @@ Gunakan panel **Ubah tahap** di halaman proyek:
 
 ### 4. Dana masuk (F&A / admin / CEO)
 
-Setelah kontrak ditandatangani, catat setiap uang yang sudah masuk rekening di **Catat dana masuk**: **Nominal**, **Tanggal diterima**, keterangan, dan **Label alokasi target** (bawaan *Aquagrowth*; panen yang dijual lewat Busdev bisa *Trading Ikan*), lalu **Simpan dana masuk**. Dana ini langsung terhitung di **[Target kuartal](/kpi/target)**.
+Begitu proyek masuk **Eksekusi & monitoring**, F&A otomatis mendapat notifikasi yang langsung membuka bagian **Dana masuk**. Setelah kontrak ditandatangani, catat setiap uang yang sudah masuk rekening di **Catat dana masuk**: **Nominal**, **Tanggal diterima**, keterangan, dan **Label alokasi target** (bawaan *Aquagrowth*; panen yang dijual lewat Busdev bisa *Trading Ikan*), lalu **Simpan dana masuk**. Dana ini langsung terhitung di **[Target kuartal](/kpi/target)**.
 
 ### Aturan penting
 

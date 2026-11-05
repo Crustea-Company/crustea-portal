@@ -331,7 +331,7 @@ const RAB_FIELDS: FieldDef[] = [
 ];
 const TITLE_LABEL = "Judul paket";
 
-export async function downloadRabTemplate(title: string, d: RabData) {
+export async function downloadRabTemplate(title: string, d: RabData, prefix = "template-rab") {
   const wb = await newWorkbook();
   addFieldSheet(wb, SHEETS.general, [
     { label: TITLE_LABEL, value: title },
@@ -350,7 +350,7 @@ export async function downloadRabTemplate(title: string, d: RabData) {
     ],
     d.timeline,
   );
-  await download(wb, `template-rab${title ? `-${title.slice(0, 40)}` : ""}.xlsx`);
+  await download(wb, `${prefix}${title ? `-${title.slice(0, 40)}` : ""}.xlsx`);
 }
 
 // Seluruh isi paket diganti dengan isi file (project_id tetap). Isian umum yang kosong di file tidak mengubah form.

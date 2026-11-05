@@ -153,6 +153,27 @@ export default function RabEditor({
           </p>
         </div>
         {lines.length === 0 && <p className="text-sm text-slate-500">Belum ada baris.</p>}
+        {ro ? (
+          <LineTable
+            rows={lines}
+            cols={[
+              ["Uraian", (l) => l.desc],
+              ["Qty", (l) => dec(l.qty), true],
+              ["Satuan", (l) => l.uom],
+              ["Vol", (l) => dec(l.volume), true],
+              ["Harga satuan", (l) => rp(l.price), true],
+              ...(s === "capex"
+                ? ([
+                    ["Harga sisa", (l) => rp((l as CapexLine).salvage), true],
+                    ["Umur (bln)", (l) => dec((l as CapexLine).lifetime_months), true],
+                    ["Depresiasi/bln", (l) => rp(monthlyDepreciation(l as CapexLine)), true],
+                  ] as LineCol<CostLine | CapexLine>[])
+                : []),
+              ["Total", (l) => rp(lineTotal(l)), true],
+              ["Catatan", (l) => l.note],
+            ]}
+          />
+        ) : (
         <ol className="flex flex-col gap-2">
           {lines.map((l, i) => (
             <li key={i} className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3">
@@ -219,6 +240,7 @@ export default function RabEditor({
             </li>
           ))}
         </ol>
+        )}
         {!ro && (
           <button type="button" onClick={() => addLine(s)} className="self-start rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
             + Tambah baris
@@ -239,6 +261,15 @@ export default function RabEditor({
         {!ro && isAquagrowth && (
           <button type="button" onClick={useTemplate} className="self-start rounded-lg border border-brand-300 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-800 hover:bg-brand-100">
             Isi dari contoh template (RAB Aquagrowth Serang)
+          </button>
+        )}
+        {ro && (
+          <button
+            type="button"
+            onClick={() => downloadRabTemplate(title, d, "rab")}
+            className="self-start rounded-lg border border-brand-300 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-800 hover:bg-brand-100"
+          >
+            ⬇ Export ke Excel
           </button>
         )}
         {!ro && (
@@ -314,6 +345,20 @@ export default function RabEditor({
           </p>
         </div>
         {d.revenue.length === 0 && <p className="text-sm text-slate-500">Belum ada baris.</p>}
+        {ro ? (
+          <LineTable
+            rows={d.revenue}
+            cols={[
+              ["Komoditas", (l) => l.commodity],
+              ["Uraian", (l) => l.desc],
+              ["Qty", (l) => dec(l.qty), true],
+              ["Satuan", (l) => l.uom],
+              ["Harga satuan", (l) => rp(l.price), true],
+              ["Total", (l) => rp(revenueTotal(l)), true],
+              ["Catatan", (l) => l.note],
+            ]}
+          />
+        ) : (
         <ol className="flex flex-col gap-2">
           {d.revenue.map((l, i) => (
             <li key={i} className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3">
@@ -346,6 +391,7 @@ export default function RabEditor({
             </li>
           ))}
         </ol>
+        )}
         {!ro && (
           <button type="button" onClick={() => addLine("revenue")} className="self-start rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
             + Tambah baris
@@ -546,6 +592,40 @@ export default function RabEditor({
           {!canSubmit && <p className="text-xs text-slate-500">Hanya pembuat paket yang bisa mengirim ke F&A; Anda bisa menyimpan perubahan.</p>}
         </div>
       )}
+    </div>
+  );
+}
+
+// Tabel ringkas baca-saja (review F&A/CEO): satu baris per item, digeser ke samping di HP.
+type LineCol<T> = [label: string, get: (l: T) => string, right?: boolean];
+function LineTable<T>({ rows, cols }: { rows: T[]; cols: LineCol<T>[] }) {
+  if (rows.length === 0) return null;
+  return (
+    <div className="-mx-4 overflow-x-auto px-4">
+      <table className="w-full min-w-[640px] text-sm">
+        <thead>
+          <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+            <th className="py-1.5 pr-2 font-medium">#</th>
+            {cols.map(([label, , right]) => (
+              <th key={label} className={`py-1.5 pr-2 font-medium ${right ? "text-right" : ""}`}>
+                {label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((l, i) => (
+            <tr key={i} className="border-b border-slate-100 align-top last:border-0">
+              <td className="py-1.5 pr-2 text-xs text-slate-500">{i + 1}</td>
+              {cols.map(([label, get, right]) => (
+                <td key={label} className={`py-1.5 pr-2 ${right ? "whitespace-nowrap text-right tabular-nums" : ""} ${label === "Catatan" ? "text-xs text-slate-500" : ""}`}>
+                  {get(l)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
