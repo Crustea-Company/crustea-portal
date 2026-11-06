@@ -51,14 +51,6 @@ const PROCEDURES = [
 4. **Unduh Excel** (bagian bawah halaman) untuk mengunduh log per periode.
 5. Bagian **Riwayat ketercapaian (periode ditutup)** menampilkan nilai yang sudah dikunci per periode.
 
-### 5. Grant, CSR & Proyek lain
-
-1. Pilih jenis **Grant**, **CSR**, atau **Proyek lain** saat mencatat peluang. Tidak ada kelayakan finansial, RAB, atau kontrak. Proyek lain (Aquatour, Webinar, Smallholder, Event P4G, dll.) diberi **Kategori**.
-2. Alur Grant/CSR: **Identifikasi peluang → Konsep & proposal → Proposal diajukan → Eksekusi & monitoring → Laporan & pertanggungjawaban → Selesai**. Proyek lain sama, tanpa *Proposal diajukan*.
-3. Di panel **Update status**, tulis catatan (wajib; mis. keputusan, link dokumen), lalu tekan **Lanjut ke: …**. Bisa dilakukan tim AQ, admin, CEO, atau **PIC proyek**.
-4. Laporan bulanan bisa dikirim mulai tahap Eksekusi.
-5. Nomor proyek: Grant *GR-…*, CSR *CSR-…*, Proyek lain *PL-…* (jenis lain *AQ-…*). Dana masuk Grant/CSR dicatat mulai tahap Eksekusi.
-
 ### Aturan penting
 
 - **Periode bulanan** berjalan dari **tanggal 29 bulan lalu sampai tanggal 28 bulan ini**. Log tanggal 29–31 masuk periode bulan berikutnya (otomatis).
@@ -588,6 +580,14 @@ Gunakan panel **Ubah tahap** di halaman proyek:
 ### 4. Dana masuk (F&A / admin / CEO)
 
 Begitu proyek masuk **Eksekusi & monitoring**, F&A otomatis mendapat notifikasi yang langsung membuka bagian **Dana masuk**. Setelah kontrak ditandatangani, catat setiap uang yang sudah masuk rekening di **Catat dana masuk**: **Nominal**, **Tanggal diterima**, keterangan, dan **Label alokasi target** (bawaan *Aquagrowth*; panen yang dijual lewat Busdev bisa *Trading Ikan*), lalu **Simpan dana masuk**. Dana ini langsung terhitung di **[Target kuartal](/kpi/target)**.
+
+### 5. Grant, CSR & Proyek lain
+
+1. Pilih jenis **Grant**, **CSR**, atau **Proyek lain** saat mencatat peluang. Tidak ada kelayakan finansial, RAB, atau kontrak. Proyek lain (Aquatour, Webinar, Smallholder, Event P4G, dll.) diberi **Kategori**.
+2. Alur Grant/CSR: **Identifikasi peluang → Konsep & proposal → Proposal diajukan → Eksekusi & monitoring → Laporan & pertanggungjawaban → Selesai**. Proyek lain sama, tanpa *Proposal diajukan*.
+3. Di panel **Update status**, tulis catatan (wajib; mis. keputusan, link dokumen), lalu tekan **Lanjut ke: …**. Bisa dilakukan tim AQ, admin, CEO, atau **PIC proyek**.
+4. Laporan bulanan bisa dikirim mulai tahap Eksekusi.
+5. Nomor proyek: Grant *GR-…*, CSR *CSR-…*, Proyek lain *PL-…* (jenis lain *AQ-…*). Dana masuk Grant/CSR dicatat mulai tahap Eksekusi.
 
 ### Aturan penting
 
