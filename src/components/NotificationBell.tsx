@@ -24,6 +24,7 @@ function describe(n: NotificationItem): { label: string; text: string } {
   if (n.kind === "asset") return { label: "Aset", text: n.title };
   if (n.kind === "aqua") return { label: "Project", text: n.title };
   if (n.kind === "feedback") return { label: "Masukan", text: n.title };
+  if (n.kind === "program") return { label: "Program", text: n.title };
   const code = n.task?.code ? `${n.task.code} ` : "";
   if (n.kind === "delegation") {
     return {
@@ -54,6 +55,7 @@ const LABEL_STYLE: Record<NotificationItem["kind"], string> = {
   aqua: "bg-brand-100 text-brand-800",
   feedback: "bg-violet-100 text-violet-800",
   comment: "bg-amber-100 text-amber-800",
+  program: "bg-brand-100 text-brand-800",
 };
 
 export default function NotificationBell() {

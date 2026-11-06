@@ -38,7 +38,7 @@ export default async function TugasPage({ searchParams }: { searchParams: Search
     return supabase.from("tasks").select(TASK_SELECT).eq("sprint_id", Number(scope)).order("id");
   };
 
-  const [tasksRes, employeesRes, departmentsRes, sprintsRes, notesRes, remindersRes] = await Promise.all([
+  const [tasksRes, employeesRes, departmentsRes, sprintsRes, notesRes, remindersRes, programsRes] = await Promise.all([
     fetchAll<Task>(tasksQuery),
     supabase.from("employees").select("id, full_name, dept_code, is_active").order("full_name"),
     supabase.from("departments").select("code, name").order("code"),
@@ -52,6 +52,7 @@ export default async function TugasPage({ searchParams }: { searchParams: Search
     ),
     // Pengingat pribadi: database hanya mengembalikan milik pengguna ini.
     supabase.from("task_reminders").select("task_id, remind_at"),
+    supabase.from("programs").select("id, name").in("status", ["planned", "active", "on_hold"]).order("name"),
   ]);
 
   const error =
@@ -97,6 +98,7 @@ export default async function TugasPage({ searchParams }: { searchParams: Search
       employees={(employeesRes.data ?? []) as EmployeeLite[]}
       departments={departmentsRes.data ?? []}
       sprints={(sprintsRes.data ?? []) as Sprint[]}
+      programs={programsRes.data ?? []}
       notes={notesRes.data}
       reminders={remindersRes.data ?? []}
       me={{ id: me.id, app_role: me.app_role, dept_code: me.dept_code }}

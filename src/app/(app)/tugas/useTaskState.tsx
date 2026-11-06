@@ -14,6 +14,7 @@ export type TaskStateInit = {
   employees: EmployeeLite[];
   departments: { code: string; name: string }[];
   sprints: Sprint[];
+  programs?: { id: string; name: string }[]; // pilihan Program di form tugas
   me: Pick<Employee, "id" | "app_role" | "dept_code">;
   today: string;
 };
@@ -145,6 +146,7 @@ export function useTaskState(
       employees={employees}
       departments={departments}
       sprints={sprints}
+      programs={init.programs}
       defaultSprintId={opts.defaultSprintId ?? null}
       onClose={() => setEditing(null)}
       onSaved={(task, isNew, warning) => {

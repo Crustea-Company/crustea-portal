@@ -23,6 +23,7 @@ const MENU: Item[] = [
     ],
   },
   { href: "/log-kerja", label: "Log Kerja", icon: "clock" },
+  { href: "/program", label: "Program & Prioritas", icon: "target" },
   {
     href: "/pengajuan",
     label: "Pengajuan",

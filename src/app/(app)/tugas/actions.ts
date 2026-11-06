@@ -137,6 +137,7 @@ export type TaskInput = {
   deadline: string;
   is_priority: boolean;
   sprint_id: number | null;
+  program_id: string | null;
   notes: string;
   pics: string[];
   supports: string[];
@@ -163,6 +164,7 @@ const toRow = (input: TaskInput) => ({
   deadline: input.deadline || null,
   is_priority: input.is_priority,
   sprint_id: input.sprint_id,
+  program_id: input.program_id,
   notes: input.notes.trim() || null,
 });
 

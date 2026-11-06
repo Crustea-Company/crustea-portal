@@ -24,6 +24,7 @@ export default function TaskForm({
   employees,
   departments,
   sprints,
+  programs = [],
   defaultSprintId,
   onClose,
   onSaved,
@@ -33,6 +34,7 @@ export default function TaskForm({
   employees: EmployeeLite[];
   departments: { code: string; name: string }[];
   sprints: Sprint[];
+  programs?: { id: string; name: string }[]; // program berjalan (Program & Prioritas)
   defaultSprintId: number | null;
   onClose: () => void;
   onSaved: (task: Task, isNew: boolean, warning?: string) => void;
@@ -50,6 +52,7 @@ export default function TaskForm({
     deadline: task?.deadline ?? "",
     is_priority: task?.is_priority ?? false,
     sprint_id: task ? task.sprint_id : defaultSprintId,
+    program_id: task?.program_id ?? null,
     notes: task?.notes ?? "",
     pics: task ? people("pic") : [me.id],
     supports: people("support"),
@@ -206,6 +209,26 @@ export default function TaskForm({
                 ))}
               </select>
             </label>
+            {(programs.length > 0 || input.program_id) && (
+              <label className="flex flex-col gap-1 font-medium text-slate-700">
+                Program
+                <select
+                  value={input.program_id ?? ""}
+                  onChange={(e) => set("program_id", e.target.value || null)}
+                  className={inputClass}
+                >
+                  <option value="">Tanpa program</option>
+                  {input.program_id && !programs.some((p) => p.id === input.program_id) && (
+                    <option value={input.program_id}>(program saat ini)</option>
+                  )}
+                  {programs.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="flex items-center gap-2 self-end rounded-lg border border-slate-300 px-3 py-2 font-medium text-slate-700">
               <input
                 type="checkbox"
