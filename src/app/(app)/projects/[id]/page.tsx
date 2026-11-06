@@ -128,7 +128,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const editor = isAquaEditor(me);
   const manager = isAquaManager(me);
   const rank = stageRank(p.stage);
-  const simple = isSimpleType(p.type); // Grant/CSR: tanpa RAB & kontrak
+  const simple = isSimpleType(p.type); // Grant/CSR/Proyek lain: tanpa RAB & kontrak
   const steps = stagesOf(p.type);
   const canMakePlan = editor && (p.stage === "opportunity" || p.stage === "plan") && (!plan || plan.status === "rejected");
   const planEditable = editor && plan !== null && (plan.status === "draft" || plan.status === "needs_revision");
@@ -143,7 +143,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
           <span className="font-mono font-semibold text-slate-700">{p.number}</span>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{TYPE_LABEL[p.type]}</span>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+            {TYPE_LABEL[p.type]}
+            {p.category ? ` · ${p.category}` : ""}
+          </span>
           <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STAGE_STYLE[p.stage]}`}>{STAGE_LABEL[p.stage]}</span>
           <span>· sejak {formatDate(p.stage_since.slice(0, 10))}</span>
         </div>
@@ -349,7 +352,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       )}
 
       {simple ? (
-        <GrantStagePanel key={p.stage} id={p.id} stage={p.stage} canMove={editor || p.pic_id === me.id} manager={manager} />
+        <GrantStagePanel key={p.stage} id={p.id} type={p.type} stage={p.stage} canMove={editor || p.pic_id === me.id} manager={manager} />
       ) : (
       <StagePanel
         key={p.stage}

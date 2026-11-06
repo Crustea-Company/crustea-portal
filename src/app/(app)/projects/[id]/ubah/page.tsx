@@ -47,6 +47,7 @@ export default async function ProjectUbahPage({ params }: { params: Promise<{ id
               estimated_value: p.estimated_value,
               estimated_start: p.estimated_start ?? "",
               pic_id: p.pic_id,
+              category: p.category ?? "",
             },
           }}
         />

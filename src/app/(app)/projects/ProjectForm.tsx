@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import RupiahInput from "@/components/requests/RupiahInput";
-import { PROJECT_TYPES, TYPE_LABEL, isSimpleType, type ProjectType } from "@/lib/aquaculture";
+import { OTHER_CATEGORIES, PROJECT_TYPES, TYPE_LABEL, isSimpleType, type ProjectType } from "@/lib/aquaculture";
 import { downloadProjectTemplate, readProjectFile } from "@/lib/project-xlsx";
 import { saveProject, type ProjectInput } from "./actions";
 import XlsxButtons from "./XlsxButtons";
@@ -20,6 +20,7 @@ const PARTNER_HINT: Record<ProjectType, string> = {
   training: "instansi / peserta",
   grant: "pemberi dana / donor",
   csr: "perusahaan / mitra / penerima manfaat",
+  other: "mitra / peserta / penyelenggara",
 };
 
 // Form data peluang proyek (SOP Aquaculture langkah 1).
@@ -44,6 +45,7 @@ export default function ProjectForm({
     estimated_value: 0,
     estimated_start: "",
     pic_id: meId,
+    category: "",
     ...initial.input,
   });
   const [pending, setPending] = useState(false);
@@ -103,11 +105,30 @@ export default function ProjectForm({
           ))}
         </div>
         {isSimpleType(form.type) && (
-          <p className="text-xs text-slate-500">Grant & CSR tanpa kelayakan finansial/RAB: cukup catatan, update status, dan PIC.</p>
+          <p className="text-xs text-slate-500">Jenis ini tanpa kelayakan finansial/RAB: cukup catatan, update status, dan PIC.</p>
         )}
         {initial.typeLocked && <p className="text-xs text-slate-500">Jenis hanya bisa diganti di tahap Identifikasi peluang.</p>}
       </fieldset>
 
+      {form.type === "other" && (
+        <label className={labelClass}>
+          <span>
+            Kategori <span className={hintClass}>(pilih atau ketik sendiri)</span>
+          </span>
+          <input
+            list="project-categories"
+            value={form.category}
+            onChange={(e) => set({ category: e.target.value })}
+            placeholder="mis. Aquatour, Webinar, Smallholder, Event P4G"
+            className={inputClass}
+          />
+          <datalist id="project-categories">
+            {OTHER_CATEGORIES.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </label>
+      )}
       <label className={labelClass}>
         Nama proyek
         <input

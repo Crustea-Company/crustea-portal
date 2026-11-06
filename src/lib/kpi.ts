@@ -59,6 +59,27 @@ export function formatWeeks(weeks: string | null): string {
 
 export const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
 
+// ---------- Realisasi angka per kuartal kalender (migrasi 027) ----------
+
+export type KpiRealization = { kpi_id: number; year: number; quarter: number; value: number; note: string | null };
+export type Quarter = { year: number; quarter: number };
+
+export const quarterOf = (isoDate: string): Quarter => ({
+  year: Number(isoDate.slice(0, 4)),
+  quarter: Math.floor((Number(isoDate.slice(5, 7)) - 1) / 3) + 1,
+});
+export const quarterParam = (q: Quarter) => `${q.year}-Q${q.quarter}`;
+export function parseQuarter(s: string | undefined, fallback: Quarter): Quarter {
+  const m = s?.match(/^(\d{4})-Q([1-4])$/);
+  return m ? { year: Number(m[1]), quarter: Number(m[2]) } : fallback;
+}
+export function shiftQuarter(q: Quarter, by: number): Quarter {
+  const i = q.year * 4 + (q.quarter - 1) + by;
+  return { year: Math.floor(i / 4), quarter: (i % 4) + 1 };
+}
+// Persen capaian angka (null bila item tidak punya target angka).
+export const achievement = (value: number, target: number | null) => (target && target > 0 ? Math.round((value / target) * 100) : null);
+
 // ---------- Target kuartal ----------
 
 export type QuarterTarget = { id: number; year: number; quarter: number; total: number; notes: string | null };

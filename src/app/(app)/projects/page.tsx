@@ -37,7 +37,7 @@ function inView(p: AquaProject, view: View): boolean {
 
 const daysSince = (ts: string) => Math.max(0, Math.floor((Date.now() - Date.parse(ts)) / 86_400_000));
 
-// Daftar proyek per jenis (Aquagrowth, Mini RAS, Workshop, Pelatihan, Grant, CSR), dikelompokkan per tahap.
+// Daftar proyek per jenis (Aquagrowth, Mini RAS, Workshop, Pelatihan, Grant, CSR, Proyek lain), dikelompokkan per tahap.
 export default async function ProjectsPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const type = typeof sp.jenis === "string" && (PROJECT_TYPES as readonly string[]).includes(sp.jenis) ? (sp.jenis as ProjectType) : null;
@@ -58,7 +58,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Sea
 
   const ofType = type ? all.filter((p) => p.type === type) : all;
   const list = ofType.filter(
-    (p) => inView(p, view) && (!q || `${p.number} ${p.name} ${p.location ?? ""} ${p.partner ?? ""}`.toLowerCase().includes(q)),
+    (p) => inView(p, view) && (!q || `${p.number} ${p.name} ${p.location ?? ""} ${p.partner ?? ""} ${p.category ?? ""}`.toLowerCase().includes(q)),
   );
 
   // Ringkasan per jenis: proyek berjalan, nilai pipeline (perkiraan), nilai kontrak, dana masuk.
@@ -196,7 +196,10 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Sea
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                         <span className="font-mono font-semibold text-slate-700">{p.number}</span>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">{TYPE_LABEL[p.type]}</span>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">
+                          {TYPE_LABEL[p.type]}
+                          {p.category ? ` · ${p.category}` : ""}
+                        </span>
                         {p.contract_number && <span>Kontrak {p.contract_number}</span>}
                       </div>
                       <p className="truncate font-semibold text-slate-900">{p.name}</p>

@@ -6,10 +6,10 @@ import RupiahInput from "@/components/requests/RupiahInput";
 import { formatNumber } from "@/lib/format";
 import {
   AQUA_STAGES,
-  GRANT_STAGES,
   STAGE_LABEL,
   investorPercentTotal,
   stageRank,
+  stagesOf,
   type AquaStage,
   type Investor,
   type ProjectType,
@@ -278,16 +278,29 @@ export function StagePanel({
   );
 }
 
-// Grant & CSR (migrasi 024): maju satu tahap (tim AQ/admin/CEO atau PIC), mundur & buka lagi (head AQ/admin/CEO).
+// Grant, CSR, Proyek lain (migrasi 024/027): maju satu tahap (tim AQ/admin/CEO atau PIC), mundur & buka lagi (head AQ/admin/CEO).
 // Setiap perubahan wajib catatan.
-export function GrantStagePanel({ id, stage, canMove, manager }: { id: string; stage: AquaStage; canMove: boolean; manager: boolean }) {
+export function GrantStagePanel({
+  id,
+  type,
+  stage,
+  canMove,
+  manager,
+}: {
+  id: string;
+  type: ProjectType;
+  stage: AquaStage;
+  canMove: boolean;
+  manager: boolean;
+}) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const i = (GRANT_STAGES as readonly AquaStage[]).indexOf(stage);
-  const next = i >= 0 && i < GRANT_STAGES.length - 1 ? GRANT_STAGES[i + 1] : null;
-  const backOptions = manager && i > 0 ? GRANT_STAGES.slice(0, i) : [];
+  const flow = stagesOf(type);
+  const i = flow.indexOf(stage);
+  const next = i >= 0 && i < flow.length - 1 ? flow[i + 1] : null;
+  const backOptions = manager && i > 0 ? flow.slice(0, i) : [];
   const [back, setBack] = useState<AquaStage | "">(backOptions[backOptions.length - 1] ?? "");
   const canCancel = canMove && stage !== "completed" && stage !== "cancelled";
   if (!(canMove && next) && backOptions.length === 0 && !canCancel && !(manager && stage === "cancelled")) return null;

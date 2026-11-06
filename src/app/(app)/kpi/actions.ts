@@ -19,6 +19,16 @@ export async function updateKpiItem(id: number, isDone: boolean, note: string): 
   return { ok: true };
 }
 
+// Angka realisasi per kuartal (siapa pun yang boleh mencentang item; dicek database). value null = hapus.
+export async function setKpiRealization(id: number, year: number, quarter: number, value: number | null, note: string): Promise<Result> {
+  if (value != null && (!Number.isFinite(value) || value < 0)) return { ok: false, message: "Angka realisasi tidak valid." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_kpi_realization", { p_id: id, p_year: year, p_quarter: quarter, p_value: value, p_note: note });
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/kpi");
+  return { ok: true };
+}
+
 // ---------- Tambah / ubah / hapus item KPI (admin, CEO, head departemen item; aturan database write_kpi) ----------
 
 export type KpiInput = {

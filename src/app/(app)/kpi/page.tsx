@@ -3,8 +3,22 @@ import Link from "next/link";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { fetchAll } from "@/lib/supabase/fetch-all";
-import { formatNumber } from "@/lib/format";
-import { DEPT_ORDER, KPI_COLUMNS, canEditKpi, canManageKpi, isMyKpi, pct, type KpiItem } from "@/lib/kpi";
+import { formatNumber, todayJakarta } from "@/lib/format";
+import {
+  DEPT_ORDER,
+  KPI_COLUMNS,
+  achievement,
+  canEditKpi,
+  canManageKpi,
+  isMyKpi,
+  parseQuarter,
+  pct,
+  quarterOf,
+  quarterParam,
+  shiftQuarter,
+  type KpiItem,
+  type KpiRealization,
+} from "@/lib/kpi";
 import KpiItemRow from "./KpiItemRow";
 import { NewKpiItem, type KpiFormOptions } from "./KpiItemForm";
 
@@ -20,17 +34,36 @@ export default async function KpiPage({ searchParams }: { searchParams: SearchPa
   const dept = typeof sp.dept === "string" && DEPT_ORDER.includes(sp.dept) ? sp.dept : "";
   const status: Status = typeof sp.status === "string" && sp.status in STATUS ? (sp.status as Status) : "semua";
   const pic = typeof sp.pic === "string" ? sp.pic : "";
+  const thisQuarter = quarterOf(todayJakarta());
+  const quarter = parseQuarter(typeof sp.kuartal === "string" ? sp.kuartal : undefined, thisQuarter);
 
   const me = (await getCurrentEmployee())!;
   const supabase = await createClient();
   const manageDepts = DEPT_ORDER.filter((d) => canManageKpi(me, d));
-  const [{ data: rows }, { data: depts }, { data: people }] = await Promise.all([
+  const [{ data: rows }, { data: depts }, { data: people }, { data: reals }] = await Promise.all([
     fetchAll(() => supabase.from("kpi_items").select(KPI_COLUMNS).order("objective_code").order("id")),
     supabase.from("departments").select("code, name"),
     manageDepts.length
       ? supabase.from("employees").select("id, full_name, dept_code").eq("is_active", true).order("full_name")
       : Promise.resolve({ data: [] }),
+    fetchAll<KpiRealization>(() => supabase.from("kpi_realizations").select("kpi_id, year, quarter, value, note")),
   ]);
+  // Realisasi per item: kuartal yang dilihat + riwayat kuartal lain (terbaru dulu).
+  const realOf = new Map<number, KpiRealization[]>();
+  for (const r of [...(reals ?? [])].sort((a, b) => b.year * 4 + b.quarter - (a.year * 4 + a.quarter))) {
+    realOf.set(r.kpi_id, [...(realOf.get(r.kpi_id) ?? []), r]);
+  }
+  const isQ = (r: KpiRealization) => r.year === quarter.year && r.quarter === quarter.quarter;
+  const realNow = (k: KpiItem) => realOf.get(k.id)?.find(isQ) ?? null;
+  // Capaian angka rata-rata: item bertarget angka yang sudah diisi realisasinya di kuartal ini (maks. 100% per item).
+  const avgAchievement = (items: KpiItem[]) => {
+    const xs = items.flatMap((k) => {
+      const r = realNow(k);
+      const a = r ? achievement(r.value, k.target_value) : null;
+      return a == null ? [] : [Math.min(a, 100)];
+    });
+    return xs.length ? { pct: Math.round(xs.reduce((s, x) => s + x, 0) / xs.length), n: xs.length } : null;
+  };
   const all = rows as unknown as KpiItem[];
   const deptName = new Map((depts ?? []).map((d) => [d.code as string, d.name as string]));
 
@@ -58,16 +91,23 @@ export default async function KpiPage({ searchParams }: { searchParams: SearchPa
   );
 
   const doneAll = list.filter((k) => k.is_done).length;
+  const avgAll = avgAchievement(list);
   const byDept = DEPT_ORDER.map((code) => {
     const items = list.filter((k) => k.dept_code === code);
     const objectives = new Map<string, KpiItem[]>();
     for (const k of items) objectives.set(k.objective_code, [...(objectives.get(k.objective_code) ?? []), k]);
-    return { code, items, objectives: [...objectives.entries()] };
+    return { code, items, objectives: [...objectives.entries()], avg: avgAchievement(items) };
   }).filter((d) => d.items.length > 0);
 
   const href = (patch: Record<string, string | null>) => {
     const p = new URLSearchParams();
-    const cur: Record<string, string | null> = { dept: dept || null, status: status === "semua" ? null : status, pic: pic || null, ...patch };
+    const cur: Record<string, string | null> = {
+      dept: dept || null,
+      status: status === "semua" ? null : status,
+      pic: pic || null,
+      kuartal: quarterParam(quarter) === quarterParam(thisQuarter) ? null : quarterParam(quarter),
+      ...patch,
+    };
     for (const [k, v] of Object.entries(cur)) if (v) p.set(k, v);
     const s = p.toString();
     return s ? `/kpi?${s}` : "/kpi";
@@ -83,7 +123,19 @@ export default async function KpiPage({ searchParams }: { searchParams: SearchPa
           <h1 className="text-2xl font-bold text-slate-900">KPI departemen</h1>
           <p className="mt-1 text-sm text-slate-600">
             {formatNumber(doneAll)} dari {formatNumber(list.length)} item selesai ({pct(doneAll, list.length)}%).
+            {avgAll && ` Capaian angka Q${quarter.quarter} ${quarter.year}: ${avgAll.pct}% (${avgAll.n} item terisi).`}
           </p>
+          <div className="mt-2 flex items-center gap-1 text-sm">
+            <Link href={href({ kuartal: quarterParam(shiftQuarter(quarter, -1)) })} className="rounded-lg px-2 py-1 text-brand-700 hover:bg-brand-50" aria-label="Kuartal sebelumnya">
+              ←
+            </Link>
+            <span className="font-semibold text-slate-800">
+              Realisasi Q{quarter.quarter} {quarter.year}
+            </span>
+            <Link href={href({ kuartal: quarterParam(shiftQuarter(quarter, 1)) })} className="rounded-lg px-2 py-1 text-brand-700 hover:bg-brand-50" aria-label="Kuartal berikutnya">
+              →
+            </Link>
+          </div>
         </div>
         <Link href="/kpi/target" className="rounded-lg border border-brand-600 px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50">
           Target kuartal →
@@ -111,6 +163,7 @@ export default async function KpiPage({ searchParams }: { searchParams: SearchPa
         <form action="/kpi" className="flex gap-1 sm:ml-auto">
           {dept && <input type="hidden" name="dept" value={dept} />}
           {status !== "semua" && <input type="hidden" name="status" value={status} />}
+          {quarterParam(quarter) !== quarterParam(thisQuarter) && <input type="hidden" name="kuartal" value={quarterParam(quarter)} />}
           <select
             name="pic"
             defaultValue={pic}
@@ -148,6 +201,7 @@ export default async function KpiPage({ searchParams }: { searchParams: SearchPa
                   </h2>
                   <span className="text-sm text-slate-600">
                     {formatNumber(done)}/{formatNumber(d.items.length)} selesai · <b>{pct(done, d.items.length)}%</b>
+                    {d.avg && ` · capaian angka ${d.avg.pct}%`}
                   </span>
                 </div>
                 <Bar value={pct(done, d.items.length)} />
@@ -175,6 +229,9 @@ export default async function KpiPage({ searchParams }: { searchParams: SearchPa
                           canEdit={canEditKpi(me, k)}
                           deptName={deptName.get(k.dept_code) ?? k.dept_code}
                           manage={options && canManageKpi(me, k.dept_code) ? options : null}
+                          quarter={quarter}
+                          real={realNow(k)}
+                          history={(realOf.get(k.id) ?? []).filter((r) => !isQ(r))}
                         />
                       ))}
                     </ul>

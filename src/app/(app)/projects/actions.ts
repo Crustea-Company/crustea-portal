@@ -19,6 +19,7 @@ export type ProjectInput = {
   estimated_value: number;
   estimated_start: string;
   pic_id: string;
+  category: string; // hanya dipakai Proyek lain
 };
 
 function revalidateProject(id?: string) {
@@ -41,6 +42,7 @@ export async function saveProject(input: ProjectInput, id: string | null): Promi
     estimated_value: input.estimated_value,
     estimated_start: input.estimated_start || null,
     pic_id: input.pic_id || me.id,
+    category: input.type === "other" ? input.category.trim() || null : null,
   };
   if (!PROJECT_TYPES.includes(row.type)) return { ok: false, message: "Pilih jenis proyek." };
   if (!row.name) return { ok: false, message: "Nama proyek belum diisi." };
@@ -52,7 +54,7 @@ export async function saveProject(input: ProjectInput, id: string | null): Promi
   if (id) {
     const { data, error } = await supabase.from("aqua_projects").update(row).eq("id", id).select("id");
     if (error?.message.includes("aqua_projects_stage_check")) {
-      return { ok: false, message: "Jenis Grant/CSR dan jenis lain hanya bisa saling diganti di tahap Identifikasi peluang." };
+      return { ok: false, message: "Jenis Grant/CSR/Proyek lain dan jenis lain hanya bisa saling diganti di tahap Identifikasi peluang." };
     }
     if (error) return { ok: false, message: `Gagal menyimpan: ${error.message}` };
     if (!data?.length) return { ok: false, message: "Anda tidak boleh mengubah proyek ini." };

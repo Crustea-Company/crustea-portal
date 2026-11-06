@@ -24,6 +24,7 @@ export type ProjectSheetInput = {
   estimated_value: number;
   estimated_start: string; // YYYY-MM-DD atau ""
   pic_id: string;
+  category: string;
 };
 type Person = { id: string; full_name: string; email: string | null };
 
@@ -196,6 +197,7 @@ const P = {
   value: "Perkiraan nilai (Rp)",
   start: "Perkiraan mulai",
   pic: "PIC proyek (email)",
+  category: "Kategori (Proyek lain)",
 };
 
 export async function downloadProjectTemplate(input: ProjectSheetInput, people: Person[]) {
@@ -203,6 +205,7 @@ export async function downloadProjectTemplate(input: ProjectSheetInput, people: 
   const pic = people.find((p) => p.id === input.pic_id);
   addFieldSheet(wb, "Peluang", [
     { label: P.type, value: TYPE_LABEL[input.type], hint: "Pilih dari daftar", list: PROJECT_TYPES.map((t) => TYPE_LABEL[t]) },
+    { label: P.category, value: input.category, hint: "Hanya untuk Proyek lain: Aquatour, Webinar, Smallholder, Event P4G, dll." },
     { label: P.name, value: input.name, hint: "Wajib diisi" },
     { label: P.location, value: input.location },
     { label: P.partner, value: input.partner, hint: "Calon mitra / investor / pemberi dana / peserta" },
@@ -244,6 +247,7 @@ export async function readProjectFile(
     ["contact", P.contact],
     ["source", P.source],
     ["description", P.description],
+    ["category", P.category],
   ] as const;
   for (const [k, label] of fields) {
     const v = text(m.get(key(label)));

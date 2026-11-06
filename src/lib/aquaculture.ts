@@ -6,7 +6,7 @@ type Me = { id: string; dept_code: string | null; app_role: string };
 
 // ---------- Proyek ----------
 
-export const PROJECT_TYPES = ["aquagrowth", "mini_ras", "workshop", "training", "grant", "csr"] as const;
+export const PROJECT_TYPES = ["aquagrowth", "mini_ras", "workshop", "training", "grant", "csr", "other"] as const;
 export type ProjectType = (typeof PROJECT_TYPES)[number];
 
 export const TYPE_LABEL: Record<ProjectType, string> = {
@@ -16,10 +16,14 @@ export const TYPE_LABEL: Record<ProjectType, string> = {
   training: "Pelatihan",
   grant: "Grant",
   csr: "CSR",
+  other: "Proyek lain",
 };
 
-// Grant & CSR (migrasi 024): tanpa kelayakan finansial/RAB dan kontrak; alur sendiri (GRANT_STAGES).
-export const isSimpleType = (t: ProjectType) => t === "grant" || t === "csr";
+// Saran kategori Proyek lain (boleh diketik bebas).
+export const OTHER_CATEGORIES = ["Aquatour", "Webinar", "Smallholder", "Event P4G"];
+
+// Grant, CSR (migrasi 024) dan Proyek lain (027): tanpa kelayakan finansial/RAB dan kontrak; alur sendiri (stagesOf).
+export const isSimpleType = (t: ProjectType) => t === "grant" || t === "csr" || t === "other";
 
 export const AQUA_STAGES = [
   "opportunity",
@@ -36,11 +40,13 @@ export const AQUA_STAGES = [
 ] as const;
 
 export const GRANT_STAGES = ["opportunity", "proposal", "submitted", "execution", "reporting", "completed"] as const;
+// Proyek lain: tanpa "Proposal diajukan" (sama dengan simple_stages() di database).
+export const OTHER_STAGES = ["opportunity", "proposal", "execution", "reporting", "completed"] as const;
 
 export type AquaStage = (typeof AQUA_STAGES)[number] | (typeof GRANT_STAGES)[number] | "cancelled";
 
 export const stagesOf = (t: ProjectType): readonly AquaStage[] =>
-  isSimpleType(t) ? GRANT_STAGES : AQUA_STAGES.filter((s) => s !== "harvest" || t === "aquagrowth" || t === "mini_ras");
+  t === "other" ? OTHER_STAGES : isSimpleType(t) ? GRANT_STAGES : AQUA_STAGES.filter((s) => s !== "harvest" || t === "aquagrowth" || t === "mini_ras");
 
 export const STAGE_LABEL: Record<AquaStage, string> = {
   opportunity: "Identifikasi peluang",
@@ -55,7 +61,7 @@ export const STAGE_LABEL: Record<AquaStage, string> = {
   harvest: "Panen & penjualan hasil",
   completed: "Selesai",
   cancelled: "Batal",
-  proposal: "Penyusunan proposal",
+  proposal: "Konsep & proposal",
   submitted: "Proposal diajukan",
   reporting: "Laporan & pertanggungjawaban",
 };
@@ -72,7 +78,7 @@ export const STAGE_HINT: Partial<Record<AquaStage, string>> = {
   signed: "Mulai eksekusi sesuai rencana.",
   execution: "Isi laporan bulanan di akhir bulan (ke MGT).",
   harvest: "Jual langsung atau lewat Busdev (Trading/Krasty Food).",
-  proposal: "Susun proposal; simpan link dokumennya di catatan.",
+  proposal: "Susun konsep/proposal; simpan link dokumennya di catatan.",
   submitted: "Menunggu keputusan pemberi dana / mitra.",
   reporting: "Susun laporan & pertanggungjawaban penggunaan dana.",
 };
@@ -128,12 +134,13 @@ export type AquaProject = {
   contract_signed_on: string | null;
   contract_value: number | null;
   cancel_reason: string | null;
+  category: string | null; // Proyek lain: Aquatour, Webinar, Smallholder, dll.
   created_at: string;
   pic?: { full_name: string } | null;
 };
 
 export const PROJECT_COLUMNS =
-  "id, number, type, name, location, partner, contact, source, description, estimated_value, estimated_start, pic_id, stage, stage_since, plan_id, investors, contract_number, contract_signed_on, contract_value, cancel_reason, created_at, pic:employees!aqua_projects_pic_id_fkey(full_name)";
+  "id, number, type, name, location, partner, contact, source, description, estimated_value, estimated_start, pic_id, stage, stage_since, plan_id, investors, contract_number, contract_signed_on, contract_value, cancel_reason, category, created_at, pic:employees!aqua_projects_pic_id_fkey(full_name)";
 
 // Sama dengan is_aqua_editor() di database: departemen AQ, admin, CEO.
 export function isAquaEditor(me: Me): boolean {
