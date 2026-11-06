@@ -46,6 +46,7 @@ const MENU: Item[] = [
       { href: "/penjualan/baru", label: "Catat lead" },
       { href: "/stok", label: "Stok" },
       { href: "/aset", label: "Aset" },
+      { href: "/mitra", label: "Mitra" },
     ],
   },
   {
