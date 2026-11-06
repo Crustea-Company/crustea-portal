@@ -20,6 +20,7 @@ const MENU: Item[] = [
       { href: "/tugas", label: "Semua tugas" },
       { href: "/tugas?pic=saya&sprint=semua", label: "Tugas saya" },
       { href: "/tugas/riwayat", label: "Riwayat tugas" },
+      { href: "/tanggung-jawab", label: "Tanggung jawab" },
     ],
   },
   { href: "/log-kerja", label: "Log Kerja", icon: "clock" },

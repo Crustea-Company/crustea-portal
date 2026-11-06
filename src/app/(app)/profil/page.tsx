@@ -17,7 +17,12 @@ export default async function ProfilPage() {
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h1 className="text-xl font-bold text-slate-900">{me.full_name}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-xl font-bold text-slate-900">{me.full_name}</h1>
+          <Link href="/tanggung-jawab" className="text-sm font-medium text-brand-700 hover:underline">
+            Lihat tanggung jawab & jobdesc →
+          </Link>
+        </div>
         <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-xs font-medium text-slate-500">Email</dt>
