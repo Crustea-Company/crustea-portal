@@ -9,8 +9,9 @@ import {
   type JwtClaims,
 } from "@/lib/session";
 
-// Halaman yang boleh dibuka tanpa login.
-const PUBLIC_PATHS = ["/login", "/auth"];
+// Halaman yang boleh dibuka tanpa login. /investor = dashboard proyek hanya-baca lewat kode investor
+// (datanya hanya dari fungsi database investor_dashboard yang dipanggil server dengan kunci server).
+const PUBLIC_PATHS = ["/login", "/auth", "/investor"];
 
 let warnedSecret = false;
 

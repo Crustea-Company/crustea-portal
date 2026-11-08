@@ -57,6 +57,7 @@ const MENU: Item[] = [
     icon: "fish",
     children: [
       { href: "/projects", label: "Project berjalan" },
+      { href: "/projects/dashboard", label: "Dashboard realisasi" },
       { href: "/projects/baru", label: "Catat peluang proyek" },
     ],
   },
