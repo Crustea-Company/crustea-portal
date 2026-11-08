@@ -19,6 +19,7 @@ import {
   stockBalances,
 } from "@/lib/project-ledger";
 import AutoRefresh from "@/components/project-dashboard/AutoRefresh";
+import ProfitCharts from "@/components/project-dashboard/Charts";
 import { BudgetSection, ProfitSection, StockSection, SummaryCards, rp } from "@/components/project-dashboard/Views";
 import { AccessPanel, BudgetEditor, JournalEditor, ProjectPicker, StockEditor, type AccessCode } from "./Editors";
 
@@ -204,6 +205,7 @@ export default async function ProjectDashboardPage({ searchParams }: { searchPar
 
       {tab === "ringkasan" && (
         <>
+          <ProfitCharts report={profit} />
           <BudgetSection report={budget} />
           <ProfitSection report={profit} showShares />
           <StockSection balances={balances} />

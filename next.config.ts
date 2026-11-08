@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Hanya untuk uji coba di laptop: izinkan HP di Wi-Fi yang sama membuka server
   // pengembangan lewat alamat IP laptop. Ganti kalau IP laptop berubah.
-  allowedDevOrigins: ["192.168.1.185"],
+  allowedDevOrigins: ["192.168.1.185", "192.168.68.155"],
   // Gambar ilustrasi prosedur dibaca dari folder panduan-gambar/ saat aplikasi berjalan (ikut di-deploy).
   outputFileTracingIncludes: {
     "/prosedur/**": ["./panduan-gambar/*.png"],

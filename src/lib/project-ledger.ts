@@ -257,6 +257,7 @@ export type ProfitReport = {
   cycleCategories: string[];
   cycles: CycleRow[];
   months: MonthRow[];
+  cashByDate: { date: string; cash: number }[];
 };
 
 const lower = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
@@ -333,6 +334,17 @@ export function profitReport(d: LedgerData, params: ProfitParams | null): Profit
   }
   const months = [...monthMap.values()].map((r) => ({ ...r, profit: r.income - r.expense })).sort((a, b) => a.month.localeCompare(b.month));
 
+  // Saldo kas kumulatif per tanggal transaksi.
+  const byDate = new Map<string, number>();
+  for (const t of tx) {
+    const sign = isOutflow(t.kind) ? -1 : 1;
+    byDate.set(t.tx_date, (byDate.get(t.tx_date) ?? 0) + sign * t.amount);
+  }
+  let running = 0;
+  const cashByDate = [...byDate.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, delta]) => ({ date, cash: (running += delta) }));
+
   const toList = (m: Map<string, number>) => [...m.entries()].map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount);
   return {
     income,
@@ -352,6 +364,7 @@ export function profitReport(d: LedgerData, params: ProfitParams | null): Profit
     cycleCategories,
     cycles,
     months,
+    cashByDate,
   };
 }
 

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { cookies } from "next/headers";
 import AuthCard from "@/components/AuthCard";
 import AutoRefresh from "@/components/project-dashboard/AutoRefresh";
+import ProfitCharts from "@/components/project-dashboard/Charts";
 import JournalTable from "@/components/project-dashboard/JournalTable";
 import { BudgetSection, ProfitSection, StockSection, SummaryCards, rp } from "@/components/project-dashboard/Views";
 import { STAGE_LABEL, STAGE_STYLE, TYPE_LABEL } from "@/lib/aquaculture";
@@ -81,6 +82,7 @@ export default async function InvestorPage() {
         </div>
 
         <SummaryCards budget={budget} profit={profit} />
+        <ProfitCharts report={profit} />
         <BudgetSection report={budget} />
         <ProfitSection report={profit} showShares />
         <StockSection balances={balances} />
