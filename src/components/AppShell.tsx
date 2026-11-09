@@ -68,12 +68,9 @@ export default function AppShell({
 
   const sidebar = (
     <div className="flex h-full flex-col bg-white">
-      <Link href="/" className="flex items-center gap-2.5 px-5 pb-6 pt-5">
-        <Image src="/brand/crustea-logo.png" alt="" width={30} height={40} className="h-9 w-auto" priority />
-        <span className="leading-tight">
-          <span className="block text-2xl font-bold tracking-tight text-brand-900">Crustea</span>
-          <span className="block text-xs font-medium text-slate-500">Portal</span>
-        </span>
+      <Link href="/" className="flex flex-col items-start gap-1 px-5 pb-6 pt-5" aria-label="Crustea Portal, ke Beranda">
+        <Image src="/brand/crustea-wordmark.png" alt="Crustea" width={429} height={128} className="h-10 w-auto" priority />
+        <span className="pl-0.5 text-xs font-medium text-slate-500">Portal</span>
       </Link>
 
       <div className="flex-1 overflow-y-auto px-3">
