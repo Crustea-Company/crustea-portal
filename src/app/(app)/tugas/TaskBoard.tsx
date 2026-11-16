@@ -44,7 +44,16 @@ const VIEWS: { key: Filters["view"]; label: string }[] = [
   { key: "pic", label: "Per PIC" },
 ];
 
-type Props = TaskStateInit & { initial: Partial<Filters> };
+// scope = tugas apa yang dimuat server: "berjalan" (sprint berjalan + mendatang), "semua", "tanpa", atau id sprint.
+type Props = TaskStateInit & { initial: Partial<Filters>; scope: string };
+
+// Apakah data yang dimuat server (scope) sudah mencakup pilihan sprint di filter?
+function scopeCovers(scope: string, sprint: string, sprints: { id: number; end_date: string | null }[], today: string): boolean {
+  if (scope === "semua" || scope === sprint) return true;
+  if (scope !== "berjalan") return false;
+  const s = sprints.find((x) => String(x.id) === sprint);
+  return !!s && !!s.end_date && s.end_date >= today;
+}
 
 // Di HP: deretan kontrol yang bisa digeser ke samping. Di layar lebar: grid 5 kolom.
 const sliderRow =
@@ -107,6 +116,17 @@ export default function TaskBoard(props: Props) {
     set("sprint", sprint);
     router.replace(`/tugas?${toQuery({ ...filters, sprint })}`, { scroll: false });
   };
+
+  // Pengaman: bila filter sprint menampilkan pilihan yang belum dimuat server (mis. "Semua sprint" saat tidak ada
+  // sprint berjalan/mendatang, atau data lama dari cache), muat ulang data yang sesuai supaya daftar tidak terpotong.
+  const covered = scopeCovers(props.scope, filters.sprint, sprints, today);
+  const reloading = useRef<string | null>(null);
+  useEffect(() => {
+    if (covered || reloading.current === filters.sprint) return;
+    reloading.current = filters.sprint;
+    router.replace(`/tugas?${toQuery(filters)}`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [covered, filters.sprint]);
 
   // Pilihan PIC: hanya orang yang memang pernah jadi PIC.
   const picOptions = useMemo(() => {
@@ -200,6 +220,9 @@ export default function TaskBoard(props: Props) {
         </div>
       </div>
 
+      {!covered && (
+        <p className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Memuat tugas untuk pilihan sprint ini…</p>
+      )}
       <p className="mb-2 text-sm text-slate-600">
         {formatNumber(visible.length)} tugas
         {overdueCount > 0 && (
