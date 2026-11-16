@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { rowValues, sameValue, type ApplyResult, type RowValues } from "@/lib/bulk-sheet";
+import { taskInputFromValues, taskSheetDef, type TaskSheetCtx, type TaskSheetOp } from "@/lib/bulk-tasks";
 import {
   STATUS_ORDER,
   TASK_SELECT,
@@ -12,8 +14,9 @@ import {
   type TaskStatus,
 } from "@/lib/tasks";
 
-type Fail = { ok: false; message: string };
-const fail = (message: string): Fail => ({ ok: false, message });
+type Fail = { ok: false; message: string; denied?: true };
+// denied = ditolak karena hak akses (dipakai impor Excel untuk menandai "Dilewati", bukan "Gagal").
+const fail = (message: string, denied = false): Fail => (denied ? { ok: false, message, denied: true } : { ok: false, message });
 const SESSION_ENDED = "Sesi login berakhir. Silakan masuk lagi.";
 
 // ---------- Status ----------
@@ -181,13 +184,14 @@ async function reloadTask(taskId: string): Promise<Task | null> {
   return (data as Task | null) ?? null;
 }
 
-export async function createTask(input: TaskInput): Promise<{ ok: true; task: Task; warning?: string } | Fail> {
-  const me = await getCurrentEmployee();
-  if (!me) return fail(SESSION_ENDED);
+type Me = NonNullable<Awaited<ReturnType<typeof getCurrentEmployee>>>;
+
+// Inti tambah tugas: dipakai tombol Tambah dan impor Excel (aturan sama, tanpa menggandakan).
+async function createTaskCore(me: Me, input: TaskInput): Promise<{ ok: true; id: string; warning?: string } | Fail> {
   const problem = validate(input);
   if (problem) return fail(problem);
   if (!canCreateInDept(input.dept_code, me)) {
-    return fail("Anda hanya bisa menambah tugas untuk departemen sendiri.");
+    return fail("Anda hanya bisa menambah tugas untuk departemen sendiri.", true);
   }
 
   const supabase = await createClient();
@@ -196,22 +200,26 @@ export async function createTask(input: TaskInput): Promise<{ ok: true; task: Ta
   if (error) return fail(`Gagal menambah tugas: ${error.message}`);
 
   const { error: peopleError } = await supabase.from("task_people").insert(peopleRows(data.id, input));
-  const task = await reloadTask(data.id);
-  revalidatePath("/tugas");
-  if (!task) return fail("Tugas tersimpan, tetapi gagal dimuat ulang. Muat ulang halaman.");
   return {
     ok: true,
-    task,
+    id: data.id,
     warning: peopleError ? `Tugas tersimpan, tetapi PIC/support gagal disimpan: ${peopleError.message}` : undefined,
   };
 }
 
-export async function updateTask(
-  taskId: string,
-  input: TaskInput,
-): Promise<{ ok: true; task: Task; warning?: string } | Fail> {
+export async function createTask(input: TaskInput): Promise<{ ok: true; task: Task; warning?: string } | Fail> {
   const me = await getCurrentEmployee();
   if (!me) return fail(SESSION_ENDED);
+  const res = await createTaskCore(me, input);
+  if (!res.ok) return res;
+  const task = await reloadTask(res.id);
+  revalidatePath("/tugas");
+  if (!task) return fail("Tugas tersimpan, tetapi gagal dimuat ulang. Muat ulang halaman.");
+  return { ok: true, task, warning: res.warning };
+}
+
+// Inti ubah tugas: dipakai form Ubah dan impor Excel.
+async function updateTaskCore(me: Me, taskId: string, input: TaskInput): Promise<{ ok: true; warning?: string } | Fail> {
   const problem = validate(input);
   if (problem) return fail(problem);
 
@@ -225,12 +233,12 @@ export async function updateTask(
     .single();
   if (!current) return fail("Tugas tidak ditemukan.");
   if (row.dept_code !== current.dept_code && me.app_role !== "admin" && me.app_role !== "ceo") {
-    return fail("Hanya admin dan CEO yang boleh memindahkan tugas ke departemen lain.");
+    return fail("Hanya admin dan CEO yang boleh memindahkan tugas ke departemen lain.", true);
   }
 
   const { data, error } = await supabase.from("tasks").update(row).eq("id", taskId).select("id");
   if (error) return fail(`Gagal menyimpan: ${error.message}`);
-  if (!data?.length) return fail("Anda tidak berhak mengubah tugas ini.");
+  if (!data?.length) return fail("Anda tidak berhak mengubah tugas ini.", true);
 
   // Sesuaikan PIC dan support: hapus yang dilepas, tambah yang baru.
   const key = (p: { employee_id: string; role: string }) => `${p.employee_id}:${p.role}`;
@@ -255,10 +263,21 @@ export async function updateTask(
     if (e) warning = `Sebagian PIC/support gagal dilepas: ${e.message}`;
   }
 
+  return { ok: true, warning };
+}
+
+export async function updateTask(
+  taskId: string,
+  input: TaskInput,
+): Promise<{ ok: true; task: Task; warning?: string } | Fail> {
+  const me = await getCurrentEmployee();
+  if (!me) return fail(SESSION_ENDED);
+  const res = await updateTaskCore(me, taskId, input);
+  if (!res.ok) return res;
   const task = await reloadTask(taskId);
   revalidatePath("/tugas");
   if (!task) return fail("Tugas tersimpan, tetapi gagal dimuat ulang. Muat ulang halaman.");
-  return { ok: true, task, warning };
+  return { ok: true, task, warning: res.warning };
 }
 
 export async function deleteTask(taskId: string): Promise<{ ok: true } | Fail> {
@@ -351,4 +370,110 @@ export async function bulkDeleteTasks(ids: string[]): Promise<{ ok: true; delete
   }
   revalidatePath("/tugas");
   return { ok: true, deleted };
+}
+
+// ---------- Impor Excel (ekspor-ubah-impor massal) ----------
+// Memakai inti yang sama dengan form Tambah/Ubah dan hapus banyak; hak akses tetap dijaga database (RLS).
+// File Excel dibaca di browser; server hanya menerima daftar perubahan yang sudah disetujui di pratinjau.
+
+// Nilai terkini tugas-tugas di file (untuk mendeteksi bentrok). Hanya yang terlihat oleh pengguna (RLS).
+export async function fetchTasksForSheet(ids: string[]): Promise<{ ok: true; tasks: Task[] } | Fail> {
+  const me = await getCurrentEmployee();
+  if (!me) return fail(SESSION_ENDED);
+  const supabase = await createClient();
+  const tasks: Task[] = [];
+  for (const part of chunks([...new Set(ids)])) {
+    const { data, error } = await supabase.from("tasks").select(TASK_SELECT).in("id", part);
+    if (error) return fail(`Gagal memuat tugas: ${error.message}`);
+    tasks.push(...((data ?? []) as Task[]));
+  }
+  return { ok: true, tasks };
+}
+
+export async function applyTaskSheet(ops: TaskSheetOp[]): Promise<{ ok: true; results: ApplyResult[] } | Fail> {
+  const me = await getCurrentEmployee();
+  if (!me) return fail(SESSION_ENDED);
+  if (ops.length === 0) return { ok: true, results: [] };
+  if (ops.length > 25) return fail("Terlalu banyak sekaligus (maks. 25 per kiriman).");
+
+  const supabase = await createClient();
+  const [emps, depts, sprints, programs] = await Promise.all([
+    supabase.from("employees").select("id, full_name"),
+    supabase.from("departments").select("code, name"),
+    supabase.from("sprints").select("id, name"),
+    supabase.from("programs").select("id, name"),
+  ]);
+  const ctxError = emps.error ?? depts.error ?? sprints.error ?? programs.error;
+  if (ctxError) return fail(`Gagal memuat data pendukung: ${ctxError.message}`);
+  const ctx: TaskSheetCtx = { employees: emps.data ?? [], departments: depts.data ?? [], sprints: sprints.data ?? [], programs: programs.data ?? [] };
+  const def = taskSheetDef(ctx);
+  const kindOf = (col: string) => def.columns.find((c) => c.header === col)?.kind ?? "text";
+
+  const existing = await fetchTasksForSheet(ops.filter((o) => o.id).map((o) => o.id));
+  if (!existing.ok) return existing;
+  const byId = new Map(existing.tasks.map((t) => [t.id, t]));
+
+  const result = (op: TaskSheetOp, status: ApplyResult["status"], message: string): ApplyResult => ({ id: op.id, line: op.line, label: op.label, status, message });
+  const rowOf = (t: Task) => rowValues(def, t);
+
+  const results = await Promise.all(
+    ops.map(async (op): Promise<ApplyResult | null> => {
+      try {
+        if (op.op === "delete") return null; // dikerjakan sekaligus di bawah
+        let values: RowValues;
+        if (op.op === "add") {
+          values = {};
+          for (const c of def.columns) values[c.header] = c.kind === "bool" ? "Tidak" : "";
+        } else {
+          const task = byId.get(op.id);
+          if (!task) return result(op, "skipped", "Tugas sudah tidak ada atau tidak bisa Anda lihat.");
+          values = rowOf(task);
+          for (const ch of op.changes) {
+            if (!sameValue(kindOf(ch.col), values[ch.col] ?? "", ch.from)) {
+              return result(op, "skipped", `Bentrok: kolom ${ch.col} sudah berubah di aplikasi sejak pratinjau.`);
+            }
+          }
+        }
+        for (const ch of op.changes) values[ch.col] = ch.to;
+        const parsed = taskInputFromValues(values, ctx);
+        if (!("input" in parsed)) return result(op, "failed", parsed.problems.join(" "));
+        const res = op.op === "add" ? await createTaskCore(me, parsed.input) : await updateTaskCore(me, op.id, parsed.input);
+        if (!res.ok) return result(op, res.denied ? "skipped" : "failed", res.message);
+        return result(op, "ok", res.warning ?? (op.op === "add" ? "Ditambahkan." : "Diubah."));
+      } catch (e) {
+        return result(op, "failed", e instanceof Error ? e.message : "Kesalahan tak terduga.");
+      }
+    }),
+  );
+
+  // Hapus: periksa nilai terkini sama dengan saat ekspor (bila ada), lalu hapus sekaligus.
+  const deletes = ops.map((op, i) => ({ op, i })).filter((x) => x.op.op === "delete");
+  const deletable: { op: TaskSheetOp; i: number }[] = [];
+  for (const d of deletes) {
+    const task = byId.get(d.op.id);
+    if (!task) {
+      results[d.i] = result(d.op, "skipped", "Tugas sudah tidak ada atau tidak bisa Anda lihat.");
+      continue;
+    }
+    const cur = rowOf(task);
+    const changed = d.op.baseline ? def.columns.filter((c) => !c.readOnly && !sameValue(c.kind, cur[c.header] ?? "", d.op.baseline![c.header] ?? "")) : [];
+    if (changed.length) {
+      results[d.i] = result(d.op, "skipped", `Bentrok: tugas diubah di aplikasi sejak ekspor (${changed.map((c) => c.header).join(", ")}).`);
+      continue;
+    }
+    deletable.push(d);
+  }
+  if (deletable.length) {
+    const del = await bulkDeleteTasks(deletable.map((d) => d.op.id));
+    for (const d of deletable) {
+      results[d.i] = !del.ok
+        ? result(d.op, "failed", del.message)
+        : del.deleted.includes(d.op.id)
+          ? result(d.op, "ok", "Dihapus.")
+          : result(d.op, "skipped", "Hanya admin atau head departemen yang boleh menghapus tugas ini.");
+    }
+  }
+
+  revalidatePath("/tugas");
+  return { ok: true, results: results.map((r, i) => r ?? result(ops[i], "failed", "Tidak diproses.")) };
 }

@@ -16,6 +16,7 @@ import {
   type Program,
 } from "@/lib/programs";
 import { NewProgram, PriorityControls } from "./ProgramPanels";
+import BulkMilestoneSheet from "./BulkMilestoneSheet";
 
 export const metadata: Metadata = { title: "Program & Prioritas - Crustea Portal" };
 
@@ -27,10 +28,11 @@ export default async function ProgramPage() {
   const me = (await getCurrentEmployee())!;
   const supabase = await createClient();
   const prioritizer = canPrioritize(me);
-  const [{ data: rows }, { data: taskRows }, { data: people }] = await Promise.all([
+  const [{ data: rows }, { data: taskRows }, { data: people }, { data: employees }] = await Promise.all([
     fetchAll(() => supabase.from("programs").select(PROGRAM_COLUMNS)),
     fetchAll(() => supabase.from("tasks").select("program_id, status").not("program_id", "is", null)),
     prioritizer ? supabase.from("employees").select("id, full_name").eq("is_active", true).order("full_name") : Promise.resolve({ data: [] }),
+    supabase.from("employees").select("id, full_name").eq("is_active", true).order("full_name"),
   ]);
   const all = sortPrograms((rows ?? []) as unknown as Program[]);
   const today = todayJakarta();
@@ -113,6 +115,21 @@ export default async function ProgramPage() {
         </div>
         {prioritizer && <NewProgram people={people ?? []} />}
       </div>
+
+      <details className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+        <summary className="cursor-pointer font-medium text-slate-700">Ubah milestone banyak program lewat Excel</summary>
+        <div className="mt-2 flex flex-col gap-2">
+          <p className="text-xs text-slate-500">
+            Ekspor semua milestone program yang terlihat, ubah/tambah/hapus di Excel, lalu impor kembali. Ada pratinjau dulu; belum ada yang tersimpan sebelum Anda menekan Terapkan.
+          </p>
+          <BulkMilestoneSheet
+            rows={all.flatMap((p) => p.program_milestones.map((m) => ({ m, programId: p.id, programName: p.name })))}
+            ctx={{ programs: all.map((p) => ({ id: p.id, name: p.name })), employees: employees ?? [] }}
+            exportedBy={me.full_name}
+            fileName="milestone-program.xlsx"
+          />
+        </div>
+      </details>
 
       {[1, 2, 3].map((prio) => {
         const list = active.filter((p) => p.priority === prio);

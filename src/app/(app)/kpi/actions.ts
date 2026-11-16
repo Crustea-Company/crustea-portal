@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isIsoDate } from "@/lib/travel";
 import { getCurrentEmployee } from "@/lib/auth";
-import { DEPT_ORDER, TARGET_DIVISIONS, canManageKpi } from "@/lib/kpi";
+import { DEPT_ORDER, KPI_COLUMNS, TARGET_DIVISIONS, canManageKpi, type KpiItem, type KpiRealization } from "@/lib/kpi";
+import { rowValues, sameValue, type ApplyResult } from "@/lib/bulk-sheet";
+import { KH, kpiSheetDef, type KpiSheetOp, type KpiSheetRow } from "@/lib/bulk-kpi";
 
 type Result = { ok: true } | { ok: false; message: string };
 
@@ -273,4 +275,84 @@ export async function createQuarter(year: number, quarter: number, total: number
   }
   revalidatePath("/kpi/target");
   return { ok: true, id: t.id as number };
+}
+
+// ---------- Impor Excel: realisasi KPI satu kuartal (ekspor-ubah-impor massal) ----------
+// Memakai aksi yang sama dengan tombol di halaman KPI (set_kpi_realization / update_kpi_item); hak akses dijaga database.
+// Item KPI tidak bisa ditambah/dihapus lewat file.
+
+const validQuarter = (year: number, quarter: number) => Number.isInteger(year) && year >= 2024 && year <= 2100 && [1, 2, 3, 4].includes(quarter);
+
+// Nilai terkini item + realisasi kuartal itu (untuk mendeteksi bentrok).
+export async function fetchKpiForSheet(ids: number[], year: number, quarter: number): Promise<{ ok: true; rows: KpiSheetRow[] } | { ok: false; message: string }> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+  if (!validQuarter(year, quarter)) return { ok: false, message: "Kuartal tidak valid." };
+  const list = [...new Set(ids.filter((n) => Number.isInteger(n)))];
+  if (list.length > 1000) return { ok: false, message: "Terlalu banyak baris." };
+  const supabase = await createClient();
+  const items: KpiItem[] = [];
+  const reals: KpiRealization[] = [];
+  for (let i = 0; i < list.length; i += 100) {
+    const part = list.slice(i, i + 100);
+    const [a, b] = await Promise.all([
+      supabase.from("kpi_items").select(KPI_COLUMNS).in("id", part),
+      supabase.from("kpi_realizations").select("kpi_id, year, quarter, value, note").in("kpi_id", part).eq("year", year).eq("quarter", quarter),
+    ]);
+    if (a.error) return { ok: false, message: `Gagal memuat KPI: ${a.error.message}` };
+    if (b.error) return { ok: false, message: `Gagal memuat realisasi: ${b.error.message}` };
+    items.push(...(a.data as unknown as KpiItem[]));
+    reals.push(...((b.data ?? []) as KpiRealization[]));
+  }
+  const realOf = new Map(reals.map((r) => [r.kpi_id, r]));
+  return { ok: true, rows: items.map((item) => ({ item, real: realOf.get(item.id) ?? null })) };
+}
+
+export async function applyKpiSheet(year: number, quarter: number, ops: KpiSheetOp[]): Promise<{ ok: true; results: ApplyResult[] } | { ok: false; message: string }> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+  if (!validQuarter(year, quarter)) return { ok: false, message: "Kuartal tidak valid." };
+  if (ops.length > 25) return { ok: false, message: "Terlalu banyak sekaligus (maks. 25 per kiriman)." };
+  const cur = await fetchKpiForSheet(ops.map((o) => o.id), year, quarter);
+  if (!cur.ok) return cur;
+  const def = kpiSheetDef({ year, quarter });
+  const byId = new Map(cur.rows.map((r) => [r.item.id, r]));
+  const kindOf = (col: string) => def.columns.find((c) => c.header === col)?.kind ?? "text";
+
+  const results = await Promise.all(
+    ops.map(async (op): Promise<ApplyResult> => {
+      const res = (status: ApplyResult["status"], message: string): ApplyResult => ({ id: String(op.id), line: op.line, label: op.label, status, message });
+      try {
+        const row = byId.get(op.id);
+        if (!row) return res("skipped", "Item KPI sudah tidak ada atau tidak bisa Anda lihat.");
+        const v = rowValues(def, row);
+        for (const ch of op.changes) {
+          if (!sameValue(kindOf(ch.col), v[ch.col] ?? "", ch.from)) return res("skipped", `Bentrok: kolom ${ch.col} sudah berubah di aplikasi sejak pratinjau.`);
+        }
+        for (const ch of op.changes) v[ch.col] = ch.to;
+        const touched = new Set(op.changes.map((c) => c.col));
+        const done: string[] = [];
+        const rightsOrFail = (message: string) => res(message.includes("tidak berhak") ? "skipped" : "failed", done.length ? `${message} (sebagian sudah tersimpan: ${done.join(", ")}.)` : message);
+
+        if (touched.has(KH.value) || touched.has(KH.valueNote)) {
+          const raw = (v[KH.value] ?? "").trim();
+          const value = raw === "" ? null : Number(raw);
+          if (value == null && (v[KH.valueNote] ?? "").trim()) return res("failed", "Keterangan realisasi tidak bisa diisi tanpa angka Realisasi.");
+          const r = await setKpiRealization(op.id, year, quarter, value, (v[KH.valueNote] ?? "").trim());
+          if (!r.ok) return rightsOrFail(r.message);
+          done.push("realisasi");
+        }
+        if (touched.has(KH.done) || touched.has(KH.note)) {
+          const r = await updateKpiItem(op.id, v[KH.done] === "Ya", (v[KH.note] ?? "").trim());
+          if (!r.ok) return rightsOrFail(r.message);
+          done.push("selesai/catatan");
+        }
+        return res("ok", "Diubah.");
+      } catch (e) {
+        return res("failed", e instanceof Error ? e.message : "Kesalahan tak terduga.");
+      }
+    }),
+  );
+  revalidatePath("/kpi");
+  return { ok: true, results };
 }

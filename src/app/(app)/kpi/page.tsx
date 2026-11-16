@@ -20,6 +20,7 @@ import {
   type KpiRealization,
 } from "@/lib/kpi";
 import KpiItemRow from "./KpiItemRow";
+import BulkKpiSheet from "./BulkKpiSheet";
 import { NewKpiItem, type KpiFormOptions } from "./KpiItemForm";
 
 export const metadata: Metadata = { title: "Monitoring KPI - Crustea Portal" };
@@ -141,6 +142,16 @@ export default async function KpiPage({ searchParams }: { searchParams: SearchPa
           Target kuartal →
         </Link>
       </div>
+
+      <details className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+        <summary className="cursor-pointer font-medium text-slate-700">Isi realisasi banyak item lewat Excel</summary>
+        <div className="mt-2 flex flex-col gap-2">
+          <p className="text-xs text-slate-500">
+            Ekspor {formatNumber(list.length)} item yang sedang tampil untuk Q{quarter.quarter} {quarter.year}, isi di Excel, lalu impor kembali. Ada pratinjau dulu; belum ada yang tersimpan sebelum Anda menekan Terapkan.
+          </p>
+          <BulkKpiSheet rows={list.map((k) => ({ item: k, real: realNow(k) }))} quarter={quarter} exportedBy={me.full_name} />
+        </div>
+      </details>
 
       {options && <NewKpiItem defaultDept={dept || me.dept_code || ""} options={options} />}
 

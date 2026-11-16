@@ -19,6 +19,7 @@ import {
   type Program,
 } from "@/lib/programs";
 import { EditProgram, Milestones, UpdateForm } from "../ProgramPanels";
+import BulkMilestoneSheet from "../BulkMilestoneSheet";
 
 export const metadata: Metadata = { title: "Program - Crustea Portal" };
 
@@ -87,6 +88,17 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
       <section className={card}>
         <h2 className="font-semibold text-slate-900">Timeline & milestone</h2>
         <Milestones programId={p.id} milestones={milestones} people={people} canEdit={member} today={today} />
+        <details className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <summary className="cursor-pointer font-medium text-slate-700">Ubah milestone lewat Excel</summary>
+          <div className="mt-2 flex flex-col gap-2">
+            <BulkMilestoneSheet
+              rows={milestones.map((m) => ({ m, programId: p.id, programName: p.name }))}
+              ctx={{ programs: [{ id: p.id, name: p.name }], employees: people }}
+              exportedBy={me.full_name}
+              fileName={`milestone-${p.name.slice(0, 30).replace(/[^a-zA-Z0-9-]+/g, "-")}.xlsx`}
+            />
+          </div>
+        </details>
       </section>
 
       <section className={card}>

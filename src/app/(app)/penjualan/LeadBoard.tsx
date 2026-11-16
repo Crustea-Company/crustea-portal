@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatNumber } from "@/lib/format";
 import { normalizeText, searchTerms } from "@/lib/search";
+import BulkLeadSheet from "./BulkLeadSheet";
 import {
   LEAD_SOURCES,
   LEAD_STAGES,
@@ -63,12 +64,18 @@ export default function LeadBoard({
   productNames,
   meId,
   manager,
+  employees,
+  meName,
+  today,
   initial,
 }: {
   leads: Lead[];
   productNames: Record<string, string>;
   meId: string;
   manager: boolean; // head BDS, CEO, admin: boleh mengubah semua lead
+  employees: { id: string; full_name: string }[]; // untuk mencocokkan nama PIC sales di file Excel
+  meName: string;
+  today: string;
   initial: BoardInitial;
 }) {
   const names = useMemo(() => new Map(Object.entries(productNames)), [productNames]);
@@ -234,6 +241,21 @@ export default function LeadBoard({
           </span>
         </div>
       </div>
+
+      <details className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+        <summary className="cursor-pointer font-medium text-slate-700">Ubah banyak lead lewat Excel</summary>
+        <div className="mt-2 flex flex-col gap-2">
+          <p className="text-xs text-slate-500">
+            Ekspor {formatNumber(list.length)} lead yang sedang tampil, ubah atau tambah di Excel, lalu impor kembali. Tahap lead tidak bisa diubah lewat file. Ada pratinjau dulu; belum ada yang tersimpan sebelum Anda menekan Terapkan.
+          </p>
+          <BulkLeadSheet
+            leads={list}
+            ctx={{ products: [...names].map(([code, name]) => ({ code, name })), employees }}
+            exportedBy={meName}
+            today={today}
+          />
+        </div>
+      </details>
 
       {list.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">

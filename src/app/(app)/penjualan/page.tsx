@@ -30,9 +30,10 @@ export default async function PenjualanPage({ searchParams }: { searchParams: Se
 
   const me = (await getCurrentEmployee())!;
   const supabase = await createClient();
-  const [{ data: rows }, { data: productRows }] = await Promise.all([
+  const [{ data: rows }, { data: productRows }, { data: employees }] = await Promise.all([
     fetchAll(() => supabase.from("sales_leads").select(LEAD_COLUMNS).order("created_at", { ascending: false })),
     supabase.from("products").select("code, name, valid_from").order("valid_from"),
+    supabase.from("employees").select("id, full_name").eq("is_active", true).order("full_name"),
   ]);
   const all = (rows as unknown as Record<string, unknown>[]).map(toLead);
   // Nama produk per kode (versi terbaru).
@@ -163,6 +164,9 @@ export default async function PenjualanPage({ searchParams }: { searchParams: Se
         productNames={productNames}
         meId={me.id}
         manager={isSalesManager(me)}
+        employees={employees ?? []}
+        meName={me.full_name}
+        today={today}
         initial={{
           group,
           mine: str("saya") === "1",

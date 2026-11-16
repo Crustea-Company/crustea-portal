@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/format";
-import { LEAD_SOURCES, MAX_LEAD_ITEMS, type LeadInput, type LeadStage } from "@/lib/sales";
+import { LEAD_COLUMNS, LEAD_SOURCES, MAX_LEAD_ITEMS, toLead, type Lead, type LeadInput, type LeadStage } from "@/lib/sales";
+import { rowValues, sameValue, type ApplyResult, type RowValues } from "@/lib/bulk-sheet";
+import { LH, leadInputFromValues, leadSheetDef, type LeadSheetCtx, type LeadSheetOp } from "@/lib/bulk-leads";
 
 type Result = { ok: true; id: string } | { ok: false; message: string };
 type SimpleResult = { ok: true } | { ok: false; message: string };
@@ -83,4 +85,75 @@ export async function addLeadNote(id: string, note: string, complaint: boolean):
   if (error) return { ok: false, message: error.message };
   revalidateLead(id);
   return { ok: true };
+}
+
+// ---------- Impor Excel: lead penjualan (ekspor-ubah-impor massal) ----------
+// Memakai saveLead yang sama dengan form (validasi lengkap; hak ubah dijaga database). Tahap & hapus tidak bisa lewat file.
+
+export async function fetchLeadsForSheet(ids: string[]): Promise<{ ok: true; leads: Lead[] } | { ok: false; message: string }> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+  const list = [...new Set(ids.filter(Boolean))];
+  const supabase = await createClient();
+  const leads: Lead[] = [];
+  for (let i = 0; i < list.length; i += 100) {
+    const { data, error } = await supabase.from("sales_leads").select(LEAD_COLUMNS).in("id", list.slice(i, i + 100));
+    if (error) return { ok: false, message: `Gagal memuat lead: ${error.message}` };
+    leads.push(...(data as unknown as Record<string, unknown>[]).map(toLead));
+  }
+  return { ok: true, leads };
+}
+
+export async function applyLeadSheet(ops: LeadSheetOp[]): Promise<{ ok: true; results: ApplyResult[] } | { ok: false; message: string }> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+  if (ops.length > 25) return { ok: false, message: "Terlalu banyak sekaligus (maks. 25 per kiriman)." };
+  const supabase = await createClient();
+  const [prods, emps] = await Promise.all([
+    supabase.from("products").select("code, name, valid_from").order("valid_from"),
+    supabase.from("employees").select("id, full_name").eq("is_active", true),
+  ]);
+  if (prods.error || emps.error) return { ok: false, message: `Gagal memuat data pendukung: ${(prods.error ?? emps.error)!.message}` };
+  // Nama produk per kode = versi terbaru (sama dengan halaman Penjualan).
+  const latest = new Map<string, string>();
+  for (const p of (prods.data ?? []) as { code: string; name: string }[]) latest.set(p.code, p.name);
+  const ctx: LeadSheetCtx = { products: [...latest].map(([code, name]) => ({ code, name })), employees: emps.data ?? [] };
+  const def = leadSheetDef(ctx);
+  const cur = await fetchLeadsForSheet(ops.filter((o) => o.id).map((o) => o.id));
+  if (!cur.ok) return cur;
+  const byId = new Map(cur.leads.map((l) => [l.id, l]));
+  const kindOf = (col: string) => def.columns.find((c) => c.header === col)?.kind ?? "text";
+
+  const results = await Promise.all(
+    ops.map(async (op): Promise<ApplyResult> => {
+      const res = (status: ApplyResult["status"], message: string): ApplyResult => ({ id: op.id, line: op.line, label: op.label, status, message });
+      try {
+        let v: RowValues;
+        let keepItems: Lead["items"] | null = null;
+        if (op.op === "add") {
+          v = {};
+          for (const c of def.columns) v[c.header] = c.kind === "bool" ? "Tidak" : "";
+        } else {
+          const lead = byId.get(op.id);
+          if (!lead) return res("skipped", "Lead sudah tidak ada atau tidak bisa Anda lihat.");
+          v = rowValues(def, lead);
+          for (const ch of op.changes) {
+            if (!sameValue(kindOf(ch.col), v[ch.col] ?? "", ch.from)) return res("skipped", `Bentrok: kolom ${ch.col} sudah berubah di aplikasi sejak pratinjau.`);
+          }
+          // Lead banyak produk / sudah closing: baris produk dibiarkan seperti di database.
+          if (def.lockedColumns?.(v).includes(LH.product)) keepItems = lead.items;
+        }
+        for (const ch of op.changes) v[ch.col] = ch.to;
+        if (op.op === "update" && !(v[LH.sales] ?? "").trim()) return res("failed", "PIC sales tidak boleh dikosongkan.");
+        const parsed = leadInputFromValues(v, ctx, keepItems);
+        if (!("input" in parsed)) return res("failed", parsed.problems.join(" "));
+        const r = await saveLead(parsed.input, op.op === "add" ? null : op.id);
+        if (!r.ok) return res(r.message.includes("tidak boleh mengubah") ? "skipped" : "failed", r.message);
+        return res("ok", op.op === "add" ? "Ditambahkan." : "Diubah.");
+      } catch (e) {
+        return res("failed", e instanceof Error ? e.message : "Kesalahan tak terduga.");
+      }
+    }),
+  );
+  return { ok: true, results };
 }

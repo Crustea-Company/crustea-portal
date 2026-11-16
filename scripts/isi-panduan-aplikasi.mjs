@@ -656,6 +656,67 @@ Angka di form adalah perkiraan; angka final dihitung sistem saat klaim disimpan.
 
 Kata kunci: komisi, klaim komisi, referral, kode referral, CRU, HPP, profit, persen komisi, master produk, lunas, insentif penjualan`,
   },
+  {
+    code: "APP-13",
+    title: "Panduan: Ubah banyak data lewat Excel (Tugas, KPI, Milestone, Lead)",
+    sort: 113,
+    body: `> Tombolnya ada di bagian **"Ubah ... lewat Excel"** pada halaman **[Tugas](/tugas)**, **[Monitoring KPI](/kpi)**, **[Program](/program)** (dan detail program), serta **[Penjualan](/penjualan)**. Berlaku untuk semua karyawan, sesuai hak masing-masing.
+
+**Tujuan:** mengubah banyak data sekaligus (mis. mundurkan deadline puluhan tugas, isi realisasi KPI satu kuartal) tanpa mengetik satu per satu. Alurnya: **unduh ke Excel, ubah, impor kembali, periksa pratinjau, terapkan.**
+
+**Siapa:** semua karyawan. Hak mengubah tetap **sama seperti di aplikasi**: baris yang tidak boleh Anda ubah akan **dilewati** dan dilaporkan; sisanya tetap tersimpan.
+
+### Langkah
+
+1. Buka halaman yang dimaksud, atur filter dulu (file hanya berisi data yang sedang tampil), lalu buka bagian **Ubah ... lewat Excel**.
+2. Tekan **Ekspor Excel**. File .xlsx terunduh (maks. 1.000 baris; bila lebih, persempit filter).
+3. Buka di Excel atau Google Sheets, lalu ubah **lembar Data**:
+   - Kolom **ID** (abu-abu) **jangan diubah**. **ID kosong = baris baru.**
+   - Kolom **abu-abu** hanya untuk dibaca; perubahannya diabaikan.
+   - Status, sprint, program, sumber, dan sejenisnya dipilih dari **dropdown**. Tanggal ditulis seperti **15-12-2026** (atau sel tanggal biasa).
+   - Orang ditulis dengan **nama lengkap**; beberapa orang dipisah titik koma (**;**). Nama yang tidak dikenal atau kembar ditolak, tidak ditebak.
+   - Untuk menghapus (hanya Tugas dan Milestone): isi kolom **Hapus** dengan kata **HAPUS**. Menghapus baris dari Excel **tidak** menghapus data di aplikasi.
+4. Simpan sebagai **.xlsx**, kembali ke aplikasi, tekan **Impor Excel**, dan pilih file.
+5. Periksa **pratinjau**: daftar **Tambah / Ubah / Hapus / Bentrok / Salah isi**, dengan nilai sebelum dan sesudah per sel. **Belum ada yang tersimpan** sampai Anda menekan **Terapkan**. Hilangkan centang pada baris yang tidak jadi diubah.
+6. Bila ada yang dihapus, ketik **jumlah baris yang dihapus** untuk konfirmasi, lalu tekan **Terapkan**.
+7. Lihat hasil akhir (**Berhasil / Dilewati / Gagal** beserta alasannya). Tombol **Unduh hasil** menyimpannya ke Excel. Halaman dimuat ulang setelah ditutup.
+
+### Yang bisa diubah di tiap halaman
+
+| Halaman | Tambah | Ubah | Hapus | Catatan |
+|---|---|---|---|---|
+| Tugas | ya | judul, status, deadline, PIC, sprint, dll. | ya (admin/head) | Aturan sama dengan form tugas; riwayat tercatat otomatis |
+| Monitoring KPI | tidak | realisasi, keterangan, selesai, catatan (satu kuartal) | tidak | Mengosongkan Realisasi = menghapus realisasi kuartal itu |
+| Program / detail program | ya | judul, tenggat, PIC, selesai | ya | Program milestone baru wajib dipilih; milestone lama tidak bisa dipindah program |
+| Penjualan | ya | data lead | tidak | **Tahap tidak bisa diubah lewat file**; produk/nilai terkunci setelah closing atau bila lebih dari satu produk |
+
+### Aturan penting
+
+- File membawa **salinan nilai saat diekspor** (lembar tersembunyi **_asal**; jangan dihapus atau diubah). Bila sel yang sama sudah diubah orang lain di aplikasi sejak ekspor, barisnya ditandai **Bentrok** dan **dilewati**, jadi perubahan orang lain tidak tertimpa. Ekspor ulang lalu ulangi perubahan Anda.
+- Bila lembar **_asal** hilang, impor tetap bisa, tetapi bentrok **tidak terdeteksi**: periksa pratinjau dengan sangat teliti.
+- File dari halaman lain, atau dari kuartal KPI lain, **ditolak**.
+- File dibaca di browser dan **tidak disimpan** di server.
+
+### Meminta Claude mengubah file
+
+Anda boleh menyerahkan file ekspor ke Claude dengan instruksi biasa, lalu mengimpor hasilnya sendiri dan memeriksa pratinjau. Contoh instruksi:
+
+- *"Di file ini, mundurkan semua deadline departemen BDS satu minggu. Jangan sentuh kolom ID dan lembar _asal, jangan hapus baris."*
+- *"Ubah status semua tugas PIC Budi yang deadline-nya sudah lewat menjadi Pending. Jangan ubah kolom lain."*
+- *"Tambahkan dua baris tugas baru di bawah (kosongkan ID) untuk departemen CA, PIC Siti Aminah."*
+
+Pratinjau tetap wajib Anda periksa sebelum menekan **Terapkan**.
+
+### Kalau ada masalah
+
+- **"File ini untuk ..., bukan untuk ..."**: file berasal dari halaman atau kuartal lain. Ekspor dari halaman yang benar.
+- **Baris "Bentrok"**: data sudah diubah orang lain. Ekspor ulang dan ulangi perubahannya.
+- **Baris "Salah isi"**: baca alasannya (tanggal tidak dikenal, nama tidak dikenal, kolom wajib kosong, kolom terkunci). Perbaiki di Excel lalu impor lagi.
+- **Baris "Dilewati: tidak berhak"**: Anda tidak punya hak mengubah data itu; minta PIC atau head-nya.
+- **Impor terasa lama**: perubahan dikirim bertahap (sekitar 10 baris per kiriman); tunggu sampai hasil akhir muncul.
+
+Kata kunci: excel, ekspor, impor, unggah, unduh, ubah massal, bulk, xlsx, tugas, deadline, realisasi KPI, milestone, lead, bentrok, pratinjau, hapus massal, Claude`,
+  },
 ];
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {

@@ -2,26 +2,10 @@
 // 1. Template "Laporan Budidaya Ikan" (sheet DATA_BIAYA_OPERASIONAL; file .xlsb disimpan ulang sebagai .xlsx).
 // 2. File hasil "Export ke Excel" jurnal di dashboard.
 import type { Worksheet } from "exceljs";
-import { normalizeText } from "./search";
+import { cellValue, isoDate, key, text } from "./xlsx-core";
 import { TX_KIND_SHORT, type TxKind } from "./project-ledger";
 import type { TxInput } from "@/app/(app)/projects/dashboard/actions";
 
-function cellValue(v: unknown): string | number | Date | null {
-  if (v == null) return null;
-  if (typeof v === "string" || typeof v === "number" || v instanceof Date) return v;
-  if (typeof v === "object") {
-    const o = v as { richText?: { text: string }[]; result?: unknown; text?: unknown };
-    if (o.richText) return o.richText.map((t) => t.text).join("");
-    if ("result" in o) return cellValue(o.result);
-    if (o.text !== undefined) return cellValue(o.text);
-  }
-  return null; // termasuk sel error (#N/A)
-}
-const text = (v: unknown) => {
-  const x = cellValue(v);
-  if (x instanceof Date) return x.toISOString().slice(0, 10);
-  return x == null ? "" : String(x).trim();
-};
 function num(v: unknown): number | null {
   const x = cellValue(v);
   if (typeof x === "number") return Number.isFinite(x) ? x : null;
@@ -30,18 +14,6 @@ function num(v: unknown): number | null {
   const n = Number(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s) ? s.replace(/\./g, "").replace(",", ".") : s.replace(",", "."));
   return Number.isFinite(n) ? n : null;
 }
-function isoDate(v: unknown): string {
-  const x = cellValue(v);
-  if (x instanceof Date) return x.toISOString().slice(0, 10);
-  if (typeof x === "number" && x > 20000 && x < 80000) return new Date(Date.UTC(1899, 11, 30) + Math.round(x) * 86_400_000).toISOString().slice(0, 10);
-  const s = typeof x === "string" ? x.trim() : "";
-  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
-  m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
-  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
-  return "";
-}
-const key = (s: string) => normalizeText(s).replace(/[^a-z0-9]/g, "");
 
 // Kategori template budidaya -> kategori dashboard.
 const TEMPLATE_CATEGORY: Record<string, string> = {

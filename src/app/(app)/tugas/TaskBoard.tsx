@@ -21,6 +21,7 @@ import {
 } from "@/lib/tasks";
 import { useTaskState, type TaskStateInit } from "./useTaskState";
 import BulkBar from "./BulkBar";
+import BulkTaskSheet from "./BulkTaskSheet";
 
 export type Filters = {
   dept: string; // "" = semua departemen
@@ -220,6 +221,25 @@ export default function TaskBoard(props: Props) {
         </div>
       </div>
 
+      <details className="mb-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+        <summary className="cursor-pointer font-medium text-slate-700">Ubah banyak tugas lewat Excel</summary>
+        <div className="mt-2 flex flex-col gap-2">
+          <p className="text-xs text-slate-500">
+            Ekspor tugas yang sedang tampil ({formatNumber(visible.length)}), ubah di Excel, lalu impor kembali. Ada pratinjau dulu; belum ada yang tersimpan sebelum Anda menekan Terapkan.
+          </p>
+          <BulkTaskSheet
+            tasks={visible}
+            ctx={{
+              employees: employees.map((e) => ({ id: e.id, full_name: e.full_name })),
+              departments,
+              sprints: sprints.map((s) => ({ id: s.id, name: s.name })),
+              programs: props.programs ?? [],
+            }}
+            exportedBy={nameOf(me.id)}
+            today={today}
+          />
+        </div>
+      </details>
       {!covered && (
         <p className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Memuat tugas untuk pilihan sprint ini…</p>
       )}
