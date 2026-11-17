@@ -86,7 +86,7 @@ Kata kunci: ATS, log harian, jam kerja, timesheet, catat pekerjaan, ketercapaian
 
 ### Menambahkan tugas
 
-1. Di halaman **Tugas**, tekan tombol bulat **+** (*Tambah tugas*). Dari Dashboard bisa juga lewat tombol **Tambah tugas**.
+1. Di halaman **Tugas**, tekan tombol bulat **+** (*Tambah tugas*).
 2. Isi **Judul tugas**, **Departemen**, **Status**, **Tanggal mulai**, **Deadline**, dan **Sprint** (atau *Tanpa sprint*). Centang **Prioritas** bila mendesak.
 3. Pilih **PIC (minimal satu)**: klik nama untuk memilih/melepas, lalu **Selesai memilih**. Tambahkan **Support** bila ada yang membantu.
 4. Bila perlu, isi **Workstream**, **Output** (hasil yang diharapkan), dan **Keterangan**.
@@ -658,9 +658,9 @@ Kata kunci: komisi, klaim komisi, referral, kode referral, CRU, HPP, profit, per
   },
   {
     code: "APP-13",
-    title: "Panduan: Ubah banyak data lewat Excel (Tugas, KPI, Milestone, Lead)",
+    title: "Panduan: Ubah banyak data lewat Excel (Tugas, KPI, Milestone, Lead, Produk, Aset, Stok)",
     sort: 113,
-    body: `> Tombolnya ada di bagian **"Ubah ... lewat Excel"** pada halaman **[Tugas](/tugas)**, **[Monitoring KPI](/kpi)**, **[Program](/program)** (dan detail program), serta **[Penjualan](/penjualan)**. Berlaku untuk semua karyawan, sesuai hak masing-masing.
+    body: `> Tombolnya ada di bagian **"Ubah ... lewat Excel"** pada halaman **[Tugas](/tugas)**, **[Monitoring KPI](/kpi)**, **[Program](/program)** (dan detail program), **[Penjualan](/penjualan)**, **[Produk](/produk)**, **[Aset](/aset)**, dan **[Stok](/stok)**. Berlaku untuk semua karyawan, sesuai hak masing-masing.
 
 **Tujuan:** mengubah banyak data sekaligus (mis. mundurkan deadline puluhan tugas, isi realisasi KPI satu kuartal) tanpa mengetik satu per satu. Alurnya: **unduh ke Excel, ubah, impor kembali, periksa pratinjau, terapkan.**
 
@@ -689,6 +689,9 @@ Kata kunci: komisi, klaim komisi, referral, kode referral, CRU, HPP, profit, per
 | Monitoring KPI | tidak | realisasi, keterangan, selesai, catatan (satu kuartal) | tidak | Mengosongkan Realisasi = menghapus realisasi kuartal itu |
 | Program / detail program | ya | judul, tenggat, PIC, selesai | ya | Program milestone baru wajib dipilih; milestone lama tidak bisa dipindah program |
 | Penjualan | ya | data lead | tidak | **Tahap tidak bisa diubah lewat file**; produk/nilai terkunci setelah closing atau bila lebih dari satu produk |
+| Produk (admin/F&A) | ya | harga, HPP, % komisi, dll. | tidak | Satu baris = satu versi harga. Baris baru dengan **Kode produk yang sama** = versi harga baru (versi lama ditutup otomatis); Kode kosong = produk baru |
+| Aset (TechOps/Finance/admin) | ya | data aset | tidak | **Status aset tidak bisa diubah lewat file** (ada alur persetujuan sendiri) |
+| Stok (TechOps/Finance/admin) | ya | data barang | tidak | Kolom **Hitung fisik** = stok opname: selisih dengan Stok tercatat dicatat otomatis sebagai penyesuaian. Dilewati bila stok sudah bergerak sejak ekspor |
 
 ### Aturan penting
 
@@ -715,7 +718,56 @@ Pratinjau tetap wajib Anda periksa sebelum menekan **Terapkan**.
 - **Baris "Dilewati: tidak berhak"**: Anda tidak punya hak mengubah data itu; minta PIC atau head-nya.
 - **Impor terasa lama**: perubahan dikirim bertahap (sekitar 10 baris per kiriman); tunggu sampai hasil akhir muncul.
 
-Kata kunci: excel, ekspor, impor, unggah, unduh, ubah massal, bulk, xlsx, tugas, deadline, realisasi KPI, milestone, lead, bentrok, pratinjau, hapus massal, Claude`,
+Kata kunci: excel, ekspor, impor, unggah, unduh, ubah massal, bulk, xlsx, tugas, deadline, realisasi KPI, milestone, lead, produk, harga, komisi, aset, stok, opname, hitung fisik, bentrok, pratinjau, hapus massal, Claude`,
+  },
+  {
+    code: "APP-14",
+    title: "Panduan: Reminder & morning brief (Beranda)",
+    sort: 114,
+    body: `> Ada di bagian atas **[Beranda](/)**, dan versi penuhnya di **[Reminder](/reminder)**. Berlaku untuk semua karyawan; versi departemen dan seluruh perusahaan hanya untuk head, CEO, dan admin.
+
+**Tujuan:** melihat pekerjaan yang tenggatnya **paling lambat 3 hari lagi** (dan yang baru lewat), lalu, bagi pimpinan, menyalinnya sebagai **morning brief** ke WhatsApp.
+
+**Siapa:**
+- **Semua karyawan**: tab **Saya** (pekerjaan milik sendiri).
+- **Head**: tambahan tab departemen sendiri.
+- **CEO dan admin**: tab departemen sendiri dan tab **Semua** (seluruh departemen).
+
+### Membaca Reminder
+
+1. Pekerjaan dikelompokkan per departemen, lalu per tenggat: **Terlambat** (1-7 hari lewat), **Hari ini**, **Besok**, dan **2-3 hari lagi**.
+2. Yang masuk: **tugas** (belum selesai), **milestone program**, **program** (tenggat = tanggal selesai), dan **pengajuan** (tenggat = batas SLA).
+3. Ketuk sebuah baris untuk membuka datanya. Beranda menampilkan 8 baris pertama; sisanya ada di **Lihat semua**.
+4. Pekerjaan yang terlambat **lebih dari 7 hari** tidak ditulis satu per satu, hanya jumlahnya (*+4 pekerjaan terlambat lebih dari 7 hari*).
+5. Lead penjualan dan proyek tidak punya tenggat, jadi hanya ada **tautan** di bawahnya sebagai pengingat untuk mengecek.
+
+### Menyalin ke WhatsApp (head, CEO, admin)
+
+1. Pilih tab **departemen** atau **Semua**.
+2. Tekan **Salin untuk WhatsApp**, lalu tempel di WhatsApp. Huruf tebal dan miring akan tampil otomatis.
+3. Bila teks panjang, tombolnya menjadi **Salin pesan 1/3**, **2/3**, dan seterusnya: salin dan kirim satu per satu.
+4. Bila browser menolak menyalin, teks muncul di kotak; pilih dan salin manual.
+5. Di halaman **Reminder** ada **pratinjau teks WhatsApp** sebelum disalin.
+
+### Aturan penting
+
+- Tugas ditulis **tanpa kode**, hanya judul dan nama PIC. Pengajuan ditulis dengan **nomornya** (mis. PP-0012) dan tahap yang ditunggu, **tanpa judul bebas dan tanpa nilai rupiah**.
+- Nama departemen memakai nama singkat (Busdev & Sales, Finance, Aquaculture, DigiMar, Corporate, TechOps, Management).
+- Karyawan biasa tidak bisa membuka versi departemen atau seluruh perusahaan, walau mengubah alamat halaman.
+- Reminder bukan **pengingat pribadi** di tugas; itu fitur lain.
+
+### Susunan Beranda dan Dashboard
+
+- **Beranda** = pekerjaan saya hari ini: Reminder, Perlu perhatian saya, Catat pekerjaan, pintasan, dan target kuartal satu baris.
+- **Dashboard tim** = gambaran tim: tugas per departemen dan ketercapaian ATS. Form log kerja ada di Beranda dan halaman Log Kerja.
+
+### Kalau ada masalah
+
+- **Tab Departemen/Semua tidak ada**: tab itu hanya untuk head, CEO, dan admin.
+- **Pekerjaan tidak muncul**: pastikan tugas punya tenggat dan Anda tercatat sebagai PIC (untuk tab Saya). Tenggat lebih dari 3 hari lagi tidak ditampilkan.
+- **Tombol salin tidak bereaksi**: pakai kotak teks yang muncul, lalu salin manual.
+
+Kata kunci: reminder, morning brief, whatsapp, salin, tenggat, terlambat, hari ini, besok, beranda, dashboard tim, pengingat`,
   },
 ];
 

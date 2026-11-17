@@ -14,14 +14,10 @@ import {
   weekRange,
   weeklyHours,
 } from "@/lib/ats";
-import { TASK_SELECT, type EmployeeLite, type Sprint, type Task, type TaskNote } from "@/lib/tasks";
-import TodoSlider from "./TodoSlider";
+import { TASK_SELECT, type Task } from "@/lib/tasks";
 import CollapsibleSection from "@/components/CollapsibleSection";
-import LogSummaryCards from "../log-kerja/LogSummaryCards";
-import LogForm from "../log-kerja/LogForm";
-import LogList, { type WorkLog } from "../log-kerja/LogList";
 
-export const metadata: Metadata = { title: "Dashboard - Crustea Portal" };
+export const metadata: Metadata = { title: "Dashboard tim - Crustea Portal" };
 
 type DashEmployee = Pick<Employee, "id" | "full_name" | "dept_code" | "emp_status" | "app_role">;
 
@@ -50,11 +46,6 @@ export default async function DashboardPage() {
     periodLogsRes,
     weekLogsRes,
     lockedRes,
-    allEmployeesRes,
-    sprintsRes,
-    notesRes,
-    remindersRes,
-    todayLogsRes,
   ] = await Promise.all([
     fetchAll<Task>(() => supabase.from("tasks").select(TASK_SELECT).neq("status", "done").order("id")),
     supabase.from("departments").select("code, name").order("code"),
@@ -75,19 +66,6 @@ export default async function DashboardPage() {
       .not("locked_at", "is", null)
       .order("period_month", { ascending: false })
       .limit(1),
-    supabase.from("employees").select("id, full_name, dept_code, is_active").order("full_name"),
-    supabase.from("sprints").select("id, name, start_date, end_date").order("id"),
-    fetchAll<TaskNote>(() =>
-      supabase.from("task_notes").select("id, task_id, author_id, body, created_at, updated_at").order("created_at").order("id"),
-    ),
-    supabase.from("task_reminders").select("task_id, remind_at"),
-    // Log kerja saya hari ini (untuk bagian Log kerja di dashboard).
-    supabase
-      .from("work_logs")
-      .select("id, log_date, activity, minutes, proof, is_correction")
-      .eq("employee_id", me.id)
-      .eq("log_date", today)
-      .order("created_at", { ascending: false }),
   ]);
 
   const lastLocked = (lockedRes.data?.[0]?.period_month as string | undefined) ?? null;
@@ -105,11 +83,6 @@ export default async function DashboardPage() {
     periodLogsRes.error ??
     weekLogsRes.error ??
     lockedRes.error ??
-    allEmployeesRes.error ??
-    sprintsRes.error ??
-    notesRes.error ??
-    remindersRes.error ??
-    todayLogsRes.error ??
     snapshotsRes.error;
   if (error) {
     return (
@@ -134,22 +107,6 @@ export default async function DashboardPage() {
   });
   const totalOverdue = taskRows.reduce((t, r) => t + r.overdue, 0);
   const totalDue = taskRows.reduce((t, r) => t + r.dueThisWeek, 0);
-
-  // ---------- Perlu diselesaikan ----------
-  // Tugas yang belum selesai di mana saya PIC, atau milik departemen saya.
-  const todoTasks = tasksRes.data.filter(
-    (t) =>
-      t.dept_code === me.dept_code ||
-      t.task_people.some((p) => p.role === "pic" && p.employee_id === me.id),
-  );
-  const todoIds = new Set(todoTasks.map((t) => t.id));
-
-  // ---------- Log kerja saya ----------
-  const mine = (rows: { employee_id: string; minutes: number }[]) =>
-    rows.filter((r) => r.employee_id === me.id).reduce((t, r) => t + r.minutes, 0);
-  const myPeriodMinutes = mine(periodLogsRes.data);
-  const myWeekMinutes = mine(weekLogsRes.data);
-  const myTodayMinutes = (todayLogsRes.data ?? []).reduce((t, r) => t + (r.minutes as number), 0);
 
   // ---------- ATS per karyawan ----------
   const sumBy = (rows: { employee_id: string; minutes: number }[]) => {
@@ -189,36 +146,11 @@ export default async function DashboardPage() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Dashboard tim</h1>
         <p className="text-sm text-slate-600">
           Minggu ini: {formatDate(week.start)} - {formatDate(week.end)}
         </p>
       </div>
-
-      <CollapsibleSection title="Log kerja" summary={`Hari ini: ${formatHours(myTodayMinutes)} jam`}>
-        <div className="flex flex-col gap-4">
-          <LogSummaryCards
-            empStatus={me.emp_status}
-            weekMinutes={myWeekMinutes}
-            periodMinutes={myPeriodMinutes}
-            today={today}
-            currentPeriod={currentPeriod}
-          />
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="mb-3 font-semibold text-slate-900">Catat pekerjaan</p>
-            <LogForm today={today} />
-          </div>
-          <div>
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-slate-900">Log saya hari ini</p>
-              <Link href="/log-kerja" className="text-sm font-medium text-brand-700 hover:underline">
-                Buka halaman Log Kerja →
-              </Link>
-            </div>
-            <LogList logs={(todayLogsRes.data ?? []) as WorkLog[]} locked={false} adminMode={false} today={today} />
-          </div>
-        </div>
-      </CollapsibleSection>
 
       <CollapsibleSection
         title="Tugas per departemen"
@@ -280,20 +212,6 @@ export default async function DashboardPage() {
           </table>
         </div>
       </CollapsibleSection>
-
-      <section>
-        <h2 className="mb-3 font-semibold text-slate-900">Perlu diselesaikan</h2>
-        <TodoSlider
-          tasks={todoTasks}
-          notes={notesRes.data.filter((n) => todoIds.has(n.task_id))}
-          reminders={remindersRes.data ?? []}
-          employees={(allEmployeesRes.data ?? []) as EmployeeLite[]}
-          departments={departmentsRes.data ?? []}
-          sprints={(sprintsRes.data ?? []) as Sprint[]}
-          me={{ id: me.id, app_role: me.app_role, dept_code: me.dept_code }}
-          today={today}
-        />
-      </section>
 
       <section>
         <h2 className="font-semibold text-slate-900">Ketercapaian ATS</h2>
