@@ -6,6 +6,7 @@ import { formatDate, formatNumber, todayJakarta } from "@/lib/format";
 import { STOCK_MOVE_LABEL, canManageStock, type StockItem, type StockMoveKind } from "@/lib/sales";
 import { loadLeadFormProps } from "@/lib/sales-data";
 import { StockItemForm, StockMoveForm } from "./StockForms";
+import BulkStockSheet from "./BulkStockSheet";
 
 export const metadata: Metadata = { title: "Stok - Crustea Portal" };
 
@@ -61,6 +62,21 @@ export default async function StokPage() {
         </div>
         {canEdit && <StockItemForm products={products} />}
       </div>
+
+      {canEdit && (
+      <details className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+        <summary className="cursor-pointer font-medium text-slate-700">Ubah barang & stok opname lewat Excel</summary>
+        <div className="mt-2 flex flex-col gap-2">
+          <p className="text-xs text-slate-500">Ekspor semua barang beserta stok tercatat. Ubah data barang, tambah barang baru, atau isi kolom Hitung fisik untuk stok opname (selisihnya dicatat otomatis sebagai penyesuaian). Ada pratinjau dulu; belum ada yang tersimpan sebelum Anda menekan Terapkan.</p>
+          <BulkStockSheet
+            rows={items.map((i) => ({ item: i, onHand: overview.get(i.id)?.onHand ?? 0 }))}
+            ctx={{ products }}
+            exportedBy={me.full_name}
+            today={todayJakarta()}
+          />
+        </div>
+      </details>
+      )}
 
       {active.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">

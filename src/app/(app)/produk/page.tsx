@@ -7,6 +7,7 @@ import { canReviewRequests } from "@/lib/requests";
 import { PRODUCT_COLUMNS, isValidOn, toProduct } from "@/lib/commission";
 import ProductEditor from "./ProductEditor";
 import ProductBrowser from "./ProductBrowser";
+import BulkProductSheet from "./BulkProductSheet";
 
 export const metadata: Metadata = { title: "Produk & Komisi - Crustea Portal" };
 
@@ -40,6 +41,16 @@ export default async function ProdukPage() {
       </div>
 
       {canEdit && <ProductEditor product={null} today={today} />}
+
+      {canEdit && (
+      <details className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+        <summary className="cursor-pointer font-medium text-slate-700">Ubah banyak produk lewat Excel</summary>
+        <div className="mt-2 flex flex-col gap-2">
+          <p className="text-xs text-slate-500">Ekspor semua versi harga produk, ubah atau tambah di Excel, lalu impor kembali. Ada pratinjau dulu; belum ada yang tersimpan sebelum Anda menekan Terapkan.</p>
+          <BulkProductSheet products={products} exportedBy={me.full_name} today={today} />
+        </div>
+      </details>
+      )}
 
       <ProductBrowser
         current={products.filter((p) => isValidOn(p, today))}

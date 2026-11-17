@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isIsoDate } from "@/lib/travel";
-import type { ProductType } from "@/lib/commission";
+import { getCurrentEmployee } from "@/lib/auth";
+import { PRODUCT_COLUMNS, toProduct, type Product, type ProductType } from "@/lib/commission";
+import { rowValues, sameValue, type ApplyResult, type RowValues } from "@/lib/bulk-sheet";
+import { PH, productInputFromValues, productSheetDef, type ProductSheetOp } from "@/lib/bulk-products";
 
 type Result = { ok: true } | { ok: false; message: string };
 
@@ -114,4 +117,88 @@ export async function newProductVersion(oldId: string, input: ProductInput): Pro
     return { ok: false, message: error.message };
   }
   return done();
+}
+
+// ---------- Impor Excel: master produk (ekspor-ubah-impor massal) ----------
+// Memakai saveProduct / newProductVersion yang sama dengan form; hak ubah dijaga database (admin/F&A).
+
+export async function fetchProductsForSheet(ids: string[]): Promise<{ ok: true; products: Product[] } | { ok: false; message: string }> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+  const list = [...new Set(ids.filter(Boolean))];
+  const supabase = await createClient();
+  const products: Product[] = [];
+  for (let i = 0; i < list.length; i += 100) {
+    const { data, error } = await supabase.from("products").select(PRODUCT_COLUMNS).in("id", list.slice(i, i + 100));
+    if (error) return { ok: false, message: `Gagal memuat produk: ${error.message}` };
+    products.push(...(data ?? []).map((r) => toProduct(r as Record<string, unknown>)));
+  }
+  return { ok: true, products };
+}
+
+export async function applyProductSheet(ops: ProductSheetOp[]): Promise<{ ok: true; results: ApplyResult[] } | { ok: false; message: string }> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+  if (ops.length > 25) return { ok: false, message: "Terlalu banyak sekaligus (maks. 25 per kiriman)." };
+  const def = productSheetDef();
+  const cur = await fetchProductsForSheet(ops.filter((o) => o.id).map((o) => o.id));
+  if (!cur.ok) return cur;
+  const byId = new Map(cur.products.map((p) => [p.id, p]));
+  const kindOf = (col: string) => def.columns.find((c) => c.header === col)?.kind ?? "text";
+  const supabase = await createClient();
+
+  // Satu per satu (bukan paralel): beberapa baris bisa menyentuh produk yang sama (versi baru menutup versi lama).
+  const results: ApplyResult[] = [];
+  for (const op of ops) {
+    const res = (status: ApplyResult["status"], message: string): ApplyResult => ({ id: op.id, line: op.line, label: op.label, status, message });
+    try {
+      let v: RowValues;
+      if (op.op === "add") {
+        v = {};
+        for (const c of def.columns) v[c.header] = c.kind === "bool" ? "Tidak" : "";
+      } else {
+        const p = byId.get(op.id);
+        if (!p) {
+          results.push(res("skipped", "Versi produk sudah tidak ada atau tidak bisa Anda lihat."));
+          continue;
+        }
+        v = rowValues(def, p);
+        const stale = op.changes.find((ch) => !sameValue(kindOf(ch.col), v[ch.col] ?? "", ch.from));
+        if (stale) {
+          results.push(res("skipped", `Bentrok: kolom ${stale.col} sudah berubah di aplikasi sejak pratinjau.`));
+          continue;
+        }
+      }
+      for (const ch of op.changes) v[ch.col] = ch.to;
+      const parsed = productInputFromValues(v);
+      if (!("input" in parsed)) {
+        results.push(res("failed", parsed.problems.join(" ")));
+        continue;
+      }
+      let r: { ok: true } | { ok: false; message: string };
+      let note = op.op === "add" ? "Ditambahkan." : "Diubah.";
+      const code = (v[PH.code] ?? "").trim();
+      if (op.op === "add" && code) {
+        // Kode terisi = versi harga baru dari produk yang sudah ada.
+        const { data: old, error } = await supabase.from("products").select("id").eq("code", code).order("valid_from", { ascending: false }).limit(1).maybeSingle();
+        if (error) {
+          results.push(res("failed", error.message));
+          continue;
+        }
+        if (!old) {
+          results.push(res("failed", `Kode produk "${code}" tidak dikenal. Kosongkan Kode untuk produk baru.`));
+          continue;
+        }
+        r = await newProductVersion(old.id as string, parsed.input);
+        note = "Versi harga baru ditambahkan (versi lama ditutup).";
+      } else {
+        r = await saveProduct(parsed.input, op.op === "add" ? null : op.id);
+      }
+      if (!r.ok) results.push(res(r.message.includes("tidak berhak") || r.message.includes("row-level") ? "skipped" : "failed", r.message));
+      else results.push(res("ok", note));
+    } catch (e) {
+      results.push(res("failed", e instanceof Error ? e.message : "Kesalahan tak terduga."));
+    }
+  }
+  return { ok: true, results };
 }

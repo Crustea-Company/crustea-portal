@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/format";
-import { ASSET_CATEGORIES, type AssetCategory } from "@/lib/sales";
+import { getCurrentEmployee } from "@/lib/auth";
+import { ASSET_CATEGORIES, ASSET_COLUMNS, toAsset, type Asset, type AssetCategory } from "@/lib/sales";
+import { rowValues, sameValue, type ApplyResult, type RowValues } from "@/lib/bulk-sheet";
+import { assetInputFromValues, assetSheetDef, type AssetSheetOp } from "@/lib/bulk-assets";
 
 type Result = { ok: true; id: string } | { ok: false; message: string };
 type SimpleResult = { ok: true } | { ok: false; message: string };
@@ -74,4 +77,60 @@ export async function addAssetLog(id: string, action: "maintenance" | "opname" |
   if (error) return { ok: false, message: error.message };
   revalidateAsset(id);
   return { ok: true };
+}
+
+// ---------- Impor Excel: aset (ekspor-ubah-impor massal) ----------
+// Memakai saveAsset yang sama dengan form; hak ubah dijaga database (TechOps/Finance/admin). Status & hapus tidak bisa lewat file.
+
+export async function fetchAssetsForSheet(ids: string[]): Promise<{ ok: true; assets: Asset[] } | { ok: false; message: string }> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+  const list = [...new Set(ids.filter(Boolean))];
+  const supabase = await createClient();
+  const assets: Asset[] = [];
+  for (let i = 0; i < list.length; i += 100) {
+    const { data, error } = await supabase.from("assets").select(ASSET_COLUMNS).in("id", list.slice(i, i + 100));
+    if (error) return { ok: false, message: `Gagal memuat aset: ${error.message}` };
+    assets.push(...(data as unknown as Record<string, unknown>[]).map(toAsset));
+  }
+  return { ok: true, assets };
+}
+
+export async function applyAssetSheet(ops: AssetSheetOp[]): Promise<{ ok: true; results: ApplyResult[] } | { ok: false; message: string }> {
+  const me = await getCurrentEmployee();
+  if (!me) return { ok: false, message: "Sesi login berakhir. Silakan masuk lagi." };
+  if (ops.length > 25) return { ok: false, message: "Terlalu banyak sekaligus (maks. 25 per kiriman)." };
+  const def = assetSheetDef();
+  const cur = await fetchAssetsForSheet(ops.filter((o) => o.id).map((o) => o.id));
+  if (!cur.ok) return cur;
+  const byId = new Map(cur.assets.map((a) => [a.id, a]));
+  const kindOf = (col: string) => def.columns.find((c) => c.header === col)?.kind ?? "text";
+
+  const results = await Promise.all(
+    ops.map(async (op): Promise<ApplyResult> => {
+      const res = (status: ApplyResult["status"], message: string): ApplyResult => ({ id: op.id, line: op.line, label: op.label, status, message });
+      try {
+        let v: RowValues;
+        if (op.op === "add") {
+          v = {};
+          for (const c of def.columns) v[c.header] = c.kind === "bool" ? "Tidak" : "";
+        } else {
+          const a = byId.get(op.id);
+          if (!a) return res("skipped", "Aset sudah tidak ada atau tidak bisa Anda lihat.");
+          v = rowValues(def, a);
+          const stale = op.changes.find((ch) => !sameValue(kindOf(ch.col), v[ch.col] ?? "", ch.from));
+          if (stale) return res("skipped", `Bentrok: kolom ${stale.col} sudah berubah di aplikasi sejak pratinjau.`);
+        }
+        for (const ch of op.changes) v[ch.col] = ch.to;
+        const parsed = assetInputFromValues(v);
+        if (!("input" in parsed)) return res("failed", parsed.problems.join(" "));
+        const r = await saveAsset(parsed.input, op.op === "add" ? null : op.id);
+        if (!r.ok) return res(r.message.includes("Hanya TechOps") ? "skipped" : "failed", r.message);
+        return res("ok", op.op === "add" ? "Ditambahkan." : "Diubah.");
+      } catch (e) {
+        return res("failed", e instanceof Error ? e.message : "Kesalahan tak terduga.");
+      }
+    }),
+  );
+  return { ok: true, results };
 }

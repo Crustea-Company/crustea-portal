@@ -15,6 +15,8 @@ import {
   type AssetStatus,
 } from "@/lib/sales";
 
+import BulkAssetSheet from "./BulkAssetSheet";
+
 export const metadata: Metadata = { title: "Aset - Crustea Portal" };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -78,6 +80,16 @@ export default async function AsetPage({ searchParams }: { searchParams: SearchP
           />
         </form>
       </div>
+
+      {canManageAssets(me) && (
+      <details className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+        <summary className="cursor-pointer font-medium text-slate-700">Ubah banyak aset lewat Excel</summary>
+        <div className="mt-2 flex flex-col gap-2">
+          <p className="text-xs text-slate-500">Ekspor aset yang sedang tampil (ikut filter status dan pencarian), ubah atau tambah di Excel, lalu impor kembali. Status aset tidak bisa diubah lewat file. Ada pratinjau dulu; belum ada yang tersimpan sebelum Anda menekan Terapkan.</p>
+          <BulkAssetSheet assets={list} exportedBy={me.full_name} today={today} />
+        </div>
+      </details>
+      )}
 
       {list.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">Belum ada aset di sini.</p>
